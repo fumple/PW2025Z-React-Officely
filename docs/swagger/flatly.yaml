@@ -2,4 +2,124 @@ openapi: 3.1.0
 info:
   title: Officely - API documentation for Flatly
   version: 0.0.1
-paths: {}
+components: 
+  schemas:
+    FilterElement:
+      type: object
+      properties: 
+        key:
+          type: string
+        label:
+          type: string
+      oneOf: 
+        - type: object
+          properties: 
+            type:
+              type: string
+              const: "flags"
+            flags:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+            min:
+              type: integer
+            max:
+              type: integer
+        - type: object
+          properties: 
+            type:
+              type: string
+              const: "integer"
+    FilterSection:
+      type: object
+      properties: 
+        key:
+          type: string
+        label:
+          type: string
+        elements:
+          type: array
+          items: 
+            $ref: '#/components/schemas/FilterElement'
+    Filters:
+      type: array
+      items: 
+        $ref: '#/components/schemas/FilterSection'
+    Office:
+      type: object
+      properties: 
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        min_price:
+          type: integer
+        max_price:
+          type: integer
+        photo_urls:
+          type: array
+          items:
+            type: string
+    Offices:
+      type: array
+      items:
+        $ref: '#/components/schemas/Office'
+paths:
+  '/filters':
+    get:
+      summary: Get a list of all filters
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/Filters'
+  '/offices':
+    get:
+      summary: List or search offices
+      parameters:
+        - name: nearAddress
+          in: query
+          schema:
+            type: string
+        - name: maxDistanceFromAddress
+          in: query
+          schema:
+            type: integer
+            description: In meters
+            examples:
+              - 5000
+        - name: filter
+          in: query
+          schema: 
+            type: array
+            items:
+              type: string
+              examples:
+                - "builtin.price.min:40"
+                - "desk.type.standing:true"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            examples: [ 10 ]
+        - name: pageToken
+          in: query
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/Offices'
+      
