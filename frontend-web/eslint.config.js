@@ -19,5 +19,18 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+
+    // Disable inefficient imports
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          "patterns": [{
+            "regex": "^@mui/[^/]+$",
+            message: "Imports like `import { Button } from '@mui/material'` are not allowed, please use `import Button from '@mui/material/Button'`"
+          }]
+        }
+      ]
+    }
   },
 ])
