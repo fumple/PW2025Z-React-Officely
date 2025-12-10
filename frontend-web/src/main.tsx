@@ -10,9 +10,19 @@ import "./index.css";
 import CssBaseline from "@mui/material/CssBaseline";
 import { App } from "./App";
 
+import { createBrowserRouter } from "react-router";
+import { RouterProvider } from "react-router/dom";
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <App />,
+  },
+]);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CssBaseline />
-    <App />
+    <RouterProvider router={router} />
   </StrictMode>,
 );
