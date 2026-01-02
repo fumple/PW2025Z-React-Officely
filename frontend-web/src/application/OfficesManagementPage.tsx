@@ -1,5 +1,6 @@
 import { MdAdd, MdArrowDropDown, MdFilterList } from "react-icons/md";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
@@ -23,6 +24,7 @@ const allOfficesCount: number = allOffices.length;
 export const OfficesManagementPage = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const navigate = useNavigate();
 
   const totalCount = allOffices.length;
 
@@ -57,7 +59,11 @@ export const OfficesManagementPage = () => {
     <div className="page-content">
       <div className="page-header">
         <h1 className="page-title">Offices</h1>
-        <button className="offices-add-btn" type="button">
+        <button
+          className="offices-add-btn"
+          type="button"
+          onClick={() => navigate("/app/offices/create-office")}
+        >
           <MdAdd size={18} />
           <span>Add new office</span>
         </button>

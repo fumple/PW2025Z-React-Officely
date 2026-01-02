@@ -12,6 +12,9 @@ import { OfficesManagementPage } from "./application/OfficesManagementPage";
 import { BookingsManagementPage } from "./application/BookingsManagementPage";
 import { UsersManagementPage } from "./application/UsersManagementPage";
 import { PaymentsOverviewPage } from "./application/PaymentsOverviewPage";
+import { OfficeCreatePage } from "./application/OfficeCreatePage";
+import { OfficeDetailsPage } from "./application/OfficeDetailsPage";
+import { OfficeEditPage } from "./application/OfficeEditPage";
 
 export const router = createBrowserRouter([
   {
@@ -54,7 +57,24 @@ export const router = createBrowserRouter([
       },
       {
         path: "offices",
-        Component: OfficesManagementPage,
+        children: [
+          {
+            index: true,
+            Component: OfficesManagementPage,
+          },
+          {
+            path: "create-office",
+            Component: OfficeCreatePage,
+          },
+          {
+            path: "details",
+            Component: OfficeDetailsPage,
+          },
+          {
+            path: "edit",
+            Component: OfficeEditPage,
+          },
+        ],
       },
       {
         path: "bookings",
