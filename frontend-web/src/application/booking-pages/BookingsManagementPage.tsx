@@ -1,32 +1,38 @@
-import { MdAdd, MdArrowDropDown, MdFilterList } from "react-icons/md";
+import { MdArrowDropDown, MdFilterList } from "react-icons/md";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
-type OfficeRow = {
-  name: string;
-  address: string;
-  city: string;
-  country: string;
-  totalCapacity: string;
+type BookingRow = {
+  id: string;
+  office: string;
+  price: string; //NUMBER TYPE???
+  paymentMethod: string;
+  paymentStatus: string;
+  bookingStatus: string;
+  creationDate: string; //DATE TYPE????
+  bookingPeriod: string; //ALSOO ??
 };
 
-const allOffices: OfficeRow[] = Array.from({ length: 60 }).map(() => ({
-  name: "Text line",
-  address: "Text line",
-  city: "Text line",
-  country: "Text line",
-  totalCapacity: "Text line",
+const allBookings: BookingRow[] = Array.from({ length: 40 }).map((_, i) => ({
+  id: String(i + 1),
+  office: "Text line",
+  price: "Text line",
+  paymentMethod: "Text line",
+  paymentStatus: "Text line",
+  bookingStatus: "Text line",
+  creationDate: "Text line",
+  bookingPeriod: "Text line",
 }));
-const allOfficesCount: number = allOffices.length;
+const allBookingsCount: number = allBookings.length;
 
-export const OfficesManagementPage = () => {
+export const BookingsManagementPage = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const navigate = useNavigate();
 
-  const totalCount = allOffices.length;
+  const totalCount = allBookings.length;
 
   const rowsPerPageOptions =
     totalCount === 0
@@ -40,15 +46,15 @@ export const OfficesManagementPage = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / effectiveRowsPerPage));
   const currentPage = Math.min(page, totalPages); // safety
-  const pagedOffices = useMemo(() => {
+  const pagedBookings = useMemo(() => {
     const start = (currentPage - 1) * effectiveRowsPerPage;
     const end = start + effectiveRowsPerPage;
-    return allOffices.slice(start, end);
+    return allBookings.slice(start, end);
   }, [currentPage, effectiveRowsPerPage]);
 
   const from =
-    allOfficesCount === 0 ? 0 : (page - 1) * effectiveRowsPerPage + 1;
-  const to = Math.min(page * effectiveRowsPerPage, allOfficesCount);
+    allBookingsCount === 0 ? 0 : (page - 1) * effectiveRowsPerPage + 1;
+  const to = Math.min(page * effectiveRowsPerPage, allBookingsCount);
 
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 5
@@ -58,15 +64,7 @@ export const OfficesManagementPage = () => {
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1 className="page-title">Offices</h1>
-        <button
-          className="offices-add-btn"
-          type="button"
-          onClick={() => navigate("/app/offices/create-office")}
-        >
-          <MdAdd size={18} />
-          <span>Add new office</span>
-        </button>
+        <h1 className="page-title">Bookings</h1>
       </div>
 
       <div className="page-table-card">
@@ -75,7 +73,7 @@ export const OfficesManagementPage = () => {
             <tr>
               <th>
                 <div className="th-inner">
-                  <span>Name</span>
+                  <span>ID</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -84,7 +82,7 @@ export const OfficesManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>Address</span>
+                  <span>Office</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -93,7 +91,7 @@ export const OfficesManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>City</span>
+                  <span>Price paid/due</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -102,7 +100,7 @@ export const OfficesManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>Country</span>
+                  <span>Payment method</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -111,7 +109,34 @@ export const OfficesManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>Total capacity</span>
+                  <span>Payment status</span>
+                  <span className="th-icons">
+                    <MdArrowDropDown size={18} />
+                    <MdFilterList size={16} />
+                  </span>
+                </div>
+              </th>
+              <th>
+                <div className="th-inner">
+                  <span>Booking status</span>
+                  <span className="th-icons">
+                    <MdArrowDropDown size={18} />
+                    <MdFilterList size={16} />
+                  </span>
+                </div>
+              </th>
+              <th>
+                <div className="th-inner">
+                  <span>Creation date</span>
+                  <span className="th-icons">
+                    <MdArrowDropDown size={18} />
+                    <MdFilterList size={16} />
+                  </span>
+                </div>
+              </th>
+              <th>
+                <div className="th-inner">
+                  <span>Booking period</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -123,15 +148,22 @@ export const OfficesManagementPage = () => {
           </thead>
 
           <tbody>
-            {pagedOffices.map((r, idx) => (
+            {pagedBookings.map((r, idx) => (
               <tr key={idx}>
-                <td>{r.name}</td>
-                <td>{r.address}</td>
-                <td>{r.city}</td>
-                <td>{r.country}</td>
-                <td>{r.totalCapacity}</td>
+                <td>{r.id}</td>
+                <td>{r.office}</td>
+                <td>{r.price}</td>
+                <td>{r.paymentMethod}</td>
+                <td>{r.paymentStatus}</td>
+                <td>{r.bookingStatus}</td>
+                <td>{r.creationDate}</td>
+                <td>{r.bookingPeriod}</td>
                 <td className="td-actions">
-                  <button className="page-details-link" type="button">
+                  <button
+                    className="page-details-link"
+                    type="button"
+                    onClick={() => navigate(`/app/bookings/${r.id}`)}
+                  >
                     Details
                   </button>
                 </td>
@@ -165,7 +197,7 @@ export const OfficesManagementPage = () => {
           </div>
 
           <div className="page-footer-center">
-            {from}-{to} of {allOfficesCount}
+            {from}-{to} of {allBookingsCount}
           </div>
 
           <div className="pagination">

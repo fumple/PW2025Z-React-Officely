@@ -47,6 +47,8 @@ export const OfficeCreatePage = () => {
     });
   };
 
+  const officeId = crypto.randomUUID();
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -92,7 +94,11 @@ export const OfficeCreatePage = () => {
           </div>
 
           <div className="form-actions">
-            <button type="button" className="btn-primary">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => navigate(`/app/offices/${officeId}`)}
+            >
               <MdSave />
               <span>Save</span>
             </button>

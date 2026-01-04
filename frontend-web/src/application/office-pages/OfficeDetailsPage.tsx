@@ -5,15 +5,11 @@ import {
   MdOutlineVisibilityOff,
   MdArrowDropDown,
   MdFilterList,
+  MdDeleteOutline,
 } from "react-icons/md";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { useMemo, useState } from "react";
-
-// type SelectedImage = {
-//   id: string;
-//   file: File;
-//   previewUrl: string;
-// };
+import { Modal } from "../Modal";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
@@ -33,8 +29,8 @@ type PricingRow = {
   timeForCancellation: string;
 };
 
-const allItems: ItemRow[] = Array.from({ length: 60 }).map(() => ({
-  name: "Text line",
+const allItems: ItemRow[] = Array.from({ length: 60 }).map((_, i) => ({
+  name: String("A" + (i + 1)),
   floor: "Text line",
   room: "Text line",
   currentCapacity: "Text line",
@@ -67,6 +63,7 @@ function getPageItems(totalPages: number): Array<number | "ellipsis"> {
 
 export const OfficeDetailsPage = () => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   const officeName = "Lorem Ipsum Office";
   const officeDescription = "The perfect office for everyone!";
@@ -105,7 +102,6 @@ export const OfficeDetailsPage = () => {
   );
   const itemsPageItems = getPageItems(itemsTotalPages);
 
-  // ===== Pricing pagination =====
   const pricingTotalCount = allPricings.length;
   const pricingRowsOptions = getRowsPerPageOptions(pricingTotalCount);
   const pricingEffectiveRows = getEffectiveRowsPerPage(
@@ -134,35 +130,98 @@ export const OfficeDetailsPage = () => {
   );
   const pricingPageItems = getPageItems(pricingTotalPages);
 
+  const { officeId } = useParams<{ officeId: string }>();
+  if (!officeId) return null;
+
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1 className="page-title">{officeName}</h1>
-        <label>{officeDescription}</label>
-        <label>Address: {officeAddress}</label>
-        <label>Country: {officeCountry}</label>
-        {/* MAP */}
-        <button className="btn-primary" onClick={() => navigate("../edit")}>
-          <MdEditSquare />
-          <span>Edit</span>
-        </button>
-        <button>View bookings</button>
-        <button className="btn-link-danger">
-          <MdOutlineVisibilityOff />
-          <span>Unpublish</span>
-        </button>
-        <button className="btn-link-danger">
-          <MdOutlineBackspace />
-          <span>Delete</span>
-        </button>
-        <div className="gallery-strip">
-          {/* {images.map((img) => (
-            <div key={img.id} className="gallery-thumb">
-              <img src={img.previewUrl} alt={img.file.name} />
+        <div className="office-top">
+          <div className="office-meta">
+            <h1 className="page-title">{officeName}</h1>
+            <label>{officeDescription}</label>
+            <label>Address: {officeAddress}</label>
+            <label>Country: {officeCountry}</label>
+
+            <div className="office-actions">
+              <button
+                className="btn-primary"
+                type="button"
+                onClick={() => navigate("./edit")}
+              >
+                <MdEditSquare />
+                <span>Edit</span>
+              </button>
+
+              <button
+                className="btn-secondary"
+                type="button"
+                onClick={() => navigate("/app/bookings")}
+              >
+                View bookings
+              </button>
+
+              <button className="btn-link-danger" type="button">
+                <MdOutlineVisibilityOff />
+                <span>Unpublish</span>
+              </button>
+
+              <button
+                className="btn-link-danger"
+                type="button"
+                onClick={() => setOpen(true)}
+              >
+                <MdOutlineBackspace />
+                <span>Delete</span>
+              </button>
+
+              <Modal
+                open={open}
+                title="Office deletion"
+                onClose={() => setOpen(false)}
+              >
+                <p>
+                  To delete an office the following requirements must be met:
+                </p>
+                <ul>
+                  <li>
+                    There may not be any upcoming or active reservations on the
+                    office
+                  </li>
+                </ul>
+                <p>
+                  Unpublishing the office is preferred to deleting, since it
+                  prevents new reservations from being made and hides the office
+                  in search results, while still allowing users to view details
+                  of this office in their reservations.
+                </p>
+                <p>Are you sure you want to delete the office?</p>
+
+                <div className="form-actions">
+                  <button
+                    className="btn-primary"
+                    onClick={() => alert("deleted")}
+                  >
+                    <MdDeleteOutline />
+                    Yes
+                  </button>
+                  <button
+                    className="btn-link-danger"
+                    onClick={() => setOpen(false)}
+                  >
+                    No
+                  </button>
+                </div>
+              </Modal>
             </div>
-          ))} */}
+          </div>
+
+          {/* ignore map for now */}
+          {/* <div className="office-map-slot" /> */}
         </div>
-        <label>Bookable items</label>
+
+        <div className="gallery-strip">{/* thumbnails */}</div>
+        <p className="page-label">Bookable items</p>
         <button className="btn-primary" type="button">
           <MdAdd />
           <span>Add</span>
@@ -223,20 +282,28 @@ export const OfficeDetailsPage = () => {
             </thead>
 
             <tbody>
-              {pagedItems.map((r, idx) => (
-                <tr key={idx}>
+              {pagedItems.map((r) => (
+                <tr key={r.name}>
                   <td>{r.name}</td>
                   <td>{r.floor}</td>
                   <td>{r.room}</td>
                   <td>{r.currentCapacity}</td>
                   <td>{r.totalCapacity}</td>
                   <td className="td-actions">
-                    <button className="page-details-link" type="button">
+                    <button
+                      className="page-details-link"
+                      type="button"
+                      onClick={() => navigate(`./${r.name}`)}
+                    >
                       Details
                     </button>
                   </td>
                   <td className="td-actions">
-                    <button className="page-details-link" type="button">
+                    <button
+                      className="page-details-link"
+                      type="button"
+                      onClick={() => navigate(`./${r.name}/edit`)}
+                    >
                       Edit
                     </button>
                   </td>
@@ -312,7 +379,7 @@ export const OfficeDetailsPage = () => {
             </div>
           </div>
         </div>
-        <label>Pricing tables</label>
+        <p className="page-label">Pricing tables</p>
         <button className="btn-primary" type="button">
           <MdAdd />
           <span>Add</span>
