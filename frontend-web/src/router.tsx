@@ -19,6 +19,10 @@ import { BookingDetailsPage } from "./application/booking-pages/BookingDetailsPa
 import { UserDetailsPage } from "./application/user-pages/UserDetailsPage";
 import { ItemDetailsPage } from "./application/office-pages/ItemDetailsPage";
 import { ItemEditPage } from "./application/office-pages/ItemEditPage";
+import { PricingTableDetailsPage } from "./application/office-pages/PricingTableDetailsPage";
+import { PricingTableEditPage } from "./application/office-pages/PricingTableEditPage";
+import { PricingTableCreatePage } from "./application/office-pages/PricingTableCreatePage";
+import { ItemCreatePage } from "./application/office-pages/ItemCreatePage";
 
 export const router = createBrowserRouter([
   {
@@ -78,12 +82,28 @@ export const router = createBrowserRouter([
                 Component: OfficeDetailsPage,
               },
               {
-                path: ":itemName",
+                path: "item/:itemName",
                 Component: ItemDetailsPage,
               },
               {
-                path: ":itemName/edit",
+                path: "item/:itemName/edit",
                 Component: ItemEditPage,
+              },
+              {
+                path: "item/new",
+                Component: ItemCreatePage,
+              },
+              {
+                path: "pricing-table/:pricingTableId",
+                Component: PricingTableDetailsPage,
+              },
+              {
+                path: "pricing-table/:pricingTableId/edit",
+                Component: PricingTableEditPage,
+              },
+              {
+                path: "pricing-table/new",
+                Component: PricingTableCreatePage,
               },
             ],
           },

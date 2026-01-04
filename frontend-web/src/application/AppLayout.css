@@ -718,3 +718,48 @@
     height: 200px;
   }
 }
+
+.form-row-labels {
+  display: flex;
+  align-items: center;
+  width: 380px; /* matches the row below */
+  margin-top: 6px;
+}
+
+.form-row-label {
+  font-size: 12px;
+  color: #444;
+  margin: 0;
+}
+
+.form-row-label--right {
+  margin-left: auto;
+  padding-right: 4px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 380px; /* input+select line width like in the goal */
+}
+
+.form-row-input {
+  width: 300px; /* same as your inputs */
+}
+
+/* Select in forms should look like your inputs (NOT the footer page-select) */
+.form-select {
+  height: 32px;
+  border: 1px solid #d7d7d7;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #111;
+  background: #fff;
+  outline: none;
+}
+
+.form-select:focus {
+  border-color: #b8b8b8;
+}
