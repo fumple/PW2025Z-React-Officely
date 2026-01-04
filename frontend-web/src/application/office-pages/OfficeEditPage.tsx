@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MdSave, MdCancel, MdAddPhotoAlternate } from "react-icons/md";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 type SelectedImage = {
   id: string;
@@ -47,6 +47,9 @@ export const OfficeEditPage = () => {
     });
   };
 
+  const { officeId } = useParams<{ officeId: string }>();
+  if (!officeId) return null;
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -92,14 +95,18 @@ export const OfficeEditPage = () => {
           </div>
 
           <div className="form-actions">
-            <button type="button" className="btn-primary">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => navigate(`/app/offices/${officeId}`)}
+            >
               <MdSave />
               <span>Save</span>
             </button>
             <button
               type="button"
               className="btn-link-danger"
-              onClick={() => navigate("..")}
+              onClick={() => navigate(`/app/offices/${officeId}`)}
             >
               <MdCancel />
               <span>Cancel</span>

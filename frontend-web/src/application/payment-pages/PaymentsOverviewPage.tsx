@@ -1,28 +1,35 @@
 import { MdArrowDropDown, MdFilterList } from "react-icons/md";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
-type UsersRow = {
+type PaymentRow = {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
+  reservationId: string;
+  type: string;
+  amount: string;
+  status: string;
+  creationDate: string; //DATE TYPE????
+  dueDate: string; //DATE TYPE????
 };
 
-const allUsers: UsersRow[] = Array.from({ length: 8 }).map(() => ({
+const allPayments: PaymentRow[] = Array.from({ length: 123 }).map(() => ({
   id: "Text line",
-  email: "Text line",
-  firstName: "Text line",
-  lastName: "Text line",
+  reservationId: "Text line",
+  type: "Text line",
+  amount: "Text line",
+  status: "Text line",
+  creationDate: "Text line",
+  dueDate: "Text line",
 }));
-const allUsersCount: number = allUsers.length;
+const allPaymentsCount: number = allPayments.length;
 
-export const UsersManagementPage = () => {
+export const PaymentsOverviewPage = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const totalCount = allUsers.length;
+  const totalCount = allPayments.length;
 
   const rowsPerPageOptions =
     totalCount === 0
@@ -36,24 +43,27 @@ export const UsersManagementPage = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / effectiveRowsPerPage));
   const currentPage = Math.min(page, totalPages); // safety
-  const pagedUsers = useMemo(() => {
+  const pagedPayments = useMemo(() => {
     const start = (currentPage - 1) * effectiveRowsPerPage;
     const end = start + effectiveRowsPerPage;
-    return allUsers.slice(start, end);
+    return allPayments.slice(start, end);
   }, [currentPage, effectiveRowsPerPage]);
 
-  const from = allUsersCount === 0 ? 0 : (page - 1) * effectiveRowsPerPage + 1;
-  const to = Math.min(page * effectiveRowsPerPage, allUsersCount);
+  const from =
+    allPaymentsCount === 0 ? 0 : (page - 1) * effectiveRowsPerPage + 1;
+  const to = Math.min(page * effectiveRowsPerPage, allPaymentsCount);
 
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 5
       ? Array.from({ length: totalPages }, (_, i) => i + 1)
       : [1, 2, 3, "ellipsis", totalPages - 1, totalPages];
 
+  const navigate = useNavigate();
+
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1 className="page-title">Users</h1>
+        <h1 className="page-title">Payments</h1>
       </div>
 
       <div className="page-table-card">
@@ -71,7 +81,7 @@ export const UsersManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>Email</span>
+                  <span>Reservation ID</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -80,7 +90,7 @@ export const UsersManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>First Name</span>
+                  <span>Type</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -89,7 +99,34 @@ export const UsersManagementPage = () => {
               </th>
               <th>
                 <div className="th-inner">
-                  <span>Last Name</span>
+                  <span>Amount</span>
+                  <span className="th-icons">
+                    <MdArrowDropDown size={18} />
+                    <MdFilterList size={16} />
+                  </span>
+                </div>
+              </th>
+              <th>
+                <div className="th-inner">
+                  <span>Status</span>
+                  <span className="th-icons">
+                    <MdArrowDropDown size={18} />
+                    <MdFilterList size={16} />
+                  </span>
+                </div>
+              </th>
+              <th>
+                <div className="th-inner">
+                  <span>Creation date</span>
+                  <span className="th-icons">
+                    <MdArrowDropDown size={18} />
+                    <MdFilterList size={16} />
+                  </span>
+                </div>
+              </th>
+              <th>
+                <div className="th-inner">
+                  <span>Due date</span>
                   <span className="th-icons">
                     <MdArrowDropDown size={18} />
                     <MdFilterList size={16} />
@@ -101,14 +138,21 @@ export const UsersManagementPage = () => {
           </thead>
 
           <tbody>
-            {pagedUsers.map((r, idx) => (
+            {pagedPayments.map((r, idx) => (
               <tr key={idx}>
                 <td>{r.id}</td>
-                <td>{r.email}</td>
-                <td>{r.firstName}</td>
-                <td>{r.lastName}</td>
+                <td>{r.reservationId}</td>
+                <td>{r.type}</td>
+                <td>{r.amount}</td>
+                <td>{r.status}</td>
+                <td>{r.creationDate}</td>
+                <td>{r.dueDate}</td>
                 <td className="td-actions">
-                  <button className="page-details-link" type="button">
+                  <button
+                    className="page-details-link"
+                    type="button"
+                    onClick={() => navigate("/app/bookings")}
+                  >
                     Details
                   </button>
                 </td>
@@ -142,7 +186,7 @@ export const UsersManagementPage = () => {
           </div>
 
           <div className="page-footer-center">
-            {from}-{to} of {allUsersCount}
+            {from}-{to} of {allPaymentsCount}
           </div>
 
           <div className="pagination">

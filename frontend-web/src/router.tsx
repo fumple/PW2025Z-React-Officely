@@ -8,13 +8,17 @@ import { PasswordRecoveryPage } from "./authentication/PasswordRecoveryPage";
 import { PasswordRecoverySuccessPage } from "./authentication/PasswordRecoverySuccessPage";
 import { PasswordChangePage } from "./authentication/PasswordChangePage";
 import { PasswordChangeSuccessPage } from "./authentication/PasswordChangeSuccessPage";
-import { OfficesManagementPage } from "./application/OfficesManagementPage";
-import { BookingsManagementPage } from "./application/BookingsManagementPage";
-import { UsersManagementPage } from "./application/UsersManagementPage";
-import { PaymentsOverviewPage } from "./application/PaymentsOverviewPage";
-import { OfficeCreatePage } from "./application/OfficeCreatePage";
-import { OfficeDetailsPage } from "./application/OfficeDetailsPage";
-import { OfficeEditPage } from "./application/OfficeEditPage";
+import { OfficesManagementPage } from "./application/office-pages/OfficesManagementPage";
+import { BookingsManagementPage } from "./application/booking-pages/BookingsManagementPage";
+import { UsersManagementPage } from "./application/user-pages/UsersManagementPage";
+import { PaymentsOverviewPage } from "./application/payment-pages/PaymentsOverviewPage";
+import { OfficeCreatePage } from "./application/office-pages/OfficeCreatePage";
+import { OfficeDetailsPage } from "./application/office-pages/OfficeDetailsPage";
+import { OfficeEditPage } from "./application/office-pages/OfficeEditPage";
+import { BookingDetailsPage } from "./application/booking-pages/BookingDetailsPage";
+import { UserDetailsPage } from "./application/user-pages/UserDetailsPage";
+import { ItemDetailsPage } from "./application/office-pages/ItemDetailsPage";
+import { ItemEditPage } from "./application/office-pages/ItemEditPage";
 
 export const router = createBrowserRouter([
   {
@@ -63,26 +67,57 @@ export const router = createBrowserRouter([
             Component: OfficesManagementPage,
           },
           {
-            path: "create-office",
+            path: "new",
             Component: OfficeCreatePage,
           },
           {
-            path: "details",
-            Component: OfficeDetailsPage,
+            path: ":officeId",
+            children: [
+              {
+                index: true,
+                Component: OfficeDetailsPage,
+              },
+              {
+                path: ":itemName",
+                Component: ItemDetailsPage,
+              },
+              {
+                path: ":itemName/edit",
+                Component: ItemEditPage,
+              },
+            ],
           },
           {
-            path: "edit",
+            path: ":officeId/edit",
             Component: OfficeEditPage,
           },
         ],
       },
       {
         path: "bookings",
-        Component: BookingsManagementPage,
+        children: [
+          {
+            index: true,
+            Component: BookingsManagementPage,
+          },
+          {
+            path: ":bookingId",
+            Component: BookingDetailsPage,
+          },
+        ],
       },
       {
         path: "users",
-        Component: UsersManagementPage,
+        children: [
+          {
+            index: true,
+            Component: UsersManagementPage,
+          },
+          {
+            path: ":userId",
+            Component: UserDetailsPage,
+          },
+        ],
       },
       {
         path: "payments",
