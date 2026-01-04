@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { MdSave, MdCancel, MdAddPhotoAlternate } from "react-icons/md";
-import { useParams, useNavigate } from "react-router";
-import testPhotoUrl from "../../assets/test-photo.jpg";
+import { useNavigate } from "react-router";
 
-export const ItemEditPage = () => {
-  const [imageUrl, setImageUrl] = useState(testPhotoUrl);
+export const ItemCreatePage = () => {
+  const [imageUrl, setImageUrl] = useState("");
   const [canAddMore, setCanAddMore] = useState(imageUrl === "" ? true : false);
   const navigate = useNavigate();
 
-  const { itemName } = useParams<{ itemName: string }>();
-  if (!itemName) return null;
+  const itemId = "A459";
 
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -29,14 +27,20 @@ export const ItemEditPage = () => {
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1 className="page-title">Edit item</h1>
+        <h1 className="page-title">Create item</h1>
         <form>
           <label>Name</label>
-          <input type="text" value={itemName} />
+          <input type="text" />
           <label>Floor</label>
           <input type="text" />
           <label>Room</label>
           <input type="text" />
+          <label>Number of desks</label>
+          <input type="number" />
+          <label>Pricing Table</label>
+          <select value="Shared Room Pricing" className="form-select">
+            <option value="Shared Room Pricing">Shared Room Pricing</option>
+          </select>
 
           <p className="page-label">Properties</p>
 
@@ -98,7 +102,7 @@ export const ItemEditPage = () => {
             <button
               type="button"
               className="btn-primary"
-              onClick={() => navigate(`../item/${itemName}`)}
+              onClick={() => navigate(`../item/${itemId}`)}
             >
               <MdSave />
               <span>Save</span>
@@ -106,7 +110,7 @@ export const ItemEditPage = () => {
             <button
               type="button"
               className="btn-link-danger"
-              onClick={() => navigate(`../item/${itemName}`)}
+              onClick={() => navigate("..")}
             >
               <MdCancel />
               <span>Cancel</span>

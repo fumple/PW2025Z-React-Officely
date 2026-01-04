@@ -22,6 +22,7 @@ type ItemRow = {
 };
 
 type PricingRow = {
+  id: string;
   name: string;
   price: string;
   usedBy: string;
@@ -37,7 +38,8 @@ const allItems: ItemRow[] = Array.from({ length: 60 }).map((_, i) => ({
   totalCapacity: "Text line",
 }));
 
-const allPricings: PricingRow[] = Array.from({ length: 80 }).map(() => ({
+const allPricings: PricingRow[] = Array.from({ length: 80 }).map((_, i) => ({
+  id: String(i + 1),
   name: "Text line",
   price: "Text line",
   usedBy: "Text line",
@@ -222,7 +224,11 @@ export const OfficeDetailsPage = () => {
 
         <div className="gallery-strip">{/* thumbnails */}</div>
         <p className="page-label">Bookable items</p>
-        <button className="btn-primary" type="button">
+        <button
+          className="btn-primary"
+          type="button"
+          onClick={() => navigate("./item/new")}
+        >
           <MdAdd />
           <span>Add</span>
         </button>
@@ -293,7 +299,7 @@ export const OfficeDetailsPage = () => {
                     <button
                       className="page-details-link"
                       type="button"
-                      onClick={() => navigate(`./${r.name}`)}
+                      onClick={() => navigate(`./item/${r.name}`)}
                     >
                       Details
                     </button>
@@ -302,7 +308,7 @@ export const OfficeDetailsPage = () => {
                     <button
                       className="page-details-link"
                       type="button"
-                      onClick={() => navigate(`./${r.name}/edit`)}
+                      onClick={() => navigate(`./item/${r.name}/edit`)}
                     >
                       Edit
                     </button>
@@ -380,7 +386,11 @@ export const OfficeDetailsPage = () => {
           </div>
         </div>
         <p className="page-label">Pricing tables</p>
-        <button className="btn-primary" type="button">
+        <button
+          className="btn-primary"
+          type="button"
+          onClick={() => navigate("./pricing-table/new")}
+        >
           <MdAdd />
           <span>Add</span>
         </button>
@@ -440,20 +450,28 @@ export const OfficeDetailsPage = () => {
             </thead>
 
             <tbody>
-              {pagedPricings.map((r, idx) => (
-                <tr key={idx}>
+              {pagedPricings.map((r) => (
+                <tr key={r.id}>
                   <td>{r.name}</td>
                   <td>{r.price}</td>
                   <td>{r.usedBy}</td>
                   <td>{r.timeForPayment}</td>
                   <td>{r.timeForCancellation}</td>
                   <td className="td-actions">
-                    <button className="page-details-link" type="button">
+                    <button
+                      className="page-details-link"
+                      type="button"
+                      onClick={() => navigate(`./pricing-table/${r.id}`)}
+                    >
                       Details
                     </button>
                   </td>
                   <td className="td-actions">
-                    <button className="page-details-link" type="button">
+                    <button
+                      className="page-details-link"
+                      type="button"
+                      onClick={() => navigate(`./pricing-table/${r.id}/edit`)}
+                    >
                       Edit
                     </button>
                   </td>
