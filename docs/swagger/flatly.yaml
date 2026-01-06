@@ -54,6 +54,30 @@ components:
       type: array
       items: 
         $ref: '#/components/schemas/FilterSection'
+    SearchOffice:
+      type: object
+      properties: 
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        minPrice:
+          type: integer
+        maxPrice:
+          type: integer
+        distance:
+          type: integer
+          description:  In meters
+          examples: 
+            -  1000
+        photoUrls:
+          type: array
+          items:
+            type: string
     Office:
       type: object
       properties: 
@@ -63,23 +87,86 @@ components:
           type: string
         address:
           type: string
-        min_price:
-          type: integer
-        max_price:
-          type: integer
-        distance:
-          type: integer
-          description:  In meters
-          examples: 
-            -  1000
-        photo_urls:
+        photoUrls:
           type: array
           items:
             type: string
-    Offices:
-      type: array
-      items:
-        $ref: '#/components/schemas/Office'
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+    OfficeSearchPricingTable:
+      type: object
+      properties: 
+        id:
+          type: string
+        name:
+          type: string
+        totalPrice:
+          type: integer
+        freeCancellationHours:
+          type: integer
+          description:  The number of hours before a reservation starts when a user can cancel it for free
+        paymentHours:
+          type: integer
+          description: "Depending on the paymentHoursType, either the amount of hours for payment after the booking was made, or the payment must be made x hours before the booking starts"
+        paymentHoursType:
+          type: string
+          enum:
+            - beforeStart
+            - afterBooking
+        properties:
+          type: object
+          additionalProperties: 
+            type: string
+    OfficePricingTable:
+      type: object
+      properties: 
+        id:
+          type: string
+        name:
+          type: string
+        freeCancellationHours:
+          type: integer
+          description:  The number of hours before a reservation starts when a user can cancel it for free
+        paymentHours:
+          type: integer
+          description: "Depending on the paymentHoursType, either the amount of hours for payment after the booking was made, or the payment must be made x hours before the booking starts"
+        paymentHoursType:
+          type: string
+          enum:
+            - beforeStart
+            - afterBooking
+        properties:
+          type: object
+          additionalProperties: 
+            type: string
+    OfficeItem:
+      type: object
+      properties: 
+        name:
+          type: string
+        description:
+          type: string
+        pricingTableId:
+          type: string
+        building:
+          type: string
+          description: Only present if office consists of multiple buildings
+          examples:
+            - "A"
+        floor:
+          type: string
+          examples:
+            - "3"
+        room:
+          type: string
+          examples:
+            - "311"
+        photoUrls:
+          type: array
+          items:
+            type: string
     User:
       type: object
       properties:
@@ -91,19 +178,50 @@ components:
           type: string
           examples:
             - bob.react@example.com
-        first_name:
+        firstName:
           type: string
           examples:
             - Bob
-        last_name:
+        lastName:
           type: string
           examples:
             - React
+    Reservation:
+      type: object
+      properties: 
+        id:
+          type: string
+          examples:
+            - "R2026"
+        officeId:
+          type: string
+          examples:
+            - "O2040"
+        itemId:
+          type: string
+          examples:
+          - "I2020"
+        status:
+          type: string
+          enum:
+            - active
+            - cancelled
+            - upcoming
+            - past
+        startDate:
+          type: string
+          examples:
+            - "2026-01-06"
+        endDate:
+          type: string
+          examples:
+            - "2026-01-26"
 
 tags:
   - name: filters
   - name: offices
   - name: users
+  - name: reservations
 
 paths:
   '/filters':
@@ -122,14 +240,30 @@ paths:
     get:
       tags:
         - offices
-      summary: List or search offices
+      summary: Search for offices
       parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            examples:
+              - "2026-01-06"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            examples:
+              - "2026-01-26"
         - name: nearAddress
           in: query
+          required: true
           schema:
             type: string
         - name: maxDistanceFromAddress
           in: query
+          required: true
           schema:
             type: integer
             description: In meters
@@ -146,6 +280,7 @@ paths:
                 - "desk.type.standing:true"
         - name: pageSize
           in: query
+          required: true
           schema:
             type: integer
             examples: [ 10 ]
@@ -159,7 +294,112 @@ paths:
           content:
             application/json: 
               schema:
-                $ref: '#/components/schemas/Offices'
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchOffice'
+  '/offices/{officeId}':
+    get: 
+      tags: ['offices']
+      summary: "Get office details"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/Office'
+  '/offices/{officeId}/pricingTables':
+    get: 
+      tags: ['offices']
+      summary: "Get available items for booking"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            examples:
+              - "2026-01-06"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            examples:
+              - "2026-01-26"
+        - name: filter
+          in: query
+          schema: 
+            type: array
+            items:
+              type: string
+              examples:
+                - "builtin.price.min:40"
+                - "desk.type.standing:true"
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                type: array
+                items:
+                  $ref: '#/components/schemas/OfficePricingTable'
+  '/offices/{officeId}/pricingTables/{pricingTableId}':
+    get: 
+      tags: ['offices']
+      summary: "Get office pricing table details"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: pricingTableId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficePricingTable'
+  '/offices/{officeId}/items/{itemId}':
+    get: 
+      tags: ['offices']
+      summary: "Get office item details"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficeItem'
   '/users':
     get:
       tags: ['users']
@@ -167,6 +407,7 @@ paths:
       parameters:
       - name: email
         in: query
+        required: true
         schema:
           type: string
           examples:
@@ -196,11 +437,11 @@ paths:
                   type: string
                   examples:
                     - bob.react@example.com
-                first_name:
+                firstName:
                   type: string
                   examples:
                     - Bob
-                last_name:
+                lastName:
                   type: string
                   examples:
                     - React
@@ -218,4 +459,25 @@ paths:
                       - 2056
         "400":
           description:  "Validation error or user already exists TODO: describe body!"
-      
+  '/reservations':
+    get:
+      tags: ['reservations']
+      summary: "Get an user's reservations"
+      parameters:
+      - name: user
+        in: query
+        required: true
+        schema:
+          type: string
+          examples:
+            - 2056
+      responses:
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reservation'
+          
