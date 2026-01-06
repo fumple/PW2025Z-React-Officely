@@ -35,6 +35,10 @@ components:
             type:
               type: string
               const: "integer"
+            min:
+              type: integer
+            max:
+              type: integer
     FilterSection:
       type: object
       properties: 
@@ -63,6 +67,11 @@ components:
           type: integer
         max_price:
           type: integer
+        distance:
+          type: integer
+          description:  In meters
+          examples: 
+            -  1000
         photo_urls:
           type: array
           items:
@@ -71,9 +80,36 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Office'
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          examples:
+            - "2056"
+        email:
+          type: string
+          examples:
+            - bob.react@example.com
+        first_name:
+          type: string
+          examples:
+            - Bob
+        last_name:
+          type: string
+          examples:
+            - React
+
+tags:
+  - name: filters
+  - name: offices
+  - name: users
+
 paths:
   '/filters':
     get:
+      tags: 
+        - filters
       summary: Get a list of all filters
       responses: 
         "200":
@@ -84,6 +120,8 @@ paths:
                 $ref: '#/components/schemas/Filters'
   '/offices':
     get:
+      tags:
+        - offices
       summary: List or search offices
       parameters:
         - name: nearAddress
@@ -122,4 +160,62 @@ paths:
             application/json: 
               schema:
                 $ref: '#/components/schemas/Offices'
+  '/users':
+    get:
+      tags: ['users']
+      summary: Get user by email
+      parameters:
+      - name: email
+        in: query
+        schema:
+          type: string
+          examples:
+            - bob.react@example.com
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems:  1
+                minItems: 0
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      tags: ['users']
+      summary: Create user
+      requestBody:
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              properties: 
+                email:
+                  type: string
+                  examples:
+                    - bob.react@example.com
+                first_name:
+                  type: string
+                  examples:
+                    - Bob
+                last_name:
+                  type: string
+                  examples:
+                    - React
+      responses: 
+        "200":
+          description:  Success
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  id:
+                    type: string
+                    examples:
+                      - 2056
+        "400":
+          description:  "Validation error or user already exists TODO: describe body!"
       
