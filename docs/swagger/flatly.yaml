@@ -2,6 +2,32 @@ openapi: 3.1.0
 info:
   title: Officely - API documentation for Flatly
   version: 0.0.1
+  description:  |
+    Uses:
+    1. view available filters
+       - GET /filters
+    2.  Make a booking
+        1. Find a place to book
+            - GET /offices?startDate=...&endDate=...&addr=...&maxDist=1000&sort=...&pageSize=10&pageToken=... -> list of offices with: distance, minPrice, maxPrice
+            - GET /offices/{officeId}/pricingTables?startDate=...&endDate=... -> list of pricing tables with availability info, price info and cancellation info
+        2. Create or find user
+            1. Find user
+                - GET /users?email=bob@example.com -> id: string
+            2. Create user if not found
+                - POST /users {email, firstName, lastName} -> id: string
+        3. Create booking
+            - POST /bookings {userId, officeId, pricingTableId} -> bookingId: string
+            - GET /bookings/{bookingId} -> payment info (bank transfer), time left to pay, to cancel, same as /users/{id}/bookings
+        4. Cancel booking
+            - POST /bookings/{bookingId}/cancel
+    3. View bookings
+        1. Find user
+            - GET /users?email=bob@example.com -> id: string
+        2. Fetch booking list
+            - GET /users/{id}/bookings -> list of bookings without details of offices and items
+            - GET /offices/{officeId} -> office details
+            - GET /offices/{officeId}/items/{itemId} -> item details
+
 components: 
   schemas:
     FilterElement:
@@ -186,7 +212,7 @@ components:
           type: string
           examples:
             - React
-    Reservation:
+    Booking:
       type: object
       properties: 
         id:
@@ -221,7 +247,7 @@ tags:
   - name: filters
   - name: offices
   - name: users
-  - name: reservations
+  - name: bookings
 
 paths:
   '/filters':
@@ -459,10 +485,10 @@ paths:
                       - 2056
         "400":
           description:  "Validation error or user already exists TODO: describe body!"
-  '/reservations':
+  '/bookings':
     get:
-      tags: ['reservations']
-      summary: "Get an user's reservations"
+      tags: ['bookings']
+      summary: "Get an user's bookings"
       parameters:
       - name: user
         in: query
@@ -479,5 +505,5 @@ paths:
               schema: 
                 type: array
                 items:
-                  $ref: '#/components/schemas/Reservation'
+                  $ref: '#/components/schemas/Booking'
           
