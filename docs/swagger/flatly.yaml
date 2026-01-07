@@ -266,6 +266,7 @@ components:
         - status
         - startDate
         - endDate
+        - totalPrice
         - _links
       properties: 
         id:
@@ -287,7 +288,12 @@ components:
             - cancelledByUser
             - cancelledByStaff
             - upcoming
+            - awaitingPayment
             - past
+        creationDate:
+          type: string
+          examples:
+            - "2026-01-01T20:40:06Z"
         startDate:
           type: string
           examples:
@@ -298,6 +304,26 @@ components:
             - "2026-01-26"
         cancellationReason:
           type: string
+        totalPrice:
+          type: number
+        paymentInfo:
+          type: object
+          required:
+            - accountNumber
+            - receiverName
+            - transferTitle
+            - dueDate
+          properties:
+            accountNumber:
+              type: string
+            receiverName:
+              type: string
+            transferTitle:
+              type: string
+            dueDate:
+              type: string
+              examples:
+                - "2026-01-04T20:40:06Z"
         _links:
           type: object
           required:
@@ -315,21 +341,24 @@ components:
               type: string
 
 tags:
-  - name: filters
-  - name: offices
-  - name: users
-  - name: bookings
+  - name: Filters
+    description: This endpoint is used for loading all available filters
+  - name: Users
+    description: These endpoints are used to find an user, create a new user or edit an existing user
+  - name: Finding an office
+  - name: Booking an office
+  - name: Viewing and managing bookings
 
 paths:
   '/filters':
     get:
       tags: 
-        - filters
+        - Filters
       summary: Get a list of all filters
       responses: 
         "200":
           description: Success
-          content: 
+          content: # TODO: CREATE AN EXAMPLE RESPONSE
             application/json:
               schema: 
                 type: object
@@ -344,9 +373,9 @@ paths:
                         examples:
                           - '/filters'
   '/offices':
-    get:
+    get: # TODO: EXAMPLES?
       tags:
-        - offices
+        - Finding an office
       summary: Search for offices
       parameters:
         - name: startDate
@@ -456,26 +485,47 @@ paths:
                         type: string
                       last:
                         type: string
-  '/offices/{officeId}':
-    get: 
-      tags: ['offices']
-      summary: "Get office details"
-      parameters: 
-        - name: officeId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses: 
-        "200":
-          description: Success
+        "400":
+          description: "Validation error"
           content: 
             application/json: 
               schema: 
-                $ref: '#/components/schemas/OfficeResource'
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - field
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ValidationError
+                        field:
+                          type: string
+                          enum:
+                            - startDate
+                            - endDate
+                            - nearAddress
+                            - maxDistanceFromAddress
+                            - filter
+                            - pageSize
+                            - pageToken
+                          examples:
+                            - nearAddress
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - The given address was not found
   '/offices/{officeId}/offers':
     get: 
-      tags: ['offices']
+      tags: ['Finding an office']
       summary: "Get available items for booking"
       parameters: 
         - name: officeId
@@ -523,31 +573,122 @@ paths:
                     properties:
                       self:
                         type: string
-  '/offices/{officeId}/items/{itemId}':
-    get: 
-      tags: ['offices']
-      summary: "Get office item details"
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - field
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ValidationError
+                        field:
+                          type: string
+                          enum:
+                            - startDate
+                            - endDate
+                            - filter
+                          examples:
+                            - endDate
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - The booking period must last at least 1 day
+        "404":
+          description: The given office was not found
+  '/offices/{officeId}/offers/{offerId}/book':
+    post: 
+      tags: ['Booking an office']
+      summary: "Book an office using the offer"
       parameters: 
         - name: officeId
           in: path
           required: true
           schema:
             type: string
-        - name: itemId
+        - name: offerId
           in: path
           required: true
           schema:
             type: string
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            examples:
+              - "2026-01-06"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            examples:
+              - "2026-01-26"
       responses: 
-        "200":
-          description: Success
+        "201":
+          description: Created
+          headers: 
+            Location:
+              example: /users/2056/bookings/5
+              description: URL to the newly created booking (for example /users/2056/bookings/5)
+              schema: 
+                type: string
+        "400":
+          description: "Validation error"
           content: 
             application/json: 
               schema: 
-                $ref: '#/components/schemas/OfficeItemResource'
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - field
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ValidationError
+                        field:
+                          type: string
+                          enum:
+                            - userId
+                            - startDate
+                            - endDate
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - The given user does not exist
+        "404":
+          description: The given office or offer was not found
   '/users':
     get:
-      tags: ['users']
+      tags: ['Users']
       summary: Get user by email
       parameters:
       - name: email
@@ -563,13 +704,28 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                maxItems: 1
-                minItems: 0
-                items:
-                  $ref: '#/components/schemas/UserResource'
+                type: object
+                required:
+                  - users
+                  - _links
+                properties:
+                  users:
+                    type: array
+                    maxItems: 1
+                    minItems: 0
+                    items:
+                      $ref: '#/components/schemas/UserResource'
+                  _links:
+                    type: object
+                    required:
+                      - create
+                    properties:
+                      create:
+                        type: string
+                        examples:
+                          - /users
     post:
-      tags: ['users']
+      tags: ['Users']
       summary: Create user
       requestBody:
         required: true
@@ -595,18 +751,134 @@ paths:
           description: Created
           headers: 
             Location:
-              examples:
-                - /users/2056
+              example: /users/2056
               description: URL to the newly created user (for example /users/2056)
               schema: 
                 type: string
         "400":
-          description: "Validation error TODO: describe body!"
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - field
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ValidationError
+                        field:
+                          type: string
+                          enum:
+                            - email
+                            - firstName
+                            - lastName
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - The provided email is not a valid email
         "409":
           description: "User with that email already exists"
+  '/users/{userId}':
+    patch:
+      tags: ['Users']
+      summary: Change the first name or last name of an user
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          examples:
+            - 2056
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+      responses: 
+        "204":
+          description: Success
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - field
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ValidationError
+                        field:
+                          type: string
+                          enum:
+                            - firstName
+                            - lastName
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - The length of the first name must not exceed 64 characters
+        "404":
+          description: The given user was not found
+  '/users/{userId}/bookings/{bookingId}':
+    get:
+      tags: ['Booking an office']
+      summary: "View booking status and payment information"
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          examples:
+            - 2056
+      - name: bookingId
+        in: path
+        required: true
+        schema:
+          type: string
+          examples:
+            - 5
+      responses:
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/BookingResource'
+        "404":
+          description: The given user or booking was not found
   '/users/{userId}/bookings':
     get:
-      tags: ['bookings']
+      tags: ['Viewing and managing bookings']
       summary: "Get an user's bookings"
       parameters:
       - name: userId
@@ -671,9 +943,85 @@ paths:
                         type: string
                       last:
                         type: string
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - field
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ValidationError
+                        field:
+                          type: string
+                          enum:
+                            - pageSize
+                            - pageToken
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - The page size must not be larger than 50
+        "404":
+          description: The given user was not found
+  '/offices/{officeId}':
+    get: 
+      tags: ['Viewing and managing bookings']
+      summary: "Get office details"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficeResource'
+        "404":
+          description: The given office was not found
+  '/offices/{officeId}/items/{itemId}':
+    get: 
+      tags: ['Viewing and managing bookings']
+      summary: "Get office item details"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficeItemResource'
+        "404":
+          description: The given office or item was not found
   '/users/{userId}/bookings/{bookingId}/cancel':
     post:
-      tags: ['bookings']
+      tags: ['Viewing and managing bookings']
       summary: "Cancel a booking"
       parameters:
       - name: userId
@@ -693,4 +1041,31 @@ paths:
       responses:
         "200":
           description: Success
+        "400":
+          description: "The booking cannot be cancelled due to business login"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ActionNotAllowed
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - Cancelling a past booking is not allowed
+        "404":
+          description: The given user or booking was not found
           
