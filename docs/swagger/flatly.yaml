@@ -9,17 +9,17 @@ info:
     2.  Make a booking
         1. Find a place to book
             - GET /offices?startDate=...&endDate=...&addr=...&maxDist=1000&sort=...&pageSize=10&pageToken=... -> list of offices with: distance, minPrice, maxPrice
-            - GET /offices/{officeId}/pricingTables?startDate=...&endDate=... -> list of pricing tables with availability info, price info and cancellation info
+            - GET /offices/{officeId}/offers?startDate=...&endDate=... -> list of offers with availability info, price info and cancellation info
         2. Create or find user
             1. Find user
                 - GET /users?email=bob@example.com -> id: string
             2. Create user if not found
                 - POST /users {email, firstName, lastName} -> id: string
         3. Create booking
-            - POST /bookings {userId, officeId, pricingTableId} -> bookingId: string
-            - GET /bookings/{bookingId} -> payment info (bank transfer), time left to pay, to cancel, same as /users/{id}/bookings
+            - POST /users/{userId}/bookings {officeId, offerId} -> bookingId: string
+            - GET /users/{userId}/bookings/{bookingId} -> payment info (bank transfer), time left to pay, to cancel
         4. Cancel booking
-            - POST /bookings/{bookingId}/cancel
+            - POST /users/{userId}/bookings/{bookingId}/cancel
     3. View bookings
         1. Find user
             - GET /users?email=bob@example.com -> id: string
@@ -30,6 +30,11 @@ info:
 
 components: 
   schemas:
+    PageSize:
+      type: integer
+      minimum: 1
+      maximum: 50 # TODO: VALIDATE
+      examples: [25]
     FilterElement:
       type: object
       properties: 
@@ -80,33 +85,20 @@ components:
       type: array
       items: 
         $ref: '#/components/schemas/FilterSection'
-    SearchOffice:
+    OfficeResource:
       type: object
+      required: 
+        - id
+        - name
+        - description
+        - address
+        - photoUrls
+        - contactEmail
+        - contactPhone
+        - _links
       properties: 
         id:
           type: string
-        name:
-          type: string
-        description:
-          type: string
-        address:
-          type: string
-        minPrice:
-          type: integer
-        maxPrice:
-          type: integer
-        distance:
-          type: integer
-          description:  In meters
-          examples: 
-            -  1000
-        photoUrls:
-          type: array
-          items:
-            type: string
-    Office:
-      type: object
-      properties: 
         name:
           type: string
         description:
@@ -121,8 +113,37 @@ components:
           type: string
         contactPhone:
           type: string
-    OfficeSearchPricingTable:
+        _links:
+          type: object
+          required:
+            - self
+          properties:
+            self:
+              type: string
+    OfficeSearchQueryDetails:
       type: object
+      required: 
+        - minPrice
+        - maxPrice
+        - distance
+      properties:
+        minPrice:
+          type: number
+        maxPrice:
+          type: number
+        distance:
+          type: number
+    OfficeOffer:
+      type: object
+      required:
+        - id
+        - name
+        - totalPrice
+        - freeCancellationHours
+        - paymentHours
+        - paymentHoursType
+        - properties
+        - _links
       properties: 
         id:
           type: string
@@ -145,36 +166,28 @@ components:
           type: object
           additionalProperties: 
             type: string
-    OfficePricingTable:
+        _links:
+          type: object
+          properties:
+            accept:
+              type: string
+              description: "TODO: How?"
+    OfficeItemResource:
       type: object
-      properties: 
+      required:
+        - id
+        - name
+        - description
+        - floor
+        - room
+        - photoUrls
+        - _links
+      properties:
         id:
           type: string
         name:
           type: string
-        freeCancellationHours:
-          type: integer
-          description:  The number of hours before a reservation starts when a user can cancel it for free
-        paymentHours:
-          type: integer
-          description: "Depending on the paymentHoursType, either the amount of hours for payment after the booking was made, or the payment must be made x hours before the booking starts"
-        paymentHoursType:
-          type: string
-          enum:
-            - beforeStart
-            - afterBooking
-        properties:
-          type: object
-          additionalProperties: 
-            type: string
-    OfficeItem:
-      type: object
-      properties: 
-        name:
-          type: string
         description:
-          type: string
-        pricingTableId:
           type: string
         building:
           type: string
@@ -193,8 +206,21 @@ components:
           type: array
           items:
             type: string
-    User:
+        _links:
+          type: object
+          required:
+            - self
+          properties:
+            self:
+              type: string
+    UserResource:
       type: object
+      required:
+        - id
+        - email
+        - firstName
+        - lastName
+        - _links
       properties:
         id:
           type: string
@@ -212,8 +238,35 @@ components:
           type: string
           examples:
             - React
-    Booking:
+        _links:
+          type: object
+          required:
+            - self
+            - update
+            - bookings
+          properties:
+            self:
+              type: string
+              examples:
+                - "/users/2056"
+            update:
+              type: string
+              examples:
+                - "/users/2056"
+            bookings:
+              type: string
+              examples:
+                - "/users/2056/bookings"
+    BookingResource:
       type: object
+      required:
+        - id
+        - officeId
+        - itemId
+        - status
+        - startDate
+        - endDate
+        - _links
       properties: 
         id:
           type: string
@@ -231,7 +284,8 @@ components:
           type: string
           enum:
             - active
-            - cancelled
+            - cancelledByUser
+            - cancelledByStaff
             - upcoming
             - past
         startDate:
@@ -242,6 +296,23 @@ components:
           type: string
           examples:
             - "2026-01-26"
+        cancellationReason:
+          type: string
+        _links:
+          type: object
+          required:
+            - self
+            - office
+            - item
+          properties:
+            self:
+              type: string
+            office:
+              type: string
+            item:
+              type: string
+            cancel:
+              type: string
 
 tags:
   - name: filters
@@ -259,9 +330,19 @@ paths:
         "200":
           description: Success
           content: 
-            application/json: 
+            application/json:
               schema: 
-                $ref: '#/components/schemas/Filters'
+                type: object
+                properties:
+                  filters:
+                    $ref: '#/components/schemas/Filters'
+                  _links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        examples:
+                          - '/filters'
   '/offices':
     get:
       tags:
@@ -308,8 +389,7 @@ paths:
           in: query
           required: true
           schema:
-            type: integer
-            examples: [ 10 ]
+            $ref: '#/components/schemas/PageSize'
         - name: pageToken
           in: query
           schema:
@@ -320,9 +400,62 @@ paths:
           content:
             application/json: 
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SearchOffice'
+                type: object
+                required: 
+                  - _pagination
+                  - _links
+                  - results
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: 
+                        - office
+                        - query
+                        - _links
+                      properties:
+                        office:
+                          $ref: '#/components/schemas/OfficeResource'
+                        query:
+                          $ref: '#/components/schemas/OfficeSearchQueryDetails'
+                        _links:
+                          type: object
+                          required:
+                            - offers
+                          properties:
+                            offers:
+                              type: string
+                  _pagination:
+                    type: object
+                    required: 
+                      - currentPage
+                      - lastPage
+                      - pageSize
+                    properties:
+                      currentPage:
+                        type: integer
+                      lastPage:
+                        type: integer
+                      pageSize:
+                        type: integer
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - first
+                      - last
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
+                      prev:
+                        type: string
+                      first:
+                        type: string
+                      last:
+                        type: string
   '/offices/{officeId}':
     get: 
       tags: ['offices']
@@ -339,8 +472,8 @@ paths:
           content: 
             application/json: 
               schema: 
-                $ref: '#/components/schemas/Office'
-  '/offices/{officeId}/pricingTables':
+                $ref: '#/components/schemas/OfficeResource'
+  '/offices/{officeId}/offers':
     get: 
       tags: ['offices']
       summary: "Get available items for booking"
@@ -379,31 +512,17 @@ paths:
           content: 
             application/json: 
               schema: 
-                type: array
-                items:
-                  $ref: '#/components/schemas/OfficePricingTable'
-  '/offices/{officeId}/pricingTables/{pricingTableId}':
-    get: 
-      tags: ['offices']
-      summary: "Get office pricing table details"
-      parameters: 
-        - name: officeId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: pricingTableId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses: 
-        "200":
-          description: Success
-          content: 
-            application/json: 
-              schema: 
-                $ref: '#/components/schemas/OfficePricingTable'
+                type: object
+                properties:
+                  offers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OfficeOffer'
+                  _links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
   '/offices/{officeId}/items/{itemId}':
     get: 
       tags: ['offices']
@@ -425,7 +544,7 @@ paths:
           content: 
             application/json: 
               schema: 
-                $ref: '#/components/schemas/OfficeItem'
+                $ref: '#/components/schemas/OfficeItemResource'
   '/users':
     get:
       tags: ['users']
@@ -445,10 +564,10 @@ paths:
             application/json:
               schema:
                 type: array
-                maxItems:  1
+                maxItems: 1
                 minItems: 0
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: '#/components/schemas/UserResource'
     post:
       tags: ['users']
       summary: Create user
@@ -472,26 +591,100 @@ paths:
                   examples:
                     - React
       responses: 
-        "200":
-          description:  Success
-          content: 
-            application/json: 
+        "201":
+          description: Created
+          headers: 
+            Location:
+              examples:
+                - /users/2056
+              description: URL to the newly created user (for example /users/2056)
               schema: 
-                type: object
-                properties: 
-                  id:
-                    type: string
-                    examples:
-                      - 2056
+                type: string
         "400":
-          description:  "Validation error or user already exists TODO: describe body!"
-  '/bookings':
+          description: "Validation error TODO: describe body!"
+        "409":
+          description: "User with that email already exists"
+  '/users/{userId}/bookings':
     get:
       tags: ['bookings']
       summary: "Get an user's bookings"
       parameters:
-      - name: user
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          examples:
+            - 2056
+      - name: pageSize
         in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/PageSize'
+      - name: pageToken
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - bookings
+                  - _pagination
+                  - _links
+                properties:
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookingResource'
+                  _pagination:
+                    type: object
+                    required: 
+                      - currentPage
+                      - lastPage
+                      - pageSize
+                    properties:
+                      currentPage:
+                        type: integer
+                      lastPage:
+                        type: integer
+                      pageSize:
+                        type: integer
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - first
+                      - last
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
+                      prev:
+                        type: string
+                      first:
+                        type: string
+                      last:
+                        type: string
+  '/users/{userId}/bookings/{bookingId}/cancel':
+    post:
+      tags: ['bookings']
+      summary: "Cancel a booking"
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          examples:
+            - 2056
+      - name: bookingId
+        in: path
         required: true
         schema:
           type: string
@@ -500,10 +693,4 @@ paths:
       responses:
         "200":
           description: Success
-          content: 
-            application/json: 
-              schema: 
-                type: array
-                items:
-                  $ref: '#/components/schemas/Booking'
           
