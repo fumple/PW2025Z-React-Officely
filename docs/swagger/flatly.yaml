@@ -143,6 +143,7 @@ components:
         - paymentHours
         - paymentHoursType
         - properties
+        - photoUrls
         - _links
       properties: 
         id:
@@ -162,6 +163,10 @@ components:
           enum:
             - beforeStart
             - afterBooking
+        photoUrls:
+          type: array
+          items:
+            type: string
         properties:
           type: object
           additionalProperties: 
@@ -180,7 +185,6 @@ components:
         - description
         - floor
         - room
-        - photoUrls
         - _links
       properties:
         id:
@@ -202,10 +206,6 @@ components:
           type: string
           examples:
             - "311"
-        photoUrls:
-          type: array
-          items:
-            type: string
         _links:
           type: object
           required:
@@ -263,7 +263,9 @@ components:
         - id
         - officeId
         - itemId
+        - offerId
         - status
+        - creationDate
         - startDate
         - endDate
         - totalPrice
@@ -281,6 +283,8 @@ components:
           type: string
           examples:
           - "I2020"
+        offerId:
+          type: string
         status:
           type: string
           enum:
@@ -330,12 +334,15 @@ components:
             - self
             - office
             - item
+            - offer
           properties:
             self:
               type: string
             office:
               type: string
             item:
+              type: string
+            offer:
               type: string
             cancel:
               type: string
@@ -1019,6 +1026,30 @@ paths:
                 $ref: '#/components/schemas/OfficeItemResource'
         "404":
           description: The given office or item was not found
+  '/offices/{officeId}/offers/{offerId}':
+    get: 
+      tags: ['Viewing and managing bookings']
+      summary: "View offer details"
+      parameters: 
+        - name: officeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficeOffer'
+        "404":
+          description: The given office or offer was not found
   '/users/{userId}/bookings/{bookingId}/cancel':
     post:
       tags: ['Viewing and managing bookings']
