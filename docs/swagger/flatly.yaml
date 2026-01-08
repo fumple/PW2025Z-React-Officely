@@ -138,11 +138,11 @@ components:
         - distance
       properties:
         minPrice:
-          type: number
+          type: integer
         maxPrice:
-          type: number
+          type: integer
         distance:
-          type: number
+          type: integer
     OfficeOffer:
       type: object
       required:
@@ -319,7 +319,7 @@ components:
         cancellationReason:
           type: string
         totalPrice:
-          type: number
+          type: integer
         paymentInfo:
           type: object
           required:
