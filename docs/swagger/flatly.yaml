@@ -27,8 +27,18 @@ info:
             - GET /users/{id}/bookings -> list of bookings without details of offices and items
             - GET /offices/{officeId} -> office details
             - GET /offices/{officeId}/items/{itemId} -> item details
-
-components: 
+security: 
+  - api_key: []
+components:
+  responses:
+    Unauthorized:
+      description: Unauthorized
+  securitySchemes:
+    api_key:
+      type: http
+      name: Authorization
+      scheme: Bearer
+      in: header
   schemas:
     PageSize:
       type: integer
@@ -379,6 +389,8 @@ paths:
                         type: string
                         examples:
                           - '/filters'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
   '/offices':
     get: # TODO: EXAMPLES?
       tags:
@@ -421,6 +433,22 @@ paths:
               examples:
                 - "builtin.price.min:40"
                 - "desk.type.standing:true"
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+            - price
+            - distance
+            default: distance
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+            default: asc
         - name: pageSize
           in: query
           required: true
@@ -530,6 +558,8 @@ paths:
                           description: A human readable message
                           examples:
                             - The given address was not found
+        "401":
+          $ref: '#/components/responses/Unauthorized'
   '/offices/{officeId}/offers':
     get: 
       tags: ['Finding an office']
@@ -614,6 +644,8 @@ paths:
                           description: A human readable message
                           examples:
                             - The booking period must last at least 1 day
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office was not found
   '/offices/{officeId}/offers/{offerId}/book':
@@ -691,6 +723,8 @@ paths:
                           description: A human readable message
                           examples:
                             - The given user does not exist
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office or offer was not found
   '/users':
@@ -731,6 +765,8 @@ paths:
                         type: string
                         examples:
                           - /users
+        "401":
+          $ref: '#/components/responses/Unauthorized'
     post:
       tags: ['Users']
       summary: Create user
@@ -794,6 +830,8 @@ paths:
                           description: A human readable message
                           examples:
                             - The provided email is not a valid email
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "409":
           description: "User with that email already exists"
   '/users/{userId}':
@@ -853,6 +891,8 @@ paths:
                           description: A human readable message
                           examples:
                             - The length of the first name must not exceed 64 characters
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given user was not found
   '/users/{userId}/bookings/{bookingId}':
@@ -881,6 +921,8 @@ paths:
             application/json: 
               schema: 
                 $ref: '#/components/schemas/BookingResource'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given user or booking was not found
   '/users/{userId}/bookings':
@@ -981,6 +1023,8 @@ paths:
                           description: A human readable message
                           examples:
                             - The page size must not be larger than 50
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given user was not found
   '/offices/{officeId}':
@@ -1000,6 +1044,8 @@ paths:
             application/json: 
               schema: 
                 $ref: '#/components/schemas/OfficeResource'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office was not found
   '/offices/{officeId}/items/{itemId}':
@@ -1024,6 +1070,8 @@ paths:
             application/json: 
               schema: 
                 $ref: '#/components/schemas/OfficeItemResource'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office or item was not found
   '/offices/{officeId}/offers/{offerId}':
@@ -1048,6 +1096,8 @@ paths:
             application/json: 
               schema: 
                 $ref: '#/components/schemas/OfficeOffer'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office or offer was not found
   '/users/{userId}/bookings/{bookingId}/cancel':
@@ -1097,6 +1147,8 @@ paths:
                           description: A human readable message
                           examples:
                             - Cancelling a past booking is not allowed
+        "401":
+          $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given user or booking was not found
           
