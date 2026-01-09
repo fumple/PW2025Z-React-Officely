@@ -1,48 +1,71 @@
-import { Link } from "react-router";
 import { useState } from "react";
+import { Link as RouterLink } from "react-router";
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormHelperText from "@mui/material/FormHelperText";
+import FormLabel from "@mui/material/FormLabel";
+import Link from "@mui/material/Link";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import Typography from "@mui/material/Typography";
 
 export const LoginPage = () => {
   const [hasError, setError] = useState(false);
 
   return (
-    <div className="auth-box auth-box--form">
-      <p className="auth-title auth-title--center">Welcome back!</p>
+    <Box
+      sx={{
+        width: "240px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        textAlign: "left",
+        gap: "8px",
+      }}
+    >
+      <Typography component="p" variant="subtitle1">
+        Welcome back!
+      </Typography>
 
-      <form className="auth-form" onSubmit={(e) => e.preventDefault()}>
-        <label className="auth-label" htmlFor="email">
-          Email
-        </label>
-        <input
-          id="email"
-          className={`auth-input ${hasError ? "auth-input--error" : ""}`}
-          type="email"
-        />
+      <Box
+        component="form"
+        onSubmit={(e) => e.preventDefault()}
+        sx={{ display: "flex", flexDirection: "column", gap: "6px" }}
+      >
+        <FormControl variant="outlined" error={hasError}>
+          <FormLabel htmlFor="email" sx={{ mt: "6px" }}>
+            Email
+          </FormLabel>
+          <OutlinedInput id="email" type="email" />
+        </FormControl>
 
-        <label className="auth-label" htmlFor="password">
-          Password
-        </label>
-        <input
-          id="password"
-          className={`auth-input ${hasError ? "auth-input--error" : ""}`}
-          type="password"
-        />
+        <FormControl variant="outlined" error={hasError}>
+          <FormLabel htmlFor="password" sx={{ mt: "6px" }}>
+            Password
+          </FormLabel>
+          <OutlinedInput id="password" type="password" />
+        </FormControl>
 
         {hasError && (
-          <p className="auth-error">Invalid email and/or password</p>
+          <FormHelperText sx={{ margin: "4px 0 2px 0" }}>
+            Invalid email and/or password
+          </FormHelperText>
         )}
 
-        <button
-          className="auth-button auth-button--full"
+        <Button
+          variant="contained"
           type="submit"
+          fullWidth
           onClick={() => setError(true)}
         >
           Log in
-        </button>
-      </form>
+        </Button>
+      </Box>
 
-      <Link to="/password-recovery" className="auth-link">
+      <Link component={RouterLink} to="/password-recovery" underline="hover">
         Forgot your password?
       </Link>
-    </div>
+    </Box>
   );
 };

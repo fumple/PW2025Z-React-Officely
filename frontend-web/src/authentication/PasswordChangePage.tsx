@@ -1,6 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormHelperText from "@mui/material/FormHelperText";
+import FormLabel from "@mui/material/FormLabel";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import Typography from "@mui/material/Typography";
+
 export const PasswordChangePage = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -27,6 +35,7 @@ export const PasswordChangePage = () => {
       return;
     }
 
+    setError(null);
     // TODO (backend): call authApi.resetPassword({ token, password })
     navigate("/password-change/success", { replace: true });
   };
@@ -34,54 +43,86 @@ export const PasswordChangePage = () => {
   // If token missing:
   if (!token) {
     return (
-      <div className="auth-box auth-box--form">
-        <p className="auth-title auth-title--center">Invalid link</p>
-        <p className="auth-subtitle">
+      <Box
+        sx={{
+          width: "240px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: "8px",
+        }}
+      >
+        <Typography component="p" variant="subtitle1">
+          Invalid link
+        </Typography>
+
+        <Typography component="p" variant="body2">
           This password reset link is missing a token.
-        </p>
-        <button
+        </Typography>
+
+        <Button
+          variant="contained"
+          fullWidth
           onClick={() => navigate("/login")}
-          className="auth-button auth-button--full"
         >
           Return to login page
-        </button>
-      </div>
+        </Button>
+      </Box>
     );
   }
 
+  const mismatch = repeat.length > 0 && password !== repeat;
+  const showError = Boolean(error) || mismatch;
+  const helperText = error ?? (mismatch ? "Passwords do not match." : "");
+
   return (
-    <div className="auth-box auth-box--form">
-      <p className="auth-title auth-title--center">Change your password</p>
+    <Box
+      sx={{
+        width: "240px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        textAlign: "left",
+        gap: "8px",
+      }}
+    >
+      <Typography component="p" variant="subtitle1">
+        Change your password
+      </Typography>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <label className="auth-label" htmlFor="newPassword">
-          New password
-        </label>
-        <input
-          id="newPassword"
-          className={`auth-input ${error ? "auth-input--error" : ""}`}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{ display: "flex", flexDirection: "column", gap: "6px" }}
+      >
+        <FormControl variant="outlined" error={showError}>
+          <FormLabel htmlFor="newPassword">New password</FormLabel>
+          <OutlinedInput
+            id="newPassword"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </FormControl>
 
-        <label className="auth-label" htmlFor="repeatPassword">
-          Repeat password
-        </label>
-        <input
-          id="repeatPassword"
-          className={`auth-input ${error ? "auth-input--error" : ""}`}
-          type="password"
-          value={repeat}
-          onChange={(e) => setRepeat(e.target.value)}
-        />
+        <FormControl variant="outlined" error={showError}>
+          <FormLabel htmlFor="repeatPassword">Repeat password</FormLabel>
+          <OutlinedInput
+            id="repeatPassword"
+            type="password"
+            value={repeat}
+            onChange={(e) => setRepeat(e.target.value)}
+            autoComplete="new-password"
+          />
+          {helperText ? <FormHelperText>{helperText}</FormHelperText> : null}
+        </FormControl>
 
-        {error && <p className="auth-error">{error}</p>}
-
-        <button className="auth-button auth-button--full" type="submit">
+        <Button variant="contained" fullWidth type="submit">
           Save
-        </button>
-      </form>
-    </div>
+        </Button>
+      </Box>
+    </Box>
   );
 };
