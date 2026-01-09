@@ -2,4 +2,212 @@ openapi: 3.1.0
 info:
   title: Officely - Internal Admin API
   version: 0.0.1
-paths: {}
+components: 
+  securitySchemes: 
+    user_auth:
+      name: User auth
+      type: http
+      in: header
+      scheme: "Bearer"
+  schemas: 
+    UserResource:
+      type: object
+      required:
+        - id
+        - firstName
+        - lastName
+        - email
+        - _links
+      properties: 
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        _links:
+          type: object
+          required:
+            - self
+          properties: 
+            self:
+              type: string
+              examples:
+                - /users/2056
+paths:
+  '/login':
+    post:
+      summary: Log in
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required:
+                - type
+                - email
+                - password
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - admin
+                email:
+                  type: string
+                password:
+                  type: string
+                
+      responses: 
+        "200":
+          description: "Success"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - token
+                properties: 
+                  token:
+                    type: string
+        "400":
+          description: "Invalid username, password, or body"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    maxItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: AuthError
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Incorrect email or password
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+  '/signup':
+    post:
+      summary: Create an account
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required:
+                - type
+                - firstName
+                - lastName
+                - email
+                - password
+              properties: 
+                type:
+                  type: string
+                  enum:
+                    - admin
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                
+      responses: 
+        "201":
+          description: "Created"
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - type
+                                - firstName
+                                - lastName
+                                - email
+                                - password
+                              examples:
+                                - password
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Password doesn't meet minimum requirements
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+  '/logout':
+    post:
+      summary: "Log out of the application"
+      security: 
+        - user_auth: []
+      responses: 
+        "200":
+          description: "Success"
+        "401":
+          description: Unauthorized
+  '/users/@me':
+    get:
+      summary: Get current user info
+      security: 
+        - user_auth: []
+      responses: 
+        "200":
+          description: "Success"
+          content: 
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/UserResource'
+        "401":
+          description: Unauthorized
+      
