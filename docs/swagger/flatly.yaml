@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.1.0 # TODO: DODATKI!
 info:
   title: Officely - API documentation for Flatly
   version: 0.0.1
@@ -102,6 +102,7 @@ components:
         - name
         - description
         - address
+        - coordinates
         - photoUrls
         - contactEmail
         - contactPhone
@@ -115,6 +116,16 @@ components:
           type: string
         address:
           type: string
+        coordinates:
+          type: object
+          required:
+            - lat
+            - lon
+          properties:
+            lat:
+              type: string
+            lon:
+              type: string
         photoUrls:
           type: array
           items:
@@ -164,12 +175,7 @@ components:
           description:  The number of hours before a reservation starts when a user can cancel it for free
         paymentHours:
           type: integer
-          description: "Depending on the paymentHoursType, either the amount of hours for payment after the booking was made, or the payment must be made x hours before the booking starts"
-        paymentHoursType:
-          type: string
-          enum:
-            - beforeStart
-            - afterBooking
+          description: "The payment must be made x hours after the booking was made"
         photoUrls:
           type: array
           items:
@@ -200,11 +206,6 @@ components:
           type: string
         description:
           type: string
-        building:
-          type: string
-          description: Only present if office consists of multiple buildings
-          examples:
-            - "A"
         floor:
           type: string
           examples:
