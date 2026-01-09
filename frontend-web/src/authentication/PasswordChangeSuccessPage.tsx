@@ -1,24 +1,32 @@
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import { useNavigate } from "react-router";
 
 export const PasswordChangeSuccessPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="auth-box auth-box--form">
-      <p className="auth-title auth-title--center">Success!</p>
-      <p className="auth-subtitle">
+    <Box
+      sx={{
+        width: "240px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "stretch",
+        textAlign: "center",
+        gap: "8px",
+      }}
+    >
+      <Typography variant="subtitle1">Success!</Typography>
+      <Typography variant="body2">
         Your new password was saved <br />
         and you may now log in using <br />
         the new password.
-      </p>
+      </Typography>
 
-      <button
-        className="auth-button auth-button--full"
-        onClick={() => navigate("/login")}
-        type="button"
-      >
+      <Button variant="contained" fullWidth onClick={() => navigate("/login")}>
         Return to login page
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 };
