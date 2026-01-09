@@ -134,12 +134,9 @@ components:
       type: object
       required: 
         - minPrice
-        - maxPrice
         - distance
       properties:
         minPrice:
-          type: integer
-        maxPrice:
           type: integer
         distance:
           type: integer
@@ -438,17 +435,10 @@ paths:
           schema:
             type: string
             enum:
-            - price
+            - priceAsc
+            - priceDesc
             - distance
             default: distance
-        - name: sortDirection
-          in: query
-          schema:
-            type: string
-            enum:
-              - asc
-              - desc
-            default: asc
         - name: pageSize
           in: query
           required: true
@@ -468,6 +458,7 @@ paths:
                 required: 
                   - _pagination
                   - _links
+                  - query
                   - results
                 properties:
                   results:
@@ -490,6 +481,17 @@ paths:
                           properties:
                             offers:
                               type: string
+                  query:
+                    type: object
+                    required:
+                      - minPrice
+                      - maxPrice
+                    properties:
+                      minPrice:
+                        type: integer
+                      maxPrice:
+                        type: integer
+                      
                   _pagination:
                     type: object
                     required: 
