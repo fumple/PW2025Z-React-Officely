@@ -1,123 +1,96 @@
 import { useState } from "react";
-import { MdSave, MdCancel, MdAddPhotoAlternate } from "react-icons/md";
 import { useNavigate } from "react-router";
 
-export const ItemCreatePage = () => {
-  const [imageUrl, setImageUrl] = useState("");
-  const [canAddMore, setCanAddMore] = useState(imageUrl === "" ? true : false);
-  const navigate = useNavigate();
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import Typography from "@mui/material/Typography";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import type { SelectChangeEvent } from "@mui/material/Select";
 
+import CancelIcon from "@mui/icons-material/Cancel";
+import SaveIcon from "@mui/icons-material/Save";
+
+export const ItemCreatePage = () => {
+  const [pricingTableId, setPricingTableId] = useState("");
+
+  const navigate = useNavigate();
   const itemId = "A459";
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files === null) return;
-
-    setCanAddMore(false);
-    setImageUrl(URL.createObjectURL(files[0]));
-
-    e.target.value = "";
-  };
-
-  const removePhoto = () => {
-    setImageUrl("");
-    setCanAddMore(true);
-  };
-
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <h1 className="page-title">Create item</h1>
-        <form>
-          <label>Name</label>
-          <input type="text" />
-          <label>Floor</label>
-          <input type="text" />
-          <label>Room</label>
-          <input type="text" />
-          <label>Number of desks</label>
-          <input type="number" />
-          <label>Pricing Table</label>
-          <select value="Shared Room Pricing" className="form-select">
-            <option value="Shared Room Pricing">Shared Room Pricing</option>
-          </select>
+    <Box sx={{ px: "12px", pt: "6px" }}>
+      <Typography variant="h5" component="h1" sx={{ m: 0, mb: "12px" }}>
+        Create item
+      </Typography>
 
-          <p className="page-label">Properties</p>
+      <Box
+        component="form"
+        onSubmit={(e) => e.preventDefault()}
+        sx={{ maxWidth: 560 }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="name">Name</FormLabel>
+            <OutlinedInput id="name" />
+          </FormControl>
 
-          <div className="properties-block">
-            <div className="properties-field">
-              <label className="properties-label">Desk:</label>
-              <div className="properties-hint">(Choose 1 or 2)</div>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="floor">Floor</FormLabel>
+            <OutlinedInput id="floor" />
+          </FormControl>
 
-              <div className="check-row-group">
-                <label className="check-row">
-                  <input type="checkbox" />
-                  <span>Standing Desk</span>
-                </label>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="room">Room</FormLabel>
+            <OutlinedInput id="room" />
+          </FormControl>
 
-                <label className="check-row">
-                  <input type="checkbox" />
-                  <span>Sitting Desk</span>
-                </label>
-              </div>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="desks">Number of desks</FormLabel>
+            <OutlinedInput id="desks" type="number" />
+          </FormControl>
 
-              <div className="properties-hint">(Choose 0 or 1)</div>
-
-              <label className="check-row">
-                <input type="checkbox" />
-                <span>Desk with adjustable height</span>
-              </label>
-            </div>
-          </div>
-
-          <p className="page-label">Photo</p>
-          {imageUrl === "" ? (
-            <label
-              className={`gallery-add-tile ${!canAddMore ? "gallery-add-tile--disabled" : ""}`}
-              title={canAddMore ? "Add image" : "Max images reached"}
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="pricingTable">Pricing Table</FormLabel>
+            <Select
+              id="pricingTable"
+              value={pricingTableId}
+              onChange={(e: SelectChangeEvent) =>
+                setPricingTableId(e.target.value)
+              }
+              displayEmpty
             >
-              <MdAddPhotoAlternate size={28} />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelected}
-                disabled={!canAddMore}
-                style={{ display: "none" }}
-              />
-            </label>
-          ) : (
-            <div className="gallery-thumb">
-              <img src={imageUrl} />
-              <button
-                type="button"
-                className="gallery-remove"
-                onClick={removePhoto}
-              >
-                ×
-              </button>
-            </div>
-          )}
+              <MenuItem value="shared-room">Shared Room Pricing</MenuItem>
+              <MenuItem value="private-desk">Private Desk Pricing</MenuItem>
+              <MenuItem value="meeting-room">Meeting Room Pricing</MenuItem>
+            </Select>
+          </FormControl>
 
-          <div className="form-actions">
-            <button
+          <Box sx={{ display: "flex", gap: "10px", mt: "6px" }}>
+            <Button
               type="button"
-              className="btn-primary"
+              variant="contained"
+              startIcon={<SaveIcon fontSize="small" />}
               onClick={() => navigate(`../item/${itemId}`)}
             >
-              <MdSave />
-              <span>Save</span>
-            </button>
-            <button
+              Save
+            </Button>
+
+            <Button
               type="button"
-              className="btn-link-danger"
+              variant="text"
+              color="error"
+              startIcon={<CancelIcon fontSize="small" />}
               onClick={() => navigate("..")}
+              sx={{ textTransform: "none" }}
             >
-              <MdCancel />
-              <span>Cancel</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 };

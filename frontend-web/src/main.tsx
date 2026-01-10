@@ -8,6 +8,7 @@ import "@fontsource/roboto/700.css";
 
 import "./index.css";
 import CssBaseline from "@mui/material/CssBaseline";
+import "leaflet/dist/leaflet.css";
 
 import { RouterProvider } from "react-router";
 import { router } from "./router";

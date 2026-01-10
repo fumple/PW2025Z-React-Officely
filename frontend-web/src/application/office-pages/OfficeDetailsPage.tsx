@@ -1,19 +1,30 @@
-import {
-  MdAdd,
-  MdEditSquare,
-  MdOutlineBackspace,
-  MdOutlineVisibilityOff,
-  MdArrowDropDown,
-  MdFilterList,
-  MdDeleteOutline,
-} from "react-icons/md";
-import { useNavigate, useParams } from "react-router";
 import { useMemo, useState } from "react";
-import { Modal } from "../Modal";
+import { useNavigate, useParams } from "react-router";
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Typography from "@mui/material/Typography";
+
+import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+
+import { DataGrid } from "@mui/x-data-grid/DataGrid";
+import type { GridColDef } from "@mui/x-data-grid/models/colDef";
+import test1PhotoUrl from "../../assets/test-photo.jpg";
+import test2PhotoUrl from "../../assets/test-photo-2.jpg";
+import { OfficeLocationDisplay } from "./OfficeLocationDisplay";
+import Paper from "@mui/material/Paper";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
 type ItemRow = {
+  id: string;
   name: string;
   floor: string;
   room: string;
@@ -31,6 +42,7 @@ type PricingRow = {
 };
 
 const allItems: ItemRow[] = Array.from({ length: 60 }).map((_, i) => ({
+  id: String(i + 1),
   name: String("A" + (i + 1)),
   floor: "Text line",
   room: "Text line",
@@ -47,507 +59,419 @@ const allPricings: PricingRow[] = Array.from({ length: 80 }).map((_, i) => ({
   timeForCancellation: "Text line",
 }));
 
-function getRowsPerPageOptions(totalCount: number) {
+function getRowsPerPageOptions(totalCount: number): number[] {
   if (totalCount === 0) return [10];
   const filtered = BASE_PAGE_SIZES.filter((n) => n <= totalCount);
-  return filtered.length > 0 ? filtered : [totalCount];
-}
-
-function getEffectiveRowsPerPage(rowsPerPage: number, totalCount: number) {
-  return totalCount === 0 ? rowsPerPage : Math.min(rowsPerPage, totalCount);
-}
-
-function getPageItems(totalPages: number): Array<number | "ellipsis"> {
-  return totalPages <= 5
-    ? Array.from({ length: totalPages }, (_, i) => i + 1)
-    : [1, 2, 3, "ellipsis", totalPages - 1, totalPages];
+  return filtered.length > 0 ? [...filtered] : [totalCount];
 }
 
 export const OfficeDetailsPage = () => {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const { officeId } = useParams<{ officeId: string }>();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const location = {
+    address: "",
+    lat: 52.2297,
+    lng: 21.0122,
+  };
 
   const officeName = "Lorem Ipsum Office";
   const officeDescription = "The perfect office for everyone!";
   const officeAddress = "al. Jerozolimskie 179, 02-222 Warszawa";
   const officeCountry = "Poland";
 
-  const [itemsPage, setItemsPage] = useState(1);
-  const [itemsRowsPerPage, setItemsRowsPerPage] = useState(10);
+  const itemsRows = allItems;
+  const pricingRows = allPricings;
 
-  const [pricingPage, setPricingPage] = useState(1);
-  const [pricingRowsPerPage, setPricingRowsPerPage] = useState(10);
+  const itemsPageSizeOptions = getRowsPerPageOptions(itemsRows.length);
+  const pricingPageSizeOptions = getRowsPerPageOptions(pricingRows.length);
 
-  const itemsTotalCount = allItems.length;
-  const itemsRowsOptions = getRowsPerPageOptions(itemsTotalCount);
-  const itemsEffectiveRows = getEffectiveRowsPerPage(
-    itemsRowsPerPage,
-    itemsTotalCount,
+  const itemsColumns = useMemo<GridColDef<ItemRow>[]>(
+    () => [
+      { field: "name", headerName: "Name", flex: 1, minWidth: 140 },
+      { field: "floor", headerName: "Floor", flex: 1, minWidth: 120 },
+      { field: "room", headerName: "Room", flex: 1, minWidth: 120 },
+      {
+        field: "currentCapacity",
+        headerName: "Current capacity",
+        flex: 1,
+        minWidth: 160,
+      },
+      {
+        field: "totalCapacity",
+        headerName: "Total capacity",
+        flex: 1,
+        minWidth: 160,
+      },
+      {
+        field: "details",
+        headerName: "",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        width: 110,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => navigate(`./item/${params.row.name}`)}
+          >
+            Details
+          </Button>
+        ),
+      },
+      {
+        field: "edit",
+        headerName: "",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        width: 80,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => navigate(`./item/${params.row.name}/edit`)}
+          >
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [navigate],
   );
-  const itemsTotalPages = Math.max(
-    1,
-    Math.ceil(itemsTotalCount / itemsEffectiveRows),
+
+  const pricingColumns = useMemo<GridColDef<PricingRow>[]>(
+    () => [
+      { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
+      { field: "price", headerName: "Price", flex: 1, minWidth: 120 },
+      { field: "usedBy", headerName: "Used by", flex: 1, minWidth: 140 },
+      {
+        field: "timeForPayment",
+        headerName: "Time for payment",
+        flex: 1,
+        minWidth: 180,
+      },
+      {
+        field: "timeForCancellation",
+        headerName: "Time for cancellation",
+        flex: 1,
+        minWidth: 200,
+      },
+      {
+        field: "details",
+        headerName: "",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        width: 110,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => navigate(`./pricing-table/${params.row.id}`)}
+          >
+            Details
+          </Button>
+        ),
+      },
+      {
+        field: "edit",
+        headerName: "",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        width: 80,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => navigate(`./pricing-table/${params.row.id}/edit`)}
+          >
+            Edit
+          </Button>
+        ),
+      },
+    ],
+    [navigate],
   );
-  const itemsCurrentPage = Math.min(itemsPage, itemsTotalPages);
 
-  const pagedItems = useMemo(() => {
-    const start = (itemsCurrentPage - 1) * itemsEffectiveRows;
-    const end = start + itemsEffectiveRows;
-    return allItems.slice(start, end);
-  }, [itemsCurrentPage, itemsEffectiveRows]);
-
-  const itemsFrom =
-    itemsTotalCount === 0 ? 0 : (itemsCurrentPage - 1) * itemsEffectiveRows + 1;
-  const itemsTo = Math.min(
-    itemsCurrentPage * itemsEffectiveRows,
-    itemsTotalCount,
-  );
-  const itemsPageItems = getPageItems(itemsTotalPages);
-
-  const pricingTotalCount = allPricings.length;
-  const pricingRowsOptions = getRowsPerPageOptions(pricingTotalCount);
-  const pricingEffectiveRows = getEffectiveRowsPerPage(
-    pricingRowsPerPage,
-    pricingTotalCount,
-  );
-  const pricingTotalPages = Math.max(
-    1,
-    Math.ceil(pricingTotalCount / pricingEffectiveRows),
-  );
-  const pricingCurrentPage = Math.min(pricingPage, pricingTotalPages);
-
-  const pagedPricings = useMemo(() => {
-    const start = (pricingCurrentPage - 1) * pricingEffectiveRows;
-    const end = start + pricingEffectiveRows;
-    return allPricings.slice(start, end);
-  }, [pricingCurrentPage, pricingEffectiveRows]);
-
-  const pricingFrom =
-    pricingTotalCount === 0
-      ? 0
-      : (pricingCurrentPage - 1) * pricingEffectiveRows + 1;
-  const pricingTo = Math.min(
-    pricingCurrentPage * pricingEffectiveRows,
-    pricingTotalCount,
-  );
-  const pricingPageItems = getPageItems(pricingTotalPages);
-
-  const { officeId } = useParams<{ officeId: string }>();
   if (!officeId) return null;
 
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <div className="office-top">
-          <div className="office-meta">
-            <h1 className="page-title">{officeName}</h1>
-            <label>{officeDescription}</label>
-            <label>Address: {officeAddress}</label>
-            <label>Country: {officeCountry}</label>
+    <Box sx={{ px: "12px", pt: "6px" }}>
+      {/* Top section */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          mb: "18px",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "16px",
+            mb: "18px",
+          }}
+        >
+          {/* Left: title + description + actions */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              minWidth: 0,
+              flex: 1,
+            }}
+          >
+            <Typography
+              component="h1"
+              sx={{ m: 0, fontSize: "22px", fontWeight: 600, color: "#111" }}
+            >
+              {officeName}
+            </Typography>
 
-            <div className="office-actions">
-              <button
-                className="btn-primary"
-                type="button"
+            <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                {officeDescription}
+              </Typography>
+              <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                Address: {officeAddress}
+              </Typography>
+              <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                Country: {officeCountry}
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              <Button
+                variant="contained"
+                startIcon={<EditIcon fontSize="small" />}
                 onClick={() => navigate("./edit")}
               >
-                <MdEditSquare />
-                <span>Edit</span>
-              </button>
+                Edit
+              </Button>
 
-              <button
-                className="btn-secondary"
-                type="button"
+              <Button
+                variant="outlined"
                 onClick={() => navigate("/app/bookings")}
               >
                 View bookings
-              </button>
+              </Button>
 
-              <button className="btn-link-danger" type="button">
-                <MdOutlineVisibilityOff />
-                <span>Unpublish</span>
-              </button>
-
-              <button
-                className="btn-link-danger"
-                type="button"
-                onClick={() => setOpen(true)}
+              <Button
+                variant="text"
+                color="error"
+                startIcon={<VisibilityOffIcon fontSize="small" />}
+                sx={{ textTransform: "none" }}
               >
-                <MdOutlineBackspace />
-                <span>Delete</span>
-              </button>
+                Unpublish
+              </Button>
 
-              <Modal
-                open={open}
-                title="Office deletion"
-                onClose={() => setOpen(false)}
+              <Button
+                variant="text"
+                color="error"
+                startIcon={<DeleteOutlineIcon fontSize="small" />}
+                sx={{ textTransform: "none" }}
+                onClick={() => setDeleteOpen(true)}
               >
-                <p>
-                  To delete an office the following requirements must be met:
-                </p>
-                <ul>
-                  <li>
-                    There may not be any upcoming or active reservations on the
-                    office
-                  </li>
-                </ul>
-                <p>
-                  Unpublishing the office is preferred to deleting, since it
-                  prevents new reservations from being made and hides the office
-                  in search results, while still allowing users to view details
-                  of this office in their reservations.
-                </p>
-                <p>Are you sure you want to delete the office?</p>
+                Delete
+              </Button>
+            </Box>
+            <Box sx={{ mb: "18px" }}>
+              <Box sx={{ display: "flex", gap: "10px" }}>
+                {[test1PhotoUrl, test2PhotoUrl].map((src, idx) => (
+                  <Box
+                    key={idx}
+                    component="img"
+                    src={src}
+                    alt={`Office photo ${idx + 1}`}
+                    sx={{
+                      height: 148,
+                      border: "1px solid #eee",
+                      objectFit: "cover",
+                      backgroundColor: "#fff",
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          </Box>
 
-                <div className="form-actions">
-                  <button
-                    className="btn-primary"
-                    onClick={() => alert("deleted")}
-                  >
-                    <MdDeleteOutline />
-                    Yes
-                  </button>
-                  <button
-                    className="btn-link-danger"
-                    onClick={() => setOpen(false)}
-                  >
-                    No
-                  </button>
-                </div>
-              </Modal>
-            </div>
-          </div>
+          {/* Right: map in the top-right corner */}
+          <Box sx={{ width: 400, flexShrink: 0 }}>
+            <OfficeLocationDisplay
+              address={location.address}
+              lat={location.lat}
+              lng={location.lng}
+            />
+          </Box>
+        </Box>
+      </Box>
 
-          {/* ignore map for now */}
-          {/* <div className="office-map-slot" /> */}
-        </div>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: "10px",
+        }}
+      >
+        <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111" }}>
+          Bookable items
+        </Typography>
 
-        <div className="gallery-strip">{/* thumbnails */}</div>
-        <p className="page-label">Bookable items</p>
-        <button
-          className="btn-primary"
-          type="button"
+        <Button
+          variant="contained"
+          startIcon={<AddIcon fontSize="small" />}
           onClick={() => navigate("./item/new")}
         >
-          <MdAdd />
-          <span>Add</span>
-        </button>
+          Add
+        </Button>
+      </Box>
 
-        <div className="page-table-card">
-          <table className="page-table">
-            <thead>
-              <tr>
-                <th>
-                  <div className="th-inner">
-                    <span>Name</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Floor</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Room</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Current capacity</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Total capacity</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th className="th-actions" />
-                <th className="th-actions" />
-              </tr>
-            </thead>
+      {/* Items table (final table style) */}
+      <Paper variant="card">
+        <DataGrid
+          rows={itemsRows}
+          columns={itemsColumns}
+          disableRowSelectionOnClick
+          pageSizeOptions={itemsPageSizeOptions}
+          initialState={{
+            pagination: { paginationModel: { page: 0, pageSize: 10 } },
+          }}
+          showToolbar
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+              quickFilterProps: { debounceMs: 300 },
+            },
+          }}
+        />
+      </Paper>
 
-            <tbody>
-              {pagedItems.map((r) => (
-                <tr key={r.name}>
-                  <td>{r.name}</td>
-                  <td>{r.floor}</td>
-                  <td>{r.room}</td>
-                  <td>{r.currentCapacity}</td>
-                  <td>{r.totalCapacity}</td>
-                  <td className="td-actions">
-                    <button
-                      className="page-details-link"
-                      type="button"
-                      onClick={() => navigate(`./item/${r.name}`)}
-                    >
-                      Details
-                    </button>
-                  </td>
-                  <td className="td-actions">
-                    <button
-                      className="page-details-link"
-                      type="button"
-                      onClick={() => navigate(`./item/${r.name}/edit`)}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Pricing tables header */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: "10px",
+          mt: "20px",
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#111",
+          }}
+        >
+          Pricing tables
+        </Typography>
 
-          <div className="page-footer">
-            <button className="page-footer-btn" type="button">
-              Change columns
-            </button>
-
-            <div className="page-footer-left">
-              <span className="page-footer-label">Rows per page:</span>
-              <select
-                className="page-select"
-                value={itemsEffectiveRows}
-                onChange={(e) => {
-                  setItemsRowsPerPage(Number(e.target.value));
-                  setItemsPage(1);
-                }}
-              >
-                {itemsRowsOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="page-footer-center">
-              {itemsFrom}-{itemsTo} of {itemsTotalCount}
-            </div>
-
-            <div className="pagination">
-              <button
-                className={`page-btn ${itemsCurrentPage === 1 ? "page-btn--disabled" : ""}`}
-                type="button"
-                disabled={itemsCurrentPage === 1}
-                onClick={() => setItemsPage((p) => Math.max(1, p - 1))}
-              >
-                ← Previous
-              </button>
-
-              {itemsPageItems.map((item, idx) =>
-                item === "ellipsis" ? (
-                  <span key={`i-e-${idx}`} className="page-ellipsis">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    className={`page-number ${itemsCurrentPage === item ? "page-number--active" : ""}`}
-                    type="button"
-                    onClick={() => setItemsPage(item)}
-                  >
-                    {item}
-                  </button>
-                ),
-              )}
-
-              <button
-                className={`page-btn ${itemsCurrentPage === itemsTotalPages ? "page-btn--disabled" : ""}`}
-                type="button"
-                disabled={itemsCurrentPage === itemsTotalPages}
-                onClick={() =>
-                  setItemsPage((p) => Math.min(itemsTotalPages, p + 1))
-                }
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
-        <p className="page-label">Pricing tables</p>
-        <button
-          className="btn-primary"
-          type="button"
+        <Button
+          variant="contained"
+          startIcon={<AddIcon fontSize="small" />}
           onClick={() => navigate("./pricing-table/new")}
         >
-          <MdAdd />
-          <span>Add</span>
-        </button>
+          Add
+        </Button>
+      </Box>
 
-        <div className="page-table-card">
-          <table className="page-table">
-            <thead>
-              <tr>
-                <th>
-                  <div className="th-inner">
-                    <span>Name</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Price</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Used by</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Time for payment</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th>
-                  <div className="th-inner">
-                    <span>Time for cancellation</span>
-                    <span className="th-icons">
-                      <MdArrowDropDown size={18} />
-                      <MdFilterList size={16} />
-                    </span>
-                  </div>
-                </th>
-                <th className="th-actions" />
-                <th className="th-actions" />
-              </tr>
-            </thead>
+      {/* Pricing table (final table style) */}
+      <Paper variant="card">
+        <DataGrid
+          rows={pricingRows}
+          columns={pricingColumns}
+          disableRowSelectionOnClick
+          pageSizeOptions={pricingPageSizeOptions}
+          initialState={{
+            pagination: { paginationModel: { page: 0, pageSize: 10 } },
+          }}
+          showToolbar
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+              quickFilterProps: { debounceMs: 300 },
+            },
+          }}
+        />
+      </Paper>
 
-            <tbody>
-              {pagedPricings.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.name}</td>
-                  <td>{r.price}</td>
-                  <td>{r.usedBy}</td>
-                  <td>{r.timeForPayment}</td>
-                  <td>{r.timeForCancellation}</td>
-                  <td className="td-actions">
-                    <button
-                      className="page-details-link"
-                      type="button"
-                      onClick={() => navigate(`./pricing-table/${r.id}`)}
-                    >
-                      Details
-                    </button>
-                  </td>
-                  <td className="td-actions">
-                    <button
-                      className="page-details-link"
-                      type="button"
-                      onClick={() => navigate(`./pricing-table/${r.id}/edit`)}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Delete dialog */}
+      <Dialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Office deletion</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: "13px", color: "#444", mb: "10px" }}>
+            To delete an office the following requirements must be met:
+          </Typography>
 
-          <div className="page-footer">
-            <button className="page-footer-btn" type="button">
-              Change columns
-            </button>
+          <Box
+            component="ul"
+            sx={{
+              mt: 0,
+              mb: "12px",
+              pl: "18px",
+              color: "#444",
+              fontSize: "13px",
+            }}
+          >
+            <li>
+              There may not be any upcoming or active reservations on the office
+            </li>
+          </Box>
 
-            <div className="page-footer-left">
-              <span className="page-footer-label">Rows per page:</span>
-              <select
-                className="page-select"
-                value={pricingEffectiveRows}
-                onChange={(e) => {
-                  setPricingRowsPerPage(Number(e.target.value));
-                  setPricingPage(1);
-                }}
-              >
-                {pricingRowsOptions.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <Typography sx={{ fontSize: "13px", color: "#444", mb: "12px" }}>
+            Unpublishing the office is preferred to deleting, since it prevents
+            new reservations from being made and hides the office in search
+            results, while still allowing users to view details of this office
+            in their reservations.
+          </Typography>
 
-            <div className="page-footer-center">
-              {pricingFrom}-{pricingTo} of {pricingTotalCount}
-            </div>
+          <Typography sx={{ fontSize: "13px", color: "#444" }}>
+            Are you sure you want to delete the office?
+          </Typography>
+        </DialogContent>
 
-            <div className="pagination">
-              <button
-                className={`page-btn ${pricingCurrentPage === 1 ? "page-btn--disabled" : ""}`}
-                type="button"
-                disabled={pricingCurrentPage === 1}
-                onClick={() => setPricingPage((p) => Math.max(1, p - 1))}
-              >
-                ← Previous
-              </button>
+        <DialogActions sx={{ px: "16px", pb: "12px" }}>
+          <Button
+            variant="contained"
+            startIcon={<DeleteOutlineIcon fontSize="small" />}
+            onClick={() => {
+              setDeleteOpen(false);
+            }}
+          >
+            Yes
+          </Button>
 
-              {pricingPageItems.map((item, idx) =>
-                item === "ellipsis" ? (
-                  <span key={`p-e-${idx}`} className="page-ellipsis">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    className={`page-number ${pricingCurrentPage === item ? "page-number--active" : ""}`}
-                    type="button"
-                    onClick={() => setPricingPage(item)}
-                  >
-                    {item}
-                  </button>
-                ),
-              )}
-
-              <button
-                className={`page-btn ${pricingCurrentPage === pricingTotalPages ? "page-btn--disabled" : ""}`}
-                type="button"
-                disabled={pricingCurrentPage === pricingTotalPages}
-                onClick={() =>
-                  setPricingPage((p) => Math.min(pricingTotalPages, p + 1))
-                }
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          <Button
+            variant="text"
+            color="error"
+            onClick={() => setDeleteOpen(false)}
+          >
+            No
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };

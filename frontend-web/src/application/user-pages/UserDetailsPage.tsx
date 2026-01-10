@@ -1,7 +1,6 @@
 import { MdOutlineWarningAmber, MdLockOutline } from "react-icons/md";
 import { useParams, useNavigate } from "react-router";
 import { useState } from "react";
-import { Modal } from "../Modal";
 
 export const UserDetailsPage = () => {
   const [openCancelNoRefund, setOpenCancelNoRefund] = useState(false);
