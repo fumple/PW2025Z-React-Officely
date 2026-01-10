@@ -1,119 +1,70 @@
-import { useState } from "react";
-import { MdSave, MdCancel, MdAddPhotoAlternate } from "react-icons/md";
 import { useParams, useNavigate } from "react-router";
-import testPhotoUrl from "../../assets/test-photo.jpg";
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import Typography from "@mui/material/Typography";
+
+import CancelIcon from "@mui/icons-material/Cancel";
+import SaveIcon from "@mui/icons-material/Save";
 
 export const ItemEditPage = () => {
-  const [imageUrl, setImageUrl] = useState(testPhotoUrl);
-  const [canAddMore, setCanAddMore] = useState(imageUrl === "" ? true : false);
-  const navigate = useNavigate();
-
   const { itemName } = useParams<{ itemName: string }>();
+  const navigate = useNavigate();
   if (!itemName) return null;
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files === null) return;
-
-    setCanAddMore(false);
-    setImageUrl(URL.createObjectURL(files[0]));
-
-    e.target.value = "";
-  };
-
-  const removePhoto = () => {
-    setImageUrl("");
-    setCanAddMore(true);
-  };
-
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <h1 className="page-title">Edit item</h1>
-        <form>
-          <label>Name</label>
-          <input type="text" value={itemName} />
-          <label>Floor</label>
-          <input type="text" />
-          <label>Room</label>
-          <input type="text" />
+    <Box sx={{ px: "12px", pt: "6px" }}>
+      <Typography variant="h5" component="h1" sx={{ m: 0, mb: "12px" }}>
+        Edit item
+      </Typography>
 
-          <p className="page-label">Properties</p>
+      <Box
+        component="form"
+        onSubmit={(e) => e.preventDefault()}
+        sx={{ maxWidth: 560 }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="itemName">Name</FormLabel>
+            <OutlinedInput id="itemName" value={itemName} />
+          </FormControl>
 
-          <div className="properties-block">
-            <div className="properties-field">
-              <label className="properties-label">Desk:</label>
-              <div className="properties-hint">(Choose 1 or 2)</div>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="floor">Floor</FormLabel>
+            <OutlinedInput id="floor" />
+          </FormControl>
 
-              <div className="check-row-group">
-                <label className="check-row">
-                  <input type="checkbox" />
-                  <span>Standing Desk</span>
-                </label>
+          <FormControl variant="outlined">
+            <FormLabel htmlFor="room">Room</FormLabel>
+            <OutlinedInput id="room" />
+          </FormControl>
 
-                <label className="check-row">
-                  <input type="checkbox" />
-                  <span>Sitting Desk</span>
-                </label>
-              </div>
-
-              <div className="properties-hint">(Choose 0 or 1)</div>
-
-              <label className="check-row">
-                <input type="checkbox" />
-                <span>Desk with adjustable height</span>
-              </label>
-            </div>
-          </div>
-
-          <p className="page-label">Photo</p>
-          {imageUrl === "" ? (
-            <label
-              className={`gallery-add-tile ${!canAddMore ? "gallery-add-tile--disabled" : ""}`}
-              title={canAddMore ? "Add image" : "Max images reached"}
-            >
-              <MdAddPhotoAlternate size={28} />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelected}
-                disabled={!canAddMore}
-                style={{ display: "none" }}
-              />
-            </label>
-          ) : (
-            <div className="gallery-thumb">
-              <img src={imageUrl} />
-              <button
-                type="button"
-                className="gallery-remove"
-                onClick={removePhoto}
-              >
-                ×
-              </button>
-            </div>
-          )}
-
-          <div className="form-actions">
-            <button
+          <Box sx={{ display: "flex", gap: "10px", mt: "6px" }}>
+            <Button
               type="button"
-              className="btn-primary"
+              variant="contained"
+              startIcon={<SaveIcon fontSize="small" />}
               onClick={() => navigate(`../item/${itemName}`)}
             >
-              <MdSave />
-              <span>Save</span>
-            </button>
-            <button
+              Save
+            </Button>
+
+            <Button
               type="button"
-              className="btn-link-danger"
+              variant="text"
+              color="error"
+              startIcon={<CancelIcon fontSize="small" />}
               onClick={() => navigate(`../item/${itemName}`)}
+              sx={{ textTransform: "none" }}
             >
-              <MdCancel />
-              <span>Cancel</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 };

@@ -6,7 +6,6 @@ import {
 } from "react-icons/md";
 import { useParams, useNavigate } from "react-router";
 import { useMemo, useState } from "react";
-import { Modal } from "../Modal";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 

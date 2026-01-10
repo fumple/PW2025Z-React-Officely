@@ -1,10 +1,13 @@
-import {
-  MdOutlineBackspace,
-  MdEditSquare,
-  MdOutlineVisibilityOff,
-} from "react-icons/md";
-import { useParams, useNavigate } from "react-router";
-import testPhotoUrl from "../../assets/test-photo.jpg";
+import { useNavigate, useParams } from "react-router";
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
+
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 export const ItemDetailsPage = () => {
   const navigate = useNavigate();
@@ -15,83 +18,102 @@ export const ItemDetailsPage = () => {
   const officeName = "Lorem Ipsum Office";
 
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <div className="office-top">
-          <div className="office-meta">
-            <h1 className="page-title">
-              {officeName} - Desk #{itemName}
-            </h1>
-            <label>Type:</label>
-            <label>Floor: </label>
-            <label>Room:</label>
-            <label>Pricing:</label>
+    <Box sx={{ px: "12px", pt: "6px" }}>
+      <Box sx={{ maxWidth: 720 }}>
+        <Typography variant="h5" component="h1" sx={{ m: 0 }}>
+          {officeName} - Desk #{itemName}
+        </Typography>
 
-            <div className="office-actions">
-              <button
-                className="btn-primary"
-                type="button"
-                onClick={() => navigate("./edit")}
-              >
-                <MdEditSquare />
-                <span>Edit</span>
-              </button>
+        <Box
+          sx={{
+            mt: "10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+          }}
+        >
+          <Typography variant="body2" sx={{ fontSize: "13px" }}>
+            Type:
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: "13px" }}>
+            Floor:
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: "13px" }}>
+            Room:
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: "13px" }}>
+            Pricing:
+          </Typography>
+        </Box>
 
-              <button
-                className="btn-secondary"
-                type="button"
-                onClick={() => navigate("/app/bookings")}
-              >
-                <span>View bookings</span>
-              </button>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "8px", mt: "10px" }}>
+          <Button
+            variant="contained"
+            startIcon={<EditIcon fontSize="small" />}
+            onClick={() => navigate("./edit")}
+          >
+            Edit
+          </Button>
 
-              <button className="btn-link-danger" type="button">
-                <MdOutlineVisibilityOff />
-                <span>Unpublish</span>
-              </button>
+          <Button variant="outlined" onClick={() => navigate("/app/bookings")}>
+            View bookings
+          </Button>
 
-              <button className="btn-link-danger" type="button">
-                <MdOutlineBackspace />
-                <span>Delete</span>
-              </button>
-            </div>
-            <br />
+          <Button
+            variant="text"
+            color="error"
+            startIcon={<VisibilityOffIcon fontSize="small" />}
+            sx={{ textTransform: "none" }}
+            onClick={() => alert("unpublished")}
+          >
+            Unpublish
+          </Button>
 
-            <p className="page-label">Properties</p>
+          <Button
+            variant="text"
+            color="error"
+            startIcon={<DeleteOutlineIcon fontSize="small" />}
+            sx={{ textTransform: "none" }}
+            onClick={() => alert("delete")}
+          >
+            Delete
+          </Button>
+        </Box>
 
-            <div className="properties-block">
-              <div className="properties-field">
-                <label className="properties-label">Desk:</label>
-                <div className="properties-hint">(Choose 1 or 2)</div>
+        <Typography variant="subtitle2" sx={{ mt: "14px" }}>
+          Properties
+        </Typography>
 
-                <div className="check-row-group">
-                  <label className="check-row">
-                    <input type="checkbox" checked disabled />
-                    <span>Standing Desk</span>
-                  </label>
+        <Paper variant="card" sx={{ mt: "8px" }}>
+          <Typography
+            sx={{ fontSize: "12px", fontWeight: 600, color: "text.primary" }}
+          >
+            Desk:
+          </Typography>
 
-                  <label className="check-row">
-                    <input type="checkbox" disabled />
-                    <span>Sitting Desk</span>
-                  </label>
-                </div>
+          <Box
+            component="ul"
+            sx={{ m: 0, mt: "6px", pl: "18px", color: "text.primary" }}
+          >
+            <li>
+              <Typography sx={{ fontSize: "13px", color: "text.primary" }}>
+                Standing Desk
+              </Typography>
+            </li>
+          </Box>
 
-                <div className="properties-hint">(Choose 0 or 1)</div>
-
-                <label className="check-row">
-                  <input type="checkbox" checked disabled />
-                  <span>Desk with adjustable height</span>
-                </label>
-              </div>
-            </div>
-          </div>
-          <div className="office-side">
-            <div className="office-side-card">
-              <img className="office-side-img" src={testPhotoUrl} alt="Desk" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          <Box
+            component="ul"
+            sx={{ m: 0, mt: "6px", pl: "18px", color: "text.primary" }}
+          >
+            <li>
+              <Typography sx={{ fontSize: "13px", color: "text.primary" }}>
+                Desk with adjustable height
+              </Typography>
+            </li>
+          </Box>
+        </Paper>
+      </Box>
+    </Box>
   );
 };
