@@ -20,6 +20,7 @@ import test1PhotoUrl from "../../assets/test-photo.jpg";
 import test2PhotoUrl from "../../assets/test-photo-2.jpg";
 import { OfficeLocationDisplay } from "./OfficeLocationDisplay";
 import Paper from "@mui/material/Paper";
+import OutlinedInput from "@mui/material/OutlinedInput";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
@@ -41,6 +42,16 @@ type PricingRow = {
   timeForCancellation: string;
 };
 
+type EmployeeRow = {
+  id: string;
+  email: string;
+  name: string;
+  surname: string;
+  nationality: string;
+  dateOfBirth: string;
+  phoneNumber: string;
+};
+
 const allItems: ItemRow[] = Array.from({ length: 60 }).map((_, i) => ({
   id: String(i + 1),
   name: String("A" + (i + 1)),
@@ -59,6 +70,16 @@ const allPricings: PricingRow[] = Array.from({ length: 80 }).map((_, i) => ({
   timeForCancellation: "Text line",
 }));
 
+const allEmployees: EmployeeRow[] = Array.from({ length: 15 }).map((_, i) => ({
+  id: String(i + 1),
+  email: "Text Line",
+  name: "Text line",
+  surname: "Text line",
+  nationality: "Text line",
+  dateOfBirth: "Text line",
+  phoneNumber: "Text line",
+}));
+
 function getRowsPerPageOptions(totalCount: number): number[] {
   if (totalCount === 0) return [10];
   const filtered = BASE_PAGE_SIZES.filter((n) => n <= totalCount);
@@ -69,6 +90,7 @@ export const OfficeDetailsPage = () => {
   const navigate = useNavigate();
   const { officeId } = useParams<{ officeId: string }>();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   const location = {
     address: "",
@@ -83,9 +105,11 @@ export const OfficeDetailsPage = () => {
 
   const itemsRows = allItems;
   const pricingRows = allPricings;
+  const employeeRows = allEmployees;
 
   const itemsPageSizeOptions = getRowsPerPageOptions(itemsRows.length);
   const pricingPageSizeOptions = getRowsPerPageOptions(pricingRows.length);
+  const employeePageSizeOptions = getRowsPerPageOptions(employeeRows.length);
 
   const itemsColumns = useMemo<GridColDef<ItemRow>[]>(
     () => [
@@ -198,6 +222,53 @@ export const OfficeDetailsPage = () => {
             onClick={() => navigate(`./pricing-table/${params.row.id}/edit`)}
           >
             Edit
+          </Button>
+        ),
+      },
+    ],
+    [navigate],
+  );
+
+  const employeeColumns = useMemo<GridColDef<EmployeeRow>[]>(
+    () => [
+      { field: "id", headerName: "ID", flex: 1, minWidth: 10 },
+      { field: "email", headerName: "Email", flex: 1, minWidth: 140 },
+      { field: "name", headerName: "Name", flex: 1, minWidth: 120 },
+      { field: "surname", headerName: "Surname", flex: 1, minWidth: 160 },
+      {
+        field: "nationality",
+        headerName: "Nationality",
+        flex: 1,
+        minWidth: 120,
+      },
+      {
+        field: "dateOfBirth",
+        headerName: "Date of Birth",
+        flex: 1,
+        minWidth: 120,
+      },
+      {
+        field: "phoneNumber",
+        headerName: "Phone Number",
+        flex: 1,
+        minWidth: 120,
+      },
+      {
+        field: "details",
+        headerName: "",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        width: 110,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => navigate(`./employee/${params.row.id}`)}
+          >
+            Details
           </Button>
         ),
       },
@@ -412,6 +483,48 @@ export const OfficeDetailsPage = () => {
         />
       </Paper>
 
+      {/* Employees that are granted access*/}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: "10px",
+          mt: "20px",
+        }}
+      >
+        <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111" }}>
+          Employees with access
+        </Typography>
+
+        <Button
+          variant="contained"
+          startIcon={<AddIcon fontSize="small" />}
+          onClick={() => setAddOpen(true)}
+        >
+          Add
+        </Button>
+      </Box>
+
+      <Paper variant="card">
+        <DataGrid
+          rows={employeeRows}
+          columns={employeeColumns}
+          disableRowSelectionOnClick
+          pageSizeOptions={employeePageSizeOptions}
+          initialState={{
+            pagination: { paginationModel: { page: 0, pageSize: 10 } },
+          }}
+          showToolbar
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+              quickFilterProps: { debounceMs: 300 },
+            },
+          }}
+        />
+      </Paper>
+
       {/* Delete dialog */}
       <Dialog
         open={deleteOpen}
@@ -469,6 +582,66 @@ export const OfficeDetailsPage = () => {
             onClick={() => setDeleteOpen(false)}
           >
             No
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Employee Dialog */}
+      <Dialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add employee access</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: "13px", color: "#444", mb: "10px" }}>
+            To grant access to an employee the following requirements must be
+            met:
+          </Typography>
+
+          <Box
+            component="ul"
+            sx={{
+              mt: 0,
+              mb: "12px",
+              pl: "18px",
+              color: "#444",
+              fontSize: "13px",
+            }}
+          >
+            <li>
+              The employee has to have an account on the Officely admin website
+            </li>
+          </Box>
+
+          <Box>
+            <Typography
+              sx={{ fontSize: "12px", color: "text.secondary", mb: "4px" }}
+            >
+              Employee email
+            </Typography>
+            <OutlinedInput fullWidth />
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: "16px", pb: "12px" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon fontSize="small" />}
+            onClick={() => {
+              setAddOpen(false);
+            }}
+          >
+            Add
+          </Button>
+
+          <Button
+            variant="text"
+            color="error"
+            onClick={() => setAddOpen(false)}
+          >
+            Cancel
           </Button>
         </DialogActions>
       </Dialog>

@@ -24,7 +24,11 @@ export const LoginPage = () => {
         gap: "8px",
       }}
     >
-      <Typography component="p" variant="subtitle1">
+      <Typography
+        component="p"
+        variant="subtitle1"
+        sx={{ alignSelf: "center" }}
+      >
         Welcome back!
       </Typography>
 

@@ -20,16 +20,26 @@ export const MainPageLoggedOut = () => {
       </Typography>
 
       <Typography component="p" variant="body2">
-        Log in to access the website
+        Log in to access the website or <br />
+        Sign up to create an account
       </Typography>
 
-      <Button
-        variant="contained"
-        disableElevation
-        onClick={() => navigate("/login")}
-      >
-        Log in
-      </Button>
+      <Box sx={{ display: "flex", flexDirection: "row", gap: 2 }}>
+        <Button
+          variant="contained"
+          disableElevation
+          onClick={() => navigate("/login")}
+        >
+          Log in
+        </Button>
+        <Button
+          variant="contained"
+          disableElevation
+          onClick={() => navigate("/signup")}
+        >
+          Sign up
+        </Button>
+      </Box>
     </Box>
   );
 };
