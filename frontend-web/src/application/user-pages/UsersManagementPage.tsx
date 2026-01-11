@@ -1,6 +1,12 @@
-import { MdArrowDropDown, MdFilterList } from "react-icons/md";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router";
+
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+
+import { DataGrid } from "@mui/x-data-grid/DataGrid";
+import type { GridColDef } from "@mui/x-data-grid/models/colDef";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
@@ -17,181 +23,94 @@ const allUsers: UsersRow[] = Array.from({ length: 8 }).map((_, i) => ({
   firstName: "Text line",
   lastName: "Text line",
 }));
-const allUsersCount: number = allUsers.length;
+
+function getRowsPerPageOptions(totalCount: number): number[] {
+  if (totalCount === 0) return [10];
+  const filtered = BASE_PAGE_SIZES.filter((n) => n <= totalCount);
+  return filtered.length > 0 ? [...filtered] : [totalCount];
+}
 
 export const UsersManagementPage = () => {
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const navigate = useNavigate();
 
-  const totalCount = allUsers.length;
+  const rows = allUsers;
+  const pageSizeOptions = getRowsPerPageOptions(rows.length);
 
-  const rowsPerPageOptions =
-    totalCount === 0
-      ? [10]
-      : BASE_PAGE_SIZES.filter((n) => n <= totalCount).length > 0
-        ? BASE_PAGE_SIZES.filter((n) => n <= totalCount)
-        : [totalCount];
-
-  const effectiveRowsPerPage =
-    totalCount === 0 ? rowsPerPage : Math.min(rowsPerPage, totalCount);
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / effectiveRowsPerPage));
-  const currentPage = Math.min(page, totalPages); // safety
-  const pagedUsers = useMemo(() => {
-    const start = (currentPage - 1) * effectiveRowsPerPage;
-    const end = start + effectiveRowsPerPage;
-    return allUsers.slice(start, end);
-  }, [currentPage, effectiveRowsPerPage]);
-
-  const from = allUsersCount === 0 ? 0 : (page - 1) * effectiveRowsPerPage + 1;
-  const to = Math.min(page * effectiveRowsPerPage, allUsersCount);
-
-  const pageItems: Array<number | "ellipsis"> =
-    totalPages <= 5
-      ? Array.from({ length: totalPages }, (_, i) => i + 1)
-      : [1, 2, 3, "ellipsis", totalPages - 1, totalPages];
+  const columns = useMemo<GridColDef<UsersRow>[]>(
+    () => [
+      { field: "id", headerName: "ID", minWidth: 90, flex: 0.5 },
+      { field: "email", headerName: "Email", minWidth: 220, flex: 1.2 },
+      { field: "firstName", headerName: "First Name", minWidth: 160, flex: 1 },
+      { field: "lastName", headerName: "Last Name", minWidth: 160, flex: 1 },
+      {
+        field: "actions",
+        headerName: "",
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        align: "right",
+        headerAlign: "right",
+        width: 110,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            color="primary"
+            onClick={() => navigate(`/app/users/${params.row.id}`)}
+            sx={{
+              minWidth: 0,
+              padding: 0,
+              fontSize: "12px",
+              "&:hover": {
+                textDecoration: "underline",
+                backgroundColor: "transparent",
+              },
+            }}
+          >
+            Details
+          </Button>
+        ),
+      },
+    ],
+    [navigate],
+  );
 
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <h1 className="page-title">Users</h1>
-      </div>
+    <Box sx={{ px: "12px", pt: "6px" }}>
+      <Box sx={{ mb: "12px" }}>
+        <Typography
+          component="h1"
+          sx={{ m: 0, fontSize: "22px", fontWeight: 600, color: "#111" }}
+        >
+          Users
+        </Typography>
+      </Box>
 
-      <div className="page-table-card">
-        <table className="page-table">
-          <thead>
-            <tr>
-              <th>
-                <div className="th-inner">
-                  <span>ID</span>
-                  <span className="th-icons">
-                    <MdArrowDropDown size={18} />
-                    <MdFilterList size={16} />
-                  </span>
-                </div>
-              </th>
-              <th>
-                <div className="th-inner">
-                  <span>Email</span>
-                  <span className="th-icons">
-                    <MdArrowDropDown size={18} />
-                    <MdFilterList size={16} />
-                  </span>
-                </div>
-              </th>
-              <th>
-                <div className="th-inner">
-                  <span>First Name</span>
-                  <span className="th-icons">
-                    <MdArrowDropDown size={18} />
-                    <MdFilterList size={16} />
-                  </span>
-                </div>
-              </th>
-              <th>
-                <div className="th-inner">
-                  <span>Last Name</span>
-                  <span className="th-icons">
-                    <MdArrowDropDown size={18} />
-                    <MdFilterList size={16} />
-                  </span>
-                </div>
-              </th>
-              <th className="th-actions" />
-            </tr>
-          </thead>
-
-          <tbody>
-            {pagedUsers.map((r, idx) => (
-              <tr key={idx}>
-                <td>{r.id}</td>
-                <td>{r.email}</td>
-                <td>{r.firstName}</td>
-                <td>{r.lastName}</td>
-                <td className="td-actions">
-                  <button
-                    className="page-details-link"
-                    type="button"
-                    onClick={() => navigate(`/app/users/${r.id}`)}
-                  >
-                    Details
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="page-footer">
-          <button className="page-footer-btn" type="button">
-            Change columns
-          </button>
-
-          <div className="page-footer-left">
-            <span className="page-footer-label">Rows per page:</span>
-
-            <select
-              className="page-select"
-              value={effectiveRowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setPage(1);
-              }}
-            >
-              {rowsPerPageOptions.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="page-footer-center">
-            {from}-{to} of {allUsersCount}
-          </div>
-
-          <div className="pagination">
-            <button
-              className={`page-btn ${page === 1 ? "page-btn--disabled" : ""}`}
-              type="button"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              ← Previous
-            </button>
-
-            {pageItems.map((item, idx) =>
-              item === "ellipsis" ? (
-                <span key={`e-${idx}`} className="page-ellipsis">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={item}
-                  className={`page-number ${
-                    page === item ? "offices-page-number--active" : ""
-                  }`}
-                  type="button"
-                  onClick={() => setPage(item)}
-                >
-                  {item}
-                </button>
-              ),
-            )}
-            <button
-              className={`page-btn ${
-                page === totalPages ? "page-btn--disabled" : ""
-              }`}
-              type="button"
-              disabled={page === totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/* Official table card */}
+      <Box
+        sx={{
+          height: 520,
+          backgroundColor: "#fff",
+          borderRadius: "10px",
+          p: "12px",
+        }}
+      >
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          disableRowSelectionOnClick
+          pageSizeOptions={pageSizeOptions}
+          initialState={{
+            pagination: { paginationModel: { page: 0, pageSize: 10 } },
+          }}
+          showToolbar
+          slotProps={{
+            toolbar: {
+              showQuickFilter: true,
+              quickFilterProps: { debounceMs: 300 },
+            },
+          }}
+        />
+      </Box>
+    </Box>
   );
 };

@@ -23,6 +23,8 @@ import { PricingTableDetailsPage } from "./application/office-pages/PricingTable
 import { PricingTableEditPage } from "./application/office-pages/PricingTableEditPage";
 import { PricingTableCreatePage } from "./application/office-pages/PricingTableCreatePage";
 import { ItemCreatePage } from "./application/office-pages/ItemCreatePage";
+import { EmployeeDetailsPage } from "./application/office-pages/EmployeeDetailsPage";
+import { SignupPage } from "./authentication/SignUpPage";
 
 export const router = createBrowserRouter([
   {
@@ -36,6 +38,10 @@ export const router = createBrowserRouter([
       {
         path: "login",
         Component: LoginPage,
+      },
+      {
+        path: "signup",
+        Component: SignupPage,
       },
       {
         path: "password-recovery",
@@ -104,6 +110,10 @@ export const router = createBrowserRouter([
               {
                 path: "pricing-table/new",
                 Component: PricingTableCreatePage,
+              },
+              {
+                path: "employee/:employeeId",
+                Component: EmployeeDetailsPage,
               },
             ],
           },

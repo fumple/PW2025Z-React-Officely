@@ -13,9 +13,14 @@ import type { SelectChangeEvent } from "@mui/material/Select";
 
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Radio from "@mui/material/Radio";
+type ItemType = "shared" | "individual";
 
 export const ItemCreatePage = () => {
   const [pricingTableId, setPricingTableId] = useState("");
+  const [itemType, setItemType] = useState<ItemType>();
 
   const navigate = useNavigate();
   const itemId = "A459";
@@ -32,6 +37,58 @@ export const ItemCreatePage = () => {
         sx={{ maxWidth: 560 }}
       >
         <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <FormControl>
+            <RadioGroup
+              value={itemType}
+              onChange={(e) => setItemType(e.target.value as ItemType)}
+            >
+              <FormControlLabel
+                value="shared"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Typography sx={{ fontSize: "14px", color: "#111" }}>
+                      Shared Room
+                    </Typography>
+                    <Typography sx={{ fontSize: "12px", color: "#777" }}>
+                      Room with multiple desks, without reservation of
+                      individual desks
+                    </Typography>
+                  </Box>
+                }
+                sx={{
+                  alignItems: "flex-start",
+                  m: 0,
+                  p: "6px 8px",
+                  borderRadius: "8px",
+                  "&:hover": { backgroundColor: "#fafafa" },
+                }}
+              />
+
+              <FormControlLabel
+                value="individual"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Typography sx={{ fontSize: "14px", color: "#111" }}>
+                      Individual desk / Private room
+                    </Typography>
+                    <Typography sx={{ fontSize: "12px", color: "#777" }}>
+                      The type of this item is decided by properties
+                    </Typography>
+                  </Box>
+                }
+                sx={{
+                  alignItems: "flex-start",
+                  m: 0,
+                  p: "6px 8px",
+                  borderRadius: "8px",
+                  "&:hover": { backgroundColor: "#fafafa" },
+                }}
+              />
+            </RadioGroup>
+          </FormControl>
+
           <FormControl variant="outlined">
             <FormLabel htmlFor="name">Name</FormLabel>
             <OutlinedInput id="name" />
@@ -47,7 +104,7 @@ export const ItemCreatePage = () => {
             <OutlinedInput id="room" />
           </FormControl>
 
-          <FormControl variant="outlined">
+          <FormControl variant="outlined" disabled={itemType === "individual"}>
             <FormLabel htmlFor="desks">Number of desks</FormLabel>
             <OutlinedInput id="desks" type="number" />
           </FormControl>

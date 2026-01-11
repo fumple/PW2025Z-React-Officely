@@ -111,7 +111,7 @@ export const PricingTableCreatePage = () => {
                     color: "text.secondary",
                   }}
                 >
-                  before start
+                  after reservation is made
                 </Box>
               </Box>
             </Box>
