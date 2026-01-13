@@ -27,6 +27,7 @@ components:
         - nationality
         - phoneNumber
         - isBlocked
+        - isAdmin
         - _links
       properties:
         type:
@@ -58,6 +59,10 @@ components:
         isBlocked:
           type: boolean
           default: false
+        isAdmin:
+          type: boolean
+          default: false
+          description: If true, then user has pretty much unrestricted access to all endpoints in the API, with the exception of /users/@me endpoints for other users
         _links:
           type: object
           required:
@@ -71,6 +76,102 @@ components:
               type: string
               examples:
                 - /users/2056
+    BookingResource:
+      type: object
+      required:
+        - id
+        - userId
+        - officeId
+        - itemId
+        - offerId
+        - status
+        - creationDate
+        - startDate
+        - endDate
+        - totalPrice
+        - _links
+      properties: 
+        id:
+          type: string
+          examples:
+            - "R2026"
+        userId:
+          type: string
+          examples:
+            - "2056"
+        officeId:
+          type: string
+          examples:
+            - "O2040"
+        itemId:
+          type: string
+          examples:
+          - "I2020"
+        offerId:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - cancelledByUser
+            - cancelledByStaff
+            - upcoming
+            - awaitingPayment
+            - past
+        creationDate:
+          type: string
+          examples:
+            - "2026-01-01T20:40:06Z"
+        startDate:
+          type: string
+          examples:
+            - "2026-01-06"
+        endDate:
+          type: string
+          examples:
+            - "2026-01-26"
+        cancellationReason:
+          type: string
+        totalPrice:
+          type: integer
+        paymentInfo:
+          type: object
+          required:
+            - accountNumber
+            - receiverName
+            - transferTitle
+            - dueDate
+          properties:
+            accountNumber:
+              type: string
+            receiverName:
+              type: string
+            transferTitle:
+              type: string
+            dueDate:
+              type: string
+              examples:
+                - "2026-01-04T20:40:06Z"
+        _links:
+          type: object
+          required:
+            - self
+            - office
+            - item
+            - offer
+          properties:
+            self:
+              type: string
+            user:
+              type: string
+            office:
+              type: string
+            item:
+              type: string
+            offer:
+              type: string
+            cancel:
+              type: string
 paths:
   '/login':
     post:
@@ -558,7 +659,7 @@ paths:
   '/users/{userId}':
     get:
       tags: [ Users ]
-      summary: "[Admin] Get a list of all users"
+      summary: "View info about a given user if the currently logged in user has access (in this case only allow viewing a user's info if they've made a reservation in an office that this user can manage)"
       security: 
         - user_auth: []
       parameters: 
@@ -646,4 +747,110 @@ paths:
         "403":
           description: Forbidden
 
-          
+  '/bookings':
+    get:
+      tags: [ Bookings ]
+      summary: "Get a list of all bookings made for properties owned by the user or for all properties if the user is an admin"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: query
+          name: filter
+          schema:
+            type: array
+            items:
+              type: string
+              description: "Currently 'contains' is supported, which is just fieldName:value, also 'equals' is supported with fieldName=:value"
+              examples:
+                - "id=:2056"
+                - "firstName:Bo"
+        - in: query
+          name: sortField
+          schema:
+            type: string
+            examples:
+              - firstName
+        - in: query
+          name: sortDirection
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+        - name: pageSize
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/PageSize'
+        - name: pageToken
+          in: query
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookingResource'
+                      
+                  _pagination:
+                    type: object
+                    required: 
+                      - currentPage
+                      - lastPage
+                      - pageSize
+                    properties:
+                      currentPage:
+                        type: integer
+                      lastPage:
+                        type: integer
+                      pageSize:
+                        type: integer
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - first
+                      - last
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
+                      prev:
+                        type: string
+                      first:
+                        type: string
+                      last:
+                        type: string
+        "401":
+          description: Unauthorized
+  '/bookings/{bookingId}':
+    get:
+      tags: [ Bookings ]
+      summary: "View the details of a booking (if the user is allowed to view it)"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: bookingId
+          required: true
+          schema: 
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/BookingResource'
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
