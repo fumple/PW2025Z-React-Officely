@@ -117,6 +117,7 @@ components:
             - cancelledByStaff
             - upcoming
             - awaitingPayment
+            - awaitingRefund
             - past
         creationDate:
           type: string
@@ -850,6 +851,64 @@ paths:
             application/json: 
               schema: 
                 $ref: '#/components/schemas/BookingResource'
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+  '/bookings/{bookingId}/cancel':
+    post:
+      tags: [ Bookings ]
+      summary: "Cancel a booking"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: bookingId
+          required: true
+          schema: 
+            type: string
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required:
+                - reason
+                - withRefund
+              properties:
+                withRefund:
+                  type: boolean
+                reason:
+                  type: string
+      responses: 
+        "200":
+          description: Success
+        "400":
+          description: "The booking cannot be cancelled due to business logic"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ActionNotAllowed
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - Cancelling a past booking is not allowed
         "401":
           description: Unauthorized
         "403":
