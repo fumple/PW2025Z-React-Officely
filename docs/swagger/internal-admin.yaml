@@ -247,6 +247,134 @@ paths:
           description: "Success"
         "401":
           description: Unauthorized
+  '/resetPasswordEmail':
+    post:
+      tags: [Auth]
+      summary: "Request a password reset email"
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              properties:
+                email:
+                  type: string
+              required:
+                - email
+      responses:
+        "201":
+          description: "Created"
+        "400":
+          description: "Invalid email or body"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - email
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Value must be a boolean
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+        "429":
+          description: "Too many requests"
+  '/resetPassword':
+    post:
+      tags: [Auth]
+      summary: "Reset password"
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              properties:
+                email:
+                  type: string
+                code:
+                  type: string
+                newPassword:
+                  type: string
+              required:
+                - email
+                - code
+                - newPassword
+      responses:
+        "200":
+          description: "Saved"
+        "400":
+          description: "Invalid email or body"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - code
+                                - email
+                                - newPassword
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Invalid code
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+        "429":
+          description: "Too many requests"
   '/users/@me':
     get:
       tags: [ Auth ]
