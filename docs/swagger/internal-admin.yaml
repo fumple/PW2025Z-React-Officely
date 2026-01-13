@@ -10,15 +10,30 @@ components:
       in: header
       scheme: "Bearer"
   schemas: 
+    PageSize:
+      type: integer
+      minimum: 1
+      maximum: 50
+      examples: [25]
     UserResource:
       type: object
       required:
+        - type
         - id
         - firstName
         - lastName
         - email
+        - dateOfBirth
+        - nationality
+        - phoneNumber
         - _links
-      properties: 
+      properties:
+        type:
+          type: string
+          enum:
+            - admin
+            - local_customer
+            - flatly_customer
         id:
           type: string
         firstName:
@@ -27,6 +42,18 @@ components:
           type: string
         email:
           type: string
+        dateOfBirth:
+          type: string
+          examples:
+            - "2025-04-01"
+        nationality:
+          type: string
+          examples:
+            - pl
+        phoneNumber:
+          type: string
+          examples:
+            - "+48222347211"
         _links:
           type: object
           required:
@@ -39,6 +66,7 @@ components:
 paths:
   '/login':
     post:
+      tags: [ Auth ]
       summary: Log in
       requestBody: 
         required: true
@@ -59,7 +87,6 @@ paths:
                   type: string
                 password:
                   type: string
-                
       responses: 
         "200":
           description: "Success"
@@ -110,6 +137,7 @@ paths:
                               const: InvalidBodyError
   '/signup':
     post:
+      tags: [ Auth ]
       summary: Create an account
       requestBody: 
         required: true
@@ -123,6 +151,9 @@ paths:
                 - lastName
                 - email
                 - password
+                - dateOfBirth
+                - nationality
+                - phoneNumber
               properties: 
                 type:
                   type: string
@@ -136,7 +167,18 @@ paths:
                   type: string
                 password:
                   type: string
-                
+                dateOfBirth:
+                  type: string
+                  examples:
+                    - "2025-04-01"
+                nationality:
+                  type: string
+                  examples:
+                    - pl
+                phoneNumber:
+                  type: string
+                  examples:
+                    - "+48222347211"
       responses: 
         "201":
           description: "Created"
@@ -188,6 +230,7 @@ paths:
                               const: InvalidBodyError
   '/logout':
     post:
+      tags: [ Auth ]
       summary: "Log out of the application"
       security: 
         - user_auth: []
@@ -198,6 +241,7 @@ paths:
           description: Unauthorized
   '/users/@me':
     get:
+      tags: [ Auth ]
       summary: Get current user info
       security: 
         - user_auth: []
@@ -210,4 +254,86 @@ paths:
                 $ref: '#/components/schemas/UserResource'
         "401":
           description: Unauthorized
-      
+  '/users':
+    get:
+      tags: [ Users ]
+      summary: "[Admin] Get a list of all users"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: query
+          name: filter
+          schema:
+            type: array
+            items:
+              type: string
+              description: "Currently 'contains' is supported, which is just fieldName:value, also 'equals' is supported with fieldName=:value"
+              examples:
+                - "id=:2056"
+                - "firstName:Bo"
+        - in: query
+          name: sortField
+          schema:
+            type: string
+            examples:
+              - firstName
+        - in: query
+          name: sortDirection
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+        - name: pageSize
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/PageSize'
+        - name: pageToken
+          in: query
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserResource'
+                      
+                  _pagination:
+                    type: object
+                    required: 
+                      - currentPage
+                      - lastPage
+                      - pageSize
+                    properties:
+                      currentPage:
+                        type: integer
+                      lastPage:
+                        type: integer
+                      pageSize:
+                        type: integer
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - first
+                      - last
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
+                      prev:
+                        type: string
+                      first:
+                        type: string
+                      last:
+                        type: string
+              
