@@ -1551,6 +1551,9 @@ paths:
                 - pricePerDayCurrency
                 - paymentHours
               properties:
+                sourceId:
+                  type: string
+                  description: "If present, will be take over all items linked to the source offer, so it will make all items linked to the source offer link to this offer instead"
                 name:
                   type: string
                 publicName:
