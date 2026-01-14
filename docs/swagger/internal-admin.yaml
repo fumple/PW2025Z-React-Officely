@@ -252,6 +252,7 @@ components:
         - freeCancellationHours
         - paymentHours
         - photoUrls
+        - properties
         - _links
       properties: 
         id:
@@ -275,6 +276,14 @@ components:
           type: array
           items:
             type: string
+        properties:
+          type: object
+          additionalProperties: 
+            anyOf: 
+              - type: string
+              - type: boolean
+              - type: integer
+            
         _links:
           type: object
           required:
@@ -1550,6 +1559,7 @@ paths:
                 - pricePerDay
                 - pricePerDayCurrency
                 - paymentHours
+                - properties
               properties:
                 sourceId:
                   type: string
@@ -1567,6 +1577,12 @@ paths:
                 paymentHours:
                   type: integer
                   description: The payment must be made x hours after the booking was made
+                properties:
+                  type: array
+                  items:
+                    type: string
+                    examples:
+                      - "desk.type.standing:true"
                 images:
                   type: array
                   items:
@@ -1623,6 +1639,7 @@ paths:
                                 - pricePerDayCurrency
                                 - freeCancellationHours
                                 - paymentHours
+                                - properties
                                 - images
                             message:
                               type: string
