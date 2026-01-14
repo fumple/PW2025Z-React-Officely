@@ -189,6 +189,8 @@ components:
         - photoUrls
         - contactEmail
         - contactPhone
+        - paymentAccountNumber
+        - paymentReceiverName
         - _links
       properties: 
         id:
@@ -222,6 +224,10 @@ components:
         published:
           type: boolean
           default: false
+        paymentAccountNumber:
+          type: string
+        paymentReceiverName:
+          type: string
         _links:
           type: object
           required:
@@ -1154,6 +1160,8 @@ paths:
                 - address
                 - contactEmail
                 - contactPhone
+                - paymentAccountNumber
+                - paymentReceiverName
                 - images
               properties:
                 name:
@@ -1165,6 +1173,10 @@ paths:
                 contactEmail:
                   type: string
                 contactPhone:
+                  type: string
+                paymentAccountNumber:
+                  type: string
+                paymentReceiverName:
                   type: string
                 images:
                   type: array
@@ -1287,6 +1299,10 @@ paths:
                   type: string
                 published:
                   type: boolean
+                paymentAccountNumber:
+                  type: string
+                paymentReceiverName:
+                  type: string
                 images:
                   type: array
                   description: Ordered list of images to be used, images not in this list will be removed, current refers to the active images and added refers to images included in this request
