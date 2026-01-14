@@ -173,6 +173,10 @@ components:
               type: string
             cancel:
               type: string
+            markPaid:
+              type: string
+            markRefunded:
+              type: string
     OfficeResource:
       type: object
       required: 
@@ -954,6 +958,94 @@ paths:
                           description: A human readable message
                           examples:
                             - Cancelling a past booking is not allowed
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+  '/bookings/{bookingId}/markPaid':
+    post:
+      tags: [ Bookings ]
+      summary: "Mark a booking as paid"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: bookingId
+          required: true
+          schema: 
+            type: string
+      responses: 
+        "200":
+          description: Success
+        "400":
+          description: "The booking cannot be cancelled due to business logic"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ActionNotAllowed
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - Marking an already paid booking as paid is not allowed
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+  '/bookings/{bookingId}/markRefunded':
+    post:
+      tags: [ Bookings ]
+      summary: "Mark a booking as refunded"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: bookingId
+          required: true
+          schema: 
+            type: string
+      responses: 
+        "200":
+          description: Success
+        "400":
+          description: "The booking cannot be cancelled due to business logic"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ActionNotAllowed
+                        message:
+                          type: string
+                          description: A human readable message
+                          examples:
+                            - Refunding a booking that wasn't marked as to be refunded is not allowed
         "401":
           description: Unauthorized
         "403":
