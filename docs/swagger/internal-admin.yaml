@@ -173,6 +173,55 @@ components:
               type: string
             cancel:
               type: string
+    OfficeResource:
+      type: object
+      required: 
+        - id
+        - ownerId
+        - name
+        - description
+        - address
+        - coordinates
+        - photoUrls
+        - contactEmail
+        - contactPhone
+        - _links
+      properties: 
+        id:
+          type: string
+        ownerId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        coordinates:
+          type: object
+          required:
+            - lat
+            - lon
+          properties:
+            lat:
+              type: string
+            lon:
+              type: string
+        photoUrls:
+          type: array
+          items:
+            type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        _links:
+          type: object
+          required:
+            - self
+          properties:
+            self:
+              type: string
 paths:
   '/login':
     post:
@@ -581,13 +630,11 @@ paths:
         - in: query
           name: filter
           schema:
-            type: array
-            items:
-              type: string
-              description: "Currently 'contains' is supported, which is just fieldName:value, also 'equals' is supported with fieldName=:value"
-              examples:
-                - "id=:2056"
-                - "firstName:Bo"
+            type: string
+            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
+            examples:
+              - "id:equals:2056"
+              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -758,13 +805,11 @@ paths:
         - in: query
           name: filter
           schema:
-            type: array
-            items:
-              type: string
-              description: "Currently 'contains' is supported, which is just fieldName:value, also 'equals' is supported with fieldName=:value"
-              examples:
-                - "id=:2056"
-                - "firstName:Bo"
+            type: string
+            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
+            examples:
+              - "id:equals:2056"
+              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -913,3 +958,177 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+  '/offices':
+    get:
+      tags: [ Offices ]
+      summary: "Get a list of all offices that the user can manage"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: query
+          name: filter
+          schema:
+            type: string
+            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
+            examples:
+              - "id:equals:2056"
+              - "firstName:contains:Bo"
+        - in: query
+          name: sortField
+          schema:
+            type: string
+            examples:
+              - firstName
+        - in: query
+          name: sortDirection
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+        - name: pageSize
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/PageSize'
+        - name: pageToken
+          in: query
+          schema:
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OfficeResource'
+                      
+                  _pagination:
+                    type: object
+                    required: 
+                      - currentPage
+                      - lastPage
+                      - pageSize
+                    properties:
+                      currentPage:
+                        type: integer
+                      lastPage:
+                        type: integer
+                      pageSize:
+                        type: integer
+                  _links:
+                    type: object
+                    required:
+                      - self
+                      - first
+                      - last
+                    properties:
+                      self:
+                        type: string
+                      next:
+                        type: string
+                      prev:
+                        type: string
+                      first:
+                        type: string
+                      last:
+                        type: string
+        "401":
+          description: Unauthorized
+    post:
+      tags: [ Offices ]
+      summary: Create an office
+      security:
+        - user_auth: []
+      requestBody: 
+        required: true
+        content: 
+          multipart/form-data: 
+            schema: 
+              type: object
+              required: 
+                - name
+                - description
+                - address
+                - images
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                address:
+                  type: string
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        "201":
+          description: Created
+          headers: 
+            Location:
+              example: /offices/2056
+              description: URL to the newly created office (for example /offices/2056)
+              schema: 
+                type: string
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - name
+                                - description
+                                - address
+                                - images
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Name is required
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+        "401":
+          description: Unauthorized
+      
