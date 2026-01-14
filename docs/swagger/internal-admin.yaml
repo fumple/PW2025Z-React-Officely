@@ -229,6 +229,8 @@ components:
           properties:
             self:
               type: string
+            update:
+              type: string
 paths:
   '/login':
     post:
@@ -1233,6 +1235,28 @@ paths:
         "401":
           description: Unauthorized
   '/offices/{officeId}':
+    get:
+      tags: [ Offices ]
+      summary: "View the details of an office (if the user is allowed to view it)"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: officeId
+          required: true
+          schema: 
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficeResource'
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
     patch:
       tags: [ Offices ]
       summary: Modify an office
