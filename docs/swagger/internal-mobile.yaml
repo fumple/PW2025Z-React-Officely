@@ -388,8 +388,9 @@ components:
             status:
               type: string
               enum:
-                - waitingForPayment
+                - pendingPayment
                 - received
+                - pendingRefund
                 - refunded
             accountNumber:
               type: string
