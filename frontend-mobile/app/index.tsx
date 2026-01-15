@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { View } from "react-native";
+import { Text, Button } from "react-native-paper";
 
 export default function Index() {
   return (
@@ -9,7 +10,10 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <Text variant="bodyMedium">Edit app/index.tsx to edit this screen.</Text>
+      <Button icon="hand-wave" mode="contained">
+        Example button!
+      </Button>
     </View>
   );
 }
