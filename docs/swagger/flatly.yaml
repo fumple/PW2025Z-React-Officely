@@ -123,9 +123,9 @@ components:
             - lon
           properties:
             lat:
-              type: string
+              type: number
             lon:
-              type: string
+              type: number
         photoUrls:
           type: array
           items:
@@ -319,6 +319,7 @@ components:
         - startDate
         - endDate
         - totalPrice
+        - paymentInfo
         - _links
       properties: 
         id:
@@ -341,19 +342,19 @@ components:
             - active
             - cancelledByUser
             - cancelledByStaff
-            - upcoming
-            - awaitingPayment
-            - past
         creationDate:
           type: string
+          format: date-time
           examples:
             - "2026-01-01T20:40:06Z"
         startDate:
           type: string
+          format: date
           examples:
             - "2026-01-06"
         endDate:
           type: string
+          format: date
           examples:
             - "2026-01-26"
         cancellationReason:
@@ -363,11 +364,18 @@ components:
         paymentInfo:
           type: object
           required:
+            - status
             - accountNumber
             - receiverName
             - transferTitle
             - dueDate
           properties:
+            status:
+              type: string
+              enum:
+                - waitingForPayment
+                - received
+                - refunded
             accountNumber:
               type: string
             receiverName:
@@ -376,6 +384,7 @@ components:
               type: string
             dueDate:
               type: string
+              format: date
               examples:
                 - "2026-01-04T20:40:06Z"
         _links:
@@ -442,6 +451,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-06"
         - name: endDate
@@ -449,6 +459,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-26"
         - name: nearAddress
@@ -620,6 +631,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-06"
         - name: endDate
@@ -627,6 +639,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-26"
         - name: filter
@@ -718,6 +731,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-06"
         - name: endDate
@@ -725,6 +739,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-26"
       responses: 
