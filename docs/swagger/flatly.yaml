@@ -270,6 +270,9 @@ components:
         - email
         - firstName
         - lastName
+        - dateOfBirth
+        - nationality
+        - phoneNumber
         - _links
       properties:
         id:
@@ -288,6 +291,19 @@ components:
           type: string
           examples:
             - React
+        dateOfBirth:
+          type: string
+          format: date
+          examples:
+            - "2025-04-01"
+        nationality:
+          type: string
+          examples:
+            - pl
+        phoneNumber:
+          type: string
+          examples:
+            - "+48222347211"
         _links:
           type: object
           required:
@@ -850,6 +866,19 @@ paths:
                   type: string
                   examples:
                     - React
+                dateOfBirth:
+                  type: string
+                  format: date
+                  examples:
+                    - "2025-04-01"
+                nationality:
+                  type: string
+                  examples:
+                    - pl
+                phoneNumber:
+                  type: string
+                  examples:
+                    - "+48222347211"
       responses: 
         "201":
           description: Created
