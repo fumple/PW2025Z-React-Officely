@@ -290,6 +290,7 @@ components:
           type: string
         dateOfBirth:
           type: string
+          format: date
           examples:
             - "2025-04-01"
         nationality:
