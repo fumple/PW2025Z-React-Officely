@@ -1,5 +1,38 @@
 import { Stack } from "expo-router";
 
+import {
+  adaptNavigationTheme,
+  MD3DarkTheme,
+  MD3LightTheme,
+  PaperProvider,
+} from "react-native-paper";
+import { useColorScheme } from "react-native";
+import {
+  DefaultTheme,
+  DarkTheme as DefaultDarkTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
+
+const { LightTheme, DarkTheme } = adaptNavigationTheme({
+  reactNavigationLight: DefaultTheme,
+  reactNavigationDark: DefaultDarkTheme,
+  materialLight: MD3LightTheme,
+  materialDark: MD3DarkTheme,
+});
+
 export default function RootLayout() {
-  return <Stack />;
+  const colorScheme = useColorScheme();
+
+  const paperTheme = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+  const navTheme = colorScheme === "dark" ? DarkTheme : LightTheme;
+
+  return (
+    <PaperProvider theme={paperTheme}>
+      <ThemeProvider value={navTheme}>
+        <Stack />
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </PaperProvider>
+  );
 }
