@@ -1,7 +1,7 @@
 package com.officely.backend.service;
 
-import com.officely.backend.api.offices.dto.OfficeOfferWithoutPriceDto;
-import com.officely.backend.api.offices.mapper.OfficeOfferWithoutPriceMapper;
+import com.officely.backend.flatly.api.offices.dto.OfficeOfferWithoutPriceDto;
+import com.officely.backend.flatly.api.offices.mapper.OfficeOfferWithoutPriceMapper;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.repository.OfficeOfferRepository;
 import org.springframework.stereotype.Service;

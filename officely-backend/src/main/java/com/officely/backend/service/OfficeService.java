@@ -1,19 +1,17 @@
 package com.officely.backend.service;
 
-import com.officely.backend.api.offices.dto.*;
-import com.officely.backend.api.offices.mapper.OfficeMapper;
-import com.officely.backend.api.offices.mapper.OfficeOfferMapper;
+import com.officely.backend.flatly.api.offices.dto.*;
+import com.officely.backend.flatly.api.offices.mapper.OfficeMapper;
+import com.officely.backend.flatly.api.offices.mapper.OfficeOfferMapper;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.WorkspaceType;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.OfficeRepository;
-import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
