@@ -1,64 +1,52 @@
 package com.officely.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uk_users_email", columnNames = "email"))
+@Getter
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uk_users_type_email", columnNames = {"type", "email"}))
 public class UserEntity {
+    @Setter
+    @Column(nullable = false)
+    private UserType type;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(nullable = false)
     private String email;
 
+    @Setter
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
+    @Setter
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(name = "date_of_birth")
+    @Setter
+    @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
-    @Column(length = 2)
+    @Setter
+    @Column(length = 2, nullable = false)
     private String nationality;
 
-    @Column(name = "phone_number", length = 16)
+    @Setter
+    @Column(name = "phone_number", length = 16, nullable = false)
     private String phoneNumber;
 
-    public UserEntity() {}
+    @Setter
+    @Column(length = 64)
+    private String password;
 
-    public UserEntity(String email, String firstName, String lastName, LocalDate dateOfBirth, String nationality,
-        String phoneNumber) {
-
-        this.email = email;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.dateOfBirth = dateOfBirth;
-        this.nationality = nationality;
-        this.phoneNumber = phoneNumber;
+    @PrePersist @PreUpdate private void prepare(){
+        this.email = email == null ? null : email.toLowerCase();
     }
-
-    public Long getId() { return id; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-
-    public LocalDate getDateOfBirth() { return dateOfBirth; }
-    public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
-
-    public String getNationality() { return nationality; }
-    public void setNationality(String nationality) { this.nationality = nationality; }
-
-    public String getPhoneNumber() { return phoneNumber; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 }
