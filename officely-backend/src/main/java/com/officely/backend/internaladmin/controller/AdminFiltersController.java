@@ -1,4 +1,4 @@
-package com.officely.backend.controller;
+package com.officely.backend.internaladmin.controller;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
@@ -11,17 +11,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/filters")
+@RequestMapping("/admin/filters")
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
-public class FiltersController {
+public class AdminFiltersController {
     private final FiltersService filtersService;
 
     @GetMapping
     public FiltersResponseDto getFilters(){
         var response = new FiltersResponseDto();
         response.setFilters(filtersService.getFilters());
-        response.add(linkTo(FiltersController.class).withSelfRel());
+        response.add(linkTo(AdminFiltersController.class).withSelfRel());
 
         return response;
     }
 }
+

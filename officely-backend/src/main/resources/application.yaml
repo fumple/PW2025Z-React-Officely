@@ -17,3 +17,9 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  hateoas:
+    use-hal-as-default-json-media-type: true
+
+cors:
+  urls: http://localhost:8080,https://editor.swagger.io/
+  mappings: /**
