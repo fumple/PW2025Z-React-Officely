@@ -1,4 +1,6 @@
 openapi: 3.1.0 # TODO: DODATKI! ale jak nie zabraknie czasu
+servers: 
+  - url: https://officely-dev.noscorp.pl/flatly
 info:
   title: Officely - API documentation for Flatly
   version: 1.0.0

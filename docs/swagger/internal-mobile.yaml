@@ -1,4 +1,6 @@
 openapi: 3.1.0
+servers: 
+  - url: https://officely-dev.noscorp.pl/mobile
 info:
   title: Officely - Internal Mobile API
   version: 0.0.1

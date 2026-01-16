@@ -2,6 +2,8 @@ openapi: 3.1.0
 info:
   title: Officely - Internal Admin API
   version: 0.0.1
+servers: 
+  - url: https://officely-dev.noscorp.pl/admin
 components: 
   securitySchemes: 
     user_auth:
@@ -423,8 +425,6 @@ paths:
                         type: string
                         examples:
                           - '/filters'
-        "401":
-          $ref: '#/components/responses/Unauthorized'
   '/login':
     post:
       tags: [ Auth ]
