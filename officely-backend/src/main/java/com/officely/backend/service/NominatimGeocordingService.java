@@ -37,9 +37,9 @@ public class NominatimGeocordingService implements Geocoding {
             Map<String, Object> first = body[0];
 
             double lat = Double.parseDouble(first.get("lat").toString());
-            double lng = Double.parseDouble(first.get("lon").toString());
+            double lon = Double.parseDouble(first.get("lon").toString());
 
-            return new GeoPoint(lat, lng);
+            return new GeoPoint(lat, lon);
         }catch(Exception e){
             System.out.println(String.format("Failed to geocode address '%s'", address));
             e.printStackTrace();

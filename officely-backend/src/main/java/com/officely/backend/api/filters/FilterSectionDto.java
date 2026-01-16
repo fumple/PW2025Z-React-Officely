@@ -2,12 +2,14 @@ package com.officely.backend.api.filters;
 
 import java.util.List;
 
-public class FilterSection {
+public class FilterSectionDto {
     private String key;
     private String label;
-    private List<FilterElement> elements;
+    private List<FilterElementDto> elements;
 
-    public FilterSection(String key, String label, List<FilterElement> elements){
+    public FilterSectionDto() {}
+
+    public FilterSectionDto(String key, String label, List<FilterElementDto> elements){
         this.key = key;
         this.label = label;
         this.elements = elements;
@@ -19,6 +21,6 @@ public class FilterSection {
     public String getLabel() {return label;}
     public void setLabel(String label) {this.label = label;}
 
-    public List<FilterElement> getElements() {return elements;}
-    public void setElements(List<FilterElement> elements) {this.elements = elements;}
+    public List<FilterElementDto> getElements() {return elements;}
+    public void setElements(List<FilterElementDto> elements) {this.elements = elements;}
 }
