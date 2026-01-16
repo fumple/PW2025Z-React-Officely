@@ -1,0 +1,14 @@
+package com.officely.backend.flatly.api.offices.dto;
+
+public class CoordinatesDto {
+    private Double lat;
+    private Double lon;
+
+    public CoordinatesDto() {}
+
+    public Double getLat() { return lat; }
+    public void setLat(Double lat) { this.lat = lat; }
+
+    public Double getLon() { return lon; }
+    public void setLon(Double lon) { this.lon = lon; }
+}
