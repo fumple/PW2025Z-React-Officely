@@ -1,75 +1,36 @@
 package com.officely.backend.service;
 
-import com.officely.backend.api.users.dto.CreateUserRequestDto;
-import com.officely.backend.api.users.dto.CreateUserResponseDto;
-import com.officely.backend.api.users.dto.PatchUserRequestDto;
-import com.officely.backend.api.users.dto.UserDto;
-import com.officely.backend.api.users.mapper.UserMapper;
 import com.officely.backend.entity.UserEntity;
+import com.officely.backend.entity.UserType;
 import com.officely.backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class UserService {
     private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {this.userRepository = userRepository;}
-
-    public List<UserDto> findByEmail(String email) {
-        UserEntity user = userRepository.findByEmailIgnoreCase(email);
-        if (user == null) { return List.of(); }
-
-        return List.of(UserMapper.toDto(user));
+    public Optional<UserEntity> findByTypeAndEmail(UserType type, String email) {
+        return userRepository.findByTypeAndEmailIgnoreCase(type, email);
+    }
+    public Optional<UserEntity> findById(long id) {
+        return userRepository.findById(id);
     }
 
-    public CreateUserResponseDto createUser(CreateUserRequestDto request){
-        UserEntity existing = userRepository.findByEmailIgnoreCase(request.getEmail());
+    public UserEntity createUser(UserEntity entity){
+        var existing = userRepository.findByTypeAndEmailIgnoreCase(entity.getType(), entity.getEmail());
+        if (existing.isPresent()) { throw new UnsupportedOperationException();}
 
-        if (existing != null) { throw new UnsupportedOperationException();}
-
-        UserEntity entity = new UserEntity(
-                request.getEmail(),
-                request.getFirstName(),
-                request.getLastName(),
-                request.getDateOfBirth(),
-                request.getNationality(),
-                request.getPhoneNumber()
-        );
-
-        entity = userRepository.save(entity);
-        return new CreateUserResponseDto(entity.getId().toString());
+        return userRepository.save(entity);
     }
 
-    public void patchUser(String userId, PatchUserRequestDto request) {
-        Long id;
-        try {
-            id = Long.valueOf(userId);
-        } catch (NumberFormatException e) {
-            throw new NoSuchElementException(userId); //TODO: Error implementation
-        }
-
-        boolean success = false;
-        UserEntity user = userRepository.findById(id).orElseThrow(() -> new NoSuchElementException("User not found: " + userId));
-
-        if (request.getFirstName() != null) {
-            user.setFirstName(request.getFirstName());
-            success = true;
-        }
-
-        if (request.getLastName() != null) {
-            user.setLastName(request.getLastName());
-            success = true;
-        }
-
-        if (!success) {
-            throw new Error("At least one field must be provided"); //TODO: Implement Errors
-        }
-
-        userRepository.save(user);
+    public UserEntity patchUser(UserEntity updated) {
+        return userRepository.save(updated);
     }
 }
 
