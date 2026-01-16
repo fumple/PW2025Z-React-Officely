@@ -4,15 +4,15 @@ public interface Geocoding {
 
     class GeoPoint{
         private final double lat;
-        private final double lng;
+        private final double lon;
 
-        public GeoPoint(double lat, double lng){
+        public GeoPoint(double lat, double lon){
             this.lat = lat;
-            this.lng = lng;
+            this.lon = lon;
         }
 
         public double getLat() { return lat; }
-        public double getLng() { return lng; }
+        public double getLng() { return lon; }
     }
     GeoPoint geocode(String address);
 }

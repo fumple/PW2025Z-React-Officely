@@ -1,10 +1,12 @@
 package com.officely.backend.api.filters;
 
-public class FilterFlag {
+public class FilterFlagDto {
     private String key;
     private String label;
 
-    public FilterFlag(String key, String label){
+    public FilterFlagDto() {}
+
+    public FilterFlagDto(String key, String label){
         this.key = key;
         this.label = label;
     }
