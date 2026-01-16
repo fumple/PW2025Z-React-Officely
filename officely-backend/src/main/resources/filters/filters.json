@@ -1,0 +1,96 @@
+[
+  {
+    "key": "workspace",
+    "label": "Workspace",
+    "elements": [
+      {
+        "key": "workspace.type",
+        "label": "Workspace type",
+        "type": "flags",
+        "flags": [
+          { "key": "desk", "label": "Desk" },
+          { "key": "private-office", "label": "Private office" }
+        ]
+      }
+    ]
+  },
+  {
+    "key": "amenities",
+    "label": "Amenities",
+    "elements": [
+      {
+        "key": "amenity.wifi",
+        "label": "Wi-Fi",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Wi-Fi" }]
+      },
+      {
+        "key": "amenity.24h",
+        "label": "24/7 Access",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "24/7 Access" }]
+      },
+      {
+        "key": "amenity.kitchen",
+        "label": "Kitchen",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Kitchen" }]
+      },
+      {
+        "key": "amenity.wheelchair",
+        "label": "Wheelchair access",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Wheelchair access" }]
+      }
+    ]
+  },
+  {
+    "key": "environment",
+    "label": "Environment",
+    "elements": [
+      {
+        "key": "env.quiet",
+        "label": "Quiet area",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Quiet area" }]
+      },
+      {
+        "key": "env.social",
+        "label": "Social / community vibe",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Social / community vibe" }]
+      }
+    ]
+  },
+  {
+    "key": "equipment",
+    "label": "Equipment",
+    "elements": [
+      {
+        "key": "equipment.monitor",
+        "label": "Monitor included",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Monitor included" }]
+      },
+      {
+        "key": "equipment.printing",
+        "label": "Printer",
+        "type": "flags",
+        "flags": [{ "key": "true", "label": "Printer" }]
+      }
+    ]
+  },
+  {
+    "key": "price",
+    "label": "Price",
+    "elements": [
+      {
+        "key": "price",
+        "label": "Price per day",
+        "type": "integer",
+        "min": 0,
+        "max": 2000
+      }
+    ]
+  }
+]
