@@ -11,7 +11,14 @@ components:
       type: http
       in: header
       scheme: "Bearer"
-  schemas: 
+  schemas:
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
     PageSize:
       type: integer
       minimum: 1
@@ -122,13 +129,13 @@ components:
             - self
           properties: 
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - /users/2056
+                - href: /users/2056
             update:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - /users/2056
+                - href: /users/2056
     BookingResource:
       type: object
       required:
@@ -223,21 +230,21 @@ components:
             - offer
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             user:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
             item:
-              type: string
+              $ref: '#/components/schemas/Link'
             offer:
-              type: string
+              $ref: '#/components/schemas/Link'
             cancel:
-              type: string
+              $ref: '#/components/schemas/Link'
             markPaid:
-              type: string
+              $ref: '#/components/schemas/Link'
             markRefunded:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeResource:
       type: object
       required: 
@@ -297,13 +304,13 @@ components:
             - offers
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             update:
-              type: string
+              $ref: '#/components/schemas/Link'
             offers:
-              type: string
+              $ref: '#/components/schemas/Link'
             items:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeOfferResource:
       type: object
       required: 
@@ -354,9 +361,9 @@ components:
             - office
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeItemResource:
       type: object
       required: 
@@ -397,11 +404,11 @@ components:
             - office
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
             offer:
-              type: string
+              $ref: '#/components/schemas/Link'
 paths:
   '/filters':
     get:
@@ -422,9 +429,9 @@ paths:
                     type: object
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                         examples:
-                          - '/filters'
+                          - href: '/filters'
   '/login':
     post:
       tags: [ Auth ]
@@ -898,15 +905,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
         "403":
@@ -1077,15 +1084,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
   '/bookings/{bookingId}':
@@ -1334,15 +1341,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
     post:
@@ -1655,15 +1662,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
         "403":
@@ -1899,15 +1906,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
         "403":
