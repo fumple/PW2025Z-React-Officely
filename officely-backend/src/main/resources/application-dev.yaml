@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${mysql.hostname}:${mysql.port}/${mysql.db.name}?serverTimezone=UTC
+    username: ${mysql.username}
+    password: ${mysql.password}
+
+cors:
+  urls: ${cors:*}

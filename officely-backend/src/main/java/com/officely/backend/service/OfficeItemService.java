@@ -1,7 +1,7 @@
 package com.officely.backend.service;
 
-import com.officely.backend.flatly.api.offices.dto.OfficeItemDto;
-import com.officely.backend.flatly.api.offices.mapper.OfficeItemMapper;
+import com.officely.backend.modules.flatly.api.offices.dto.OfficeItemDto;
+import com.officely.backend.modules.flatly.api.offices.mapper.OfficeItemMapper;
 import com.officely.backend.entity.OfficeItemEntity;
 import com.officely.backend.repository.OfficeItemRepository;
 import org.springframework.stereotype.Service;
