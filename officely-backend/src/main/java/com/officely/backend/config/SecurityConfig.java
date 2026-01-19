@@ -30,6 +30,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/error")
+                        .permitAll()
                         .requestMatchers("/flatly/**")
                         .hasAuthority("FLATLY")
                         .requestMatchers("/admin/login", "/admin/filters", "/admin/signup", "/admin/resetPassword", "/admin/resetPasswordEmail")

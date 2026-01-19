@@ -5,6 +5,8 @@ import com.officely.backend.entity.UserType;
 import com.officely.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 
@@ -31,6 +33,17 @@ public class UserService {
 
     public UserEntity patchUser(UserEntity updated) {
         return userRepository.save(updated);
+    }
+    public Page<UserEntity> getUsers(PageRequest pageRequest) {
+        return userRepository.findAll(pageRequest);
+    }
+    public Page<UserEntity> getUsers(PageRequest pageRequest, String search) {
+        try {
+            var id = Long.parseLong(search);
+            return userRepository.getByIdOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(id, search, search, pageRequest);
+        } catch (Exception ex) {
+            return userRepository.getByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(search, search, pageRequest);
+        }
     }
 }
 
