@@ -1,10 +1,13 @@
 package com.officely.backend.service;
 
 import com.officely.backend.config.FlatlyConfig;
+import com.officely.backend.entity.UserEntity;
 import com.officely.backend.entity.UserType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -30,7 +33,23 @@ public class AuthenticationService {
         return new AuthResponse(true, user.getId().toString(), "");
     }
 
+    public boolean logOut(UserType type, String token) {
+        return true;
+    }
+
     public boolean checkFlatlyToken(String token) {
         return flatlyConfig.getToken().equals(token);
+    }
+    public Optional<UserEntity> checkAdminToken(String token) {
+        try {
+            var id = Long.parseLong(token);
+            return userService.findById(id);
+        } catch (NumberFormatException ex) {
+            return Optional.empty();
+        }
+    }
+
+    public boolean validatePasswordMinimumRequirements(String password) {
+        return password.length() >= 8 && password.length() <= 64;
     }
 }
