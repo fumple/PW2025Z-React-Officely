@@ -46,6 +46,13 @@ public class UserEntity {
     @Column(length = 64)
     private String password;
 
+    @Setter
+    @Column(nullable = false)
+    private boolean isAdmin = false;
+    @Setter
+    @Column(nullable = false)
+    private boolean isBlocked = false;
+
     @PrePersist @PreUpdate private void prepare(){
         this.email = email == null ? null : email.toLowerCase();
     }
