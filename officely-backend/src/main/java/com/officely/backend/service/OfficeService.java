@@ -1,8 +1,8 @@
 package com.officely.backend.service;
 
-import com.officely.backend.flatly.api.offices.dto.*;
-import com.officely.backend.flatly.api.offices.mapper.OfficeMapper;
-import com.officely.backend.flatly.api.offices.mapper.OfficeOfferMapper;
+import com.officely.backend.modules.flatly.api.offices.dto.*;
+import com.officely.backend.modules.flatly.api.offices.mapper.OfficeMapper;
+import com.officely.backend.modules.flatly.api.offices.mapper.OfficeOfferMapper;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.WorkspaceType;

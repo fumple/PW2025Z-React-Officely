@@ -1,8 +1,8 @@
 package com.officely.backend.service;
 
-import com.officely.backend.flatly.api.bookings.dto.BookingDto;
-import com.officely.backend.flatly.api.bookings.dto.BookingsResponseDto;
-import com.officely.backend.flatly.api.bookings.mapper.BookingMapper;
+import com.officely.backend.modules.flatly.api.bookings.dto.BookingDto;
+import com.officely.backend.modules.flatly.api.bookings.dto.BookingsResponseDto;
+import com.officely.backend.modules.flatly.api.bookings.mapper.BookingMapper;
 import com.officely.backend.entity.*;
 import com.officely.backend.repository.BookingRepository;
 import com.officely.backend.repository.OfficeOfferRepository;
