@@ -127,6 +127,7 @@ export const PaymentsOverviewPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Box>
     </Box>

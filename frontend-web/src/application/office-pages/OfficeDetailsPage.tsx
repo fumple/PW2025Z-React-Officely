@@ -431,6 +431,7 @@ export const OfficeDetailsPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Paper>
 
@@ -480,6 +481,7 @@ export const OfficeDetailsPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Paper>
 
@@ -522,6 +524,7 @@ export const OfficeDetailsPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Paper>
 

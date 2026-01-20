@@ -12,8 +12,8 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 export const ItemDetailsPage = () => {
   const navigate = useNavigate();
 
-  const { itemName } = useParams<{ itemName: string }>();
-  if (!itemName) return null;
+  const { itemId } = useParams<{ itemId: string }>();
+  if (!itemId) return null;
 
   const officeName = "Lorem Ipsum Office";
 
@@ -21,7 +21,7 @@ export const ItemDetailsPage = () => {
     <Box sx={{ px: "12px", pt: "6px" }}>
       <Box sx={{ maxWidth: 720 }}>
         <Typography variant="h5" component="h1" sx={{ m: 0 }}>
-          {officeName} - Desk #{itemName}
+          {officeName} - Desk #{itemId}
         </Typography>
 
         <Box

@@ -10,10 +10,42 @@ import Typography from "@mui/material/Typography";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
 
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import FormHelperText from "@mui/material/FormHelperText";
+
+type ItemValues = {
+  name: string;
+  floor: string;
+  room: string;
+};
+
+const schema: yup.ObjectSchema<ItemValues> = yup
+  .object({
+    name: yup.string().trim().required("Name is required"),
+    floor: yup.string().trim().required("Floor is required"),
+    room: yup.string().trim().required("Room is required"),
+  })
+  .required();
+
 export const ItemEditPage = () => {
-  const { itemName } = useParams<{ itemName: string }>();
+  const { itemId } = useParams<{ itemId: string }>();
   const navigate = useNavigate();
-  if (!itemName) return null;
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ItemValues>({
+    resolver: yupResolver(schema),
+  });
+
+  if (!itemId) return null;
+
+  const onSubmit = (data: ItemValues) => {
+    console.log(data);
+    navigate(`../item/${itemId}`);
+  };
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
@@ -23,46 +55,68 @@ export const ItemEditPage = () => {
 
       <Box
         component="form"
-        onSubmit={(e) => e.preventDefault()}
-        sx={{ maxWidth: 560 }}
+        onSubmit={handleSubmit(onSubmit)}
+        sx={{
+          maxWidth: 560,
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+        }}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <FormControl variant="outlined">
-            <FormLabel htmlFor="itemName">Name</FormLabel>
-            <OutlinedInput id="itemName" value={itemName} />
-          </FormControl>
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined">
+              <FormLabel htmlFor="itemName">Name</FormLabel>
+              <OutlinedInput {...field} id="itemName" />
+              <FormHelperText>{errors.name?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-          <FormControl variant="outlined">
-            <FormLabel htmlFor="floor">Floor</FormLabel>
-            <OutlinedInput id="floor" />
-          </FormControl>
+        <Controller
+          name="floor"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined">
+              <FormLabel htmlFor="floor">Floor</FormLabel>
+              <OutlinedInput {...field} id="floor" />
+              <FormHelperText>{errors.floor?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-          <FormControl variant="outlined">
-            <FormLabel htmlFor="room">Room</FormLabel>
-            <OutlinedInput id="room" />
-          </FormControl>
+        <Controller
+          name="room"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined">
+              <FormLabel htmlFor="room">Room</FormLabel>
+              <OutlinedInput {...field} id="room" />
+              <FormHelperText>{errors.room?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
+        <Box sx={{ display: "flex", gap: "10px", mt: "6px" }}>
+          <Button
+            type="submit"
+            variant="contained"
+            startIcon={<SaveIcon fontSize="small" />}
+          >
+            Save
+          </Button>
 
-          <Box sx={{ display: "flex", gap: "10px", mt: "6px" }}>
-            <Button
-              type="button"
-              variant="contained"
-              startIcon={<SaveIcon fontSize="small" />}
-              onClick={() => navigate(`../item/${itemName}`)}
-            >
-              Save
-            </Button>
-
-            <Button
-              type="button"
-              variant="text"
-              color="error"
-              startIcon={<CancelIcon fontSize="small" />}
-              onClick={() => navigate(`../item/${itemName}`)}
-              sx={{ textTransform: "none" }}
-            >
-              Cancel
-            </Button>
-          </Box>
+          <Button
+            type="button"
+            variant="text"
+            color="error"
+            startIcon={<CancelIcon fontSize="small" />}
+            onClick={() => navigate(`../item/${itemId}`)}
+            sx={{ textTransform: "none" }}
+          >
+            Cancel
+          </Button>
         </Box>
       </Box>
     </Box>

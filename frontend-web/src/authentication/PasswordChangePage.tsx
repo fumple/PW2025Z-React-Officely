@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -11,9 +11,9 @@ import Typography from "@mui/material/Typography";
 
 export const PasswordChangePage = () => {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const location = useLocation();
 
-  const token = useMemo(() => params.get("token")?.trim() ?? "", [params]);
+  const state = (location.state as boolean | null) ?? null;
 
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
@@ -22,10 +22,6 @@ export const PasswordChangePage = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!token) {
-      setError("Invalid or expired link.");
-      return;
-    }
     if (!password || !repeat) {
       setError("Please fill in both fields.");
       return;
@@ -40,8 +36,7 @@ export const PasswordChangePage = () => {
     navigate("/password-change/success", { replace: true });
   };
 
-  // If token missing:
-  if (!token) {
+  if (!state) {
     return (
       <Box
         sx={{
@@ -58,15 +53,12 @@ export const PasswordChangePage = () => {
         </Typography>
 
         <Typography component="p" variant="body2">
-          This password reset link is missing a token.
+          This password reset link is available only after correct code
+          submission.
         </Typography>
 
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={() => navigate("/login")}
-        >
-          Return to login page
+        <Button variant="contained" fullWidth onClick={() => navigate("/")}>
+          Return to main page
         </Button>
       </Box>
     );

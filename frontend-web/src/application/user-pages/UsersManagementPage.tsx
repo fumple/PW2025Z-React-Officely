@@ -109,6 +109,7 @@ export const UsersManagementPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Box>
     </Box>

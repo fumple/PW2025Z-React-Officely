@@ -121,6 +121,7 @@ export const OfficesManagementPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Paper>
     </Box>
