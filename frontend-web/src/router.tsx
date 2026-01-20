@@ -88,11 +88,11 @@ export const router = createBrowserRouter([
                 Component: OfficeDetailsPage,
               },
               {
-                path: "item/:itemName",
+                path: "item/:itemId",
                 Component: ItemDetailsPage,
               },
               {
-                path: "item/:itemName/edit",
+                path: "item/:itemId/edit",
                 Component: ItemEditPage,
               },
               {

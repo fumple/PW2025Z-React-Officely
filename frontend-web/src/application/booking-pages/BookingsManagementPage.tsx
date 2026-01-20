@@ -134,6 +134,7 @@ export const BookingsManagementPage = () => {
               quickFilterProps: { debounceMs: 300 },
             },
           }}
+          disableColumnFilter
         />
       </Paper>
     </Box>

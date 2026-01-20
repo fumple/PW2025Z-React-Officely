@@ -1,204 +1,276 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useRef, useState } from "react";
+import { useNavigate } from "react-router";
+import { useForm, Controller, useWatch } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
+import FormHelperText from "@mui/material/FormHelperText";
 import FormLabel from "@mui/material/FormLabel";
-import IconButton from "@mui/material/IconButton";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Typography from "@mui/material/Typography";
 
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CancelIcon from "@mui/icons-material/Cancel";
-import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
-import { OfficeLocationPicker } from "./OfficeLocationPicker";
 
-type SelectedImage = {
-  id: string;
-  file: File;
-  previewUrl: string;
+import { OfficeLocationDisplay } from "./OfficeLocationDisplay";
+
+type OfficeFormValues = {
+  name: string;
+  description: string;
+  address: string;
+  lat: number;
+  lng: number;
+  photos: File[];
 };
-
 const MAX_IMAGES = 10;
+const schema: yup.ObjectSchema<OfficeFormValues> = yup
+  .object({
+    name: yup.string().trim().required("Name is required"),
+    description: yup.string().trim().required("Description is required"),
+    address: yup.string().trim().required("Address is required"),
+    lat: yup
+      .number()
+      .typeError("Latitude must be a number")
+      .required("Latitude is required"),
+    lng: yup
+      .number()
+      .typeError("Longitude must be a number")
+      .required("Longitude is required"),
+    photos: yup
+      .mixed<File[]>()
+      .test("maxFiles", `Max ${MAX_IMAGES} photos`, (value) => {
+        if (!value) return true;
+        return value.length <= MAX_IMAGES;
+      })
+      .default([]),
+  })
+  .required();
 
 export const OfficeEditPage = () => {
-  const [images, setImages] = useState<SelectedImage[]>([]);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [location, setLocation] = useState({
-    address: "",
-    lat: 52.2297,
-    lng: 21.0122,
+  const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    getValues,
+  } = useForm<OfficeFormValues>({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      name: "",
+      description: "",
+      address: "",
+      lat: 52.2297,
+      lng: 21.0122,
+    },
   });
 
-  useEffect(() => {
-    return () => {
-      images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
-    };
-  }, [images]);
+  const address = useWatch({ control, name: "address" });
+  const lat = useWatch({ control, name: "lat" });
+  const lng = useWatch({ control, name: "lng" });
 
-  const canAddMore = images.length < MAX_IMAGES;
-  const navigate = useNavigate();
+  const inputBgSx = {
+    bgcolor: "#fff",
+    "&:hover": { bgcolor: "#fff" },
+    "&.Mui-focused": { bgcolor: "#fff" },
+  } as const;
 
-  const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
+  const addPhotoToForm = (file: File) => {
+    const current = getValues("photos") ?? [];
+    if (current.length >= MAX_IMAGES) return;
 
-    const remainingSlots = MAX_IMAGES - images.length;
-    const filesToAdd = files.slice(0, remainingSlots);
-
-    const newItems: SelectedImage[] = filesToAdd.map((file) => ({
-      id: crypto.randomUUID(),
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
-
-    setImages((prev) => [...prev, ...newItems]);
-
-    // allow selecting the same file again next time
-    e.target.value = "";
-  };
-
-  const removeImage = (id: string) => {
-    setImages((prev) => {
-      const toRemove = prev.find((x) => x.id === id);
-      if (toRemove) URL.revokeObjectURL(toRemove.previewUrl);
-      return prev.filter((x) => x.id !== id);
+    setValue("photos", [...current, file], {
+      shouldDirty: true,
+      shouldValidate: true,
     });
+
+    const url = URL.createObjectURL(file);
+    setImages((prev) => [...prev, url]);
   };
 
-  const { officeId } = useParams<{ officeId: string }>();
-  if (!officeId) return null;
+  const onSubmit = (data: OfficeFormValues) => {
+    console.log({ ...data, images });
+    const officeId = "7"; // demo
+    navigate(`../offices/${officeId}`);
+  };
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
-      <Box
+      <Typography
+        component="h1"
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          maxWidth: 560,
+          m: 0,
+          fontSize: "22px",
+          fontWeight: 600,
+          color: "#111",
+          mb: "12px",
         }}
       >
-        <Typography
-          component="h1"
-          sx={{ m: 0, fontSize: "22px", fontWeight: 600, color: "#111" }}
-        >
-          Edit office
-        </Typography>
+        Edit office
+      </Typography>
 
-        <Box
-          component="form"
-          onSubmit={(e) => e.preventDefault()}
-          sx={{ display: "flex", flexDirection: "column", gap: "10px" }}
-        >
-          <FormControl variant="outlined">
-            <FormLabel htmlFor="officeName">Name</FormLabel>
-            <OutlinedInput id="officeName" />
-          </FormControl>
+      <Box
+        component="form"
+        onSubmit={handleSubmit(onSubmit)}
+        sx={{
+          maxWidth: 560,
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+        }}
+      >
+        <Controller
+          name="name"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.name}>
+              <FormLabel htmlFor="name">Name</FormLabel>
+              <OutlinedInput {...field} id="name" sx={inputBgSx} />
+              <FormHelperText>{errors.name?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-          <FormControl variant="outlined">
-            <FormLabel htmlFor="officeDescription">Description</FormLabel>
-            <OutlinedInput id="officeDescription" multiline minRows={4} />
-          </FormControl>
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.description}>
+              <FormLabel htmlFor="description">Description</FormLabel>
+              <OutlinedInput
+                {...field}
+                id="description"
+                sx={inputBgSx}
+                multiline
+                minRows={3}
+              />
+              <FormHelperText>{errors.description?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-          <FormLabel htmlFor="officeAddress">Address</FormLabel>
-          <OfficeLocationPicker
-            address={location.address}
-            lat={location.lat}
-            lng={location.lng}
-            onChange={setLocation}
+        <Box sx={{ position: "sticky", top: "12px" }}>
+          <Typography
+            sx={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: "#111",
+              mb: "6px",
+            }}
+          >
+            Location
+          </Typography>
+
+          <OfficeLocationDisplay
+            address={address ?? ""}
+            lat={typeof lat === "number" ? lat : 0.0}
+            lng={typeof lng === "number" ? lng : 0.0}
           />
 
-          {/* Gallery */}
-          <Box sx={{ mt: "2px" }}>
-            <Typography sx={{ fontSize: "11px", color: "#666", mb: "6px" }}>
-              Gallery ({images.length}/{MAX_IMAGES})
+          <FormHelperText error sx={{ mt: "6px" }}>
+            {errors.address?.message ||
+              errors.lat?.message ||
+              errors.lng?.message ||
+              " "}
+          </FormHelperText>
+
+          <Box>
+            <Typography
+              sx={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "#111",
+                mb: "6px",
+              }}
+            >
+              Gallery
             </Typography>
 
-            <Box sx={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              {images.map((img) => (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {images.map((src, idx) => (
                 <Box
-                  key={img.id}
+                  key={idx}
+                  component="img"
+                  src={src}
+                  alt={`Office photo ${idx + 1}`}
                   sx={{
-                    position: "relative",
-                    height: 100,
-                    borderRadius: "10px",
+                    width: 140,
+                    height: 110,
                     border: "1px solid #eee",
-                    overflow: "hidden",
+                    borderRadius: "10px",
+                    objectFit: "cover",
                     backgroundColor: "#fff",
+                  }}
+                />
+              ))}
+
+              {images.length < MAX_IMAGES && (
+                <Box
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => inputRef.current?.click()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" || e.key === " "
+                      ? inputRef.current?.click()
+                      : null
+                  }
+                  sx={{
+                    width: 140,
+                    height: 110,
+                    border: "1px dashed #cfcfcf",
+                    borderRadius: "10px",
+                    backgroundColor: "#fff",
+                    display: "grid",
+                    placeItems: "center",
+                    cursor: "pointer",
+                    color: "#666",
+                    "&:hover": { backgroundColor: "#fafafa" },
                   }}
                 >
                   <Box
-                    component="img"
-                    src={img.previewUrl}
-                    alt={img.file.name}
-                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-
-                  <IconButton
-                    size="small"
-                    onClick={() => removeImage(img.id)}
                     sx={{
-                      position: "absolute",
-                      top: 4,
-                      right: 4,
-                      bgcolor: "rgba(255,255,255,0.85)",
-                      border: "1px solid #e6e6e6",
-                      "&:hover": { bgcolor: "rgba(255,255,255,1)" },
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "6px",
                     }}
                   >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
+                    <AddPhotoAlternateIcon fontSize="small" />
+                    <Typography sx={{ fontSize: "12px" }}>Add photo</Typography>
+                  </Box>
                 </Box>
-              ))}
-
-              {/* Add tile */}
-              <Box
-                role="button"
-                tabIndex={0}
-                onClick={() => canAddMore && fileInputRef.current?.click()}
-                onKeyDown={(e) => {
-                  if (!canAddMore) return;
-                  if (e.key === "Enter" || e.key === " ")
-                    fileInputRef.current?.click();
-                }}
-                title={canAddMore ? "Add image" : "Max images reached"}
-                sx={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: "10px",
-                  border: "1px dashed #cfcfcf",
-                  backgroundColor: "#fff",
-                  display: "grid",
-                  placeItems: "center",
-                  cursor: canAddMore ? "pointer" : "not-allowed",
-                  opacity: canAddMore ? 1 : 0.45,
-                  userSelect: "none",
-                }}
-              >
-                <AddPhotoAlternateIcon />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFilesSelected}
-                  disabled={!canAddMore}
-                  style={{ display: "none" }}
-                />
-              </Box>
+              )}
             </Box>
+
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                addPhotoToForm(file);
+                e.target.value = "";
+              }}
+            />
+            <FormHelperText error sx={{ mt: "6px" }}>
+              {errors.photos?.message ?? " "}
+            </FormHelperText>
           </Box>
 
-          {/* Actions */}
           <Box sx={{ display: "flex", gap: "10px", mt: "6px" }}>
             <Button
-              type="button"
+              type="submit"
               variant="contained"
               startIcon={<SaveIcon fontSize="small" />}
-              onClick={() => navigate(`/app/offices/${officeId}`)}
             >
               Save
             </Button>
@@ -208,7 +280,7 @@ export const OfficeEditPage = () => {
               variant="text"
               color="error"
               startIcon={<CancelIcon fontSize="small" />}
-              onClick={() => navigate(`/app/offices/${officeId}`)}
+              onClick={() => navigate("..")}
               sx={{ textTransform: "none" }}
             >
               Cancel
