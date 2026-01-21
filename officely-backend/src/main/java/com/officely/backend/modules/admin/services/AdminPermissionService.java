@@ -1,5 +1,6 @@
 package com.officely.backend.modules.admin.services;
 
+import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.UserEntity;
 import org.springframework.stereotype.Service;
@@ -41,5 +42,12 @@ public class AdminPermissionService {
         if(target.getOwner().getId().equals(actor.getId()))
             return true;
         return false;
+    }
+
+    public boolean canAccessBooking(UserEntity actor, BookingEntity target) {
+        if(actor.isAdmin())
+            return true;
+        // TODO: Real permission check
+        return true;
     }
 }

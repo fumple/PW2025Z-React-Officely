@@ -8,6 +8,8 @@ import com.officely.backend.repository.BookingRepository;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.PaymentRepository;
 import com.officely.backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,25 +22,15 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final OfficeOfferRepository officeOfferRepository;
     private final PaymentRepository paymentRepository;
-
-    public BookingService(
-            BookingRepository bookingRepository,
-            UserRepository userRepository,
-            OfficeOfferRepository officeOfferRepository,
-            PaymentRepository paymentRepository) {
-
-        this.bookingRepository = bookingRepository;
-        this.userRepository = userRepository;
-        this.officeOfferRepository = officeOfferRepository;
-        this.paymentRepository = paymentRepository;
-    }
 
     public Long bookOfficeUsingOffer(
             String officeId,
@@ -81,7 +73,7 @@ public class BookingService {
         payment.setDueDate(bookingEntity.getCreationDate().plus(officeOfferEntity.getPaymentHours(), ChronoUnit.HOURS));
         payment.setStatus(PaymentStatus.pendingPayment);
         payment.setBooking(bookingEntity);
-        bookingEntity.setPayment(payment);
+        bookingEntity.setPaymentInfo(payment);
 
         paymentRepository.save(payment);
 
@@ -175,5 +167,16 @@ public class BookingService {
             }
         }
         return pageIndex;
+    }
+
+    public Page<BookingEntity> getBookings(PageRequest pageRequest) {
+        return bookingRepository.findAll(pageRequest);
+    }
+    public Page<BookingEntity> getBookings(PageRequest pageRequest, String search) {
+        // TODO: Implement
+        return bookingRepository.findAll(pageRequest);
+    }
+    public Optional<BookingEntity> getBookingById(long id) {
+        return bookingRepository.findById(id);
     }
 }
