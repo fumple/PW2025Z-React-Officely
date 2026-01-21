@@ -1,8 +1,13 @@
 package com.officely.backend.modules.admin.controller;
 
 import com.officely.backend.api.pagination.PaginationDto;
+import com.officely.backend.api.throwables.ValidationException;
+import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.AdminUserMapper;
+import com.officely.backend.modules.admin.api.users.UserDto;
+import com.officely.backend.modules.admin.api.users.UserPatchRequest;
 import com.officely.backend.modules.admin.api.users.UsersResponse;
+import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -13,10 +18,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -27,6 +32,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 public class AdminUsersController {
     private final UserService userService;
     private final AdminUserMapper userMapper;
+    private final AdminPermissionService adminPermissionService;
 
     @GetMapping
     @Secured("ROLE_FULL_ACCESS")
@@ -77,6 +83,75 @@ public class AdminUsersController {
         }
 
         return ResponseEntity.ok(response);
+    }
+    private Optional<UserEntity> getTargetUser(UserEntity actor, String userId) {
+        UserEntity targetUser;
+        if(userId.equals("@me")) {
+            targetUser = actor;
+        } else {
+            try {
+                var uid = Long.parseLong(userId);
+                targetUser = userService.findById(uid).orElseThrow();
+            } catch (Exception ex) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(targetUser);
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserDto> getUser(@PathVariable String userId) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var targetUserOpt = getTargetUser(actor, userId);
+        if(targetUserOpt.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        var targetUser = targetUserOpt.get();
+        if(!adminPermissionService.canViewUser(actor, targetUser)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var response = userMapper.userToUserDto(targetUser);
+        response.add(linkTo(methodOn(AdminUsersController.class).getUser(userId)).withSelfRel());
+        if(adminPermissionService.canUpdateUser(actor, targetUser) || adminPermissionService.canBlockUser(actor, targetUser))
+            response.add(linkTo(methodOn(AdminUsersController.class).getUser(userId)).withRel("update"));
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{userId}")
+    public ResponseEntity<Void> patchUser(@PathVariable String userId, @RequestBody @Valid UserPatchRequest patchRequest) throws ValidationException {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var targetUserOpt = getTargetUser(actor, userId);
+        if(targetUserOpt.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        var targetUser = targetUserOpt.get();
+
+        var canUpdate = adminPermissionService.canUpdateUser(actor, targetUser);
+        var canBlock = adminPermissionService.canBlockUser(actor, targetUser);
+
+        if(!canUpdate && !canBlock) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if(targetUser.isBlocked() != patchRequest.isBlocked() && !canBlock) {
+            throw new ValidationException("isBlocked", "You do not have permission to block/unblock this user");
+        }
+        if(canBlock && targetUser.isBlocked() != patchRequest.isBlocked()) {
+            targetUser.setBlocked(patchRequest.isBlocked());
+        }
+        if(canUpdate) {
+            if(patchRequest.getPassword() != null) {
+                if(patchRequest.getCurrentPassword() == null)
+                    throw new ValidationException("currentPassword", "To change the password currentPassword must be provided");
+                if(!patchRequest.getCurrentPassword().equals(targetUser.getPassword()))
+                    throw new ValidationException("currentPassword", "Incorrect password");
+            }
+            userMapper.update(patchRequest, targetUser);
+        }
+        userService.patchUser(targetUser);
+        return ResponseEntity.noContent().build();
     }
 }
 
