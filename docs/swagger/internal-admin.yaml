@@ -866,7 +866,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1045,7 +1045,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1302,7 +1302,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1623,7 +1623,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1867,7 +1867,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
