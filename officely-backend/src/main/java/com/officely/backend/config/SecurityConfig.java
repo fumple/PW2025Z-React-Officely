@@ -30,6 +30,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/uploads/**")
+                        .permitAll()
                         .requestMatchers("/error")
                         .permitAll()
                         .requestMatchers("/flatly/**")
