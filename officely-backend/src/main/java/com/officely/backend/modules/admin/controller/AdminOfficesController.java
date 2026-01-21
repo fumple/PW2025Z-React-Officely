@@ -147,14 +147,6 @@ public class AdminOfficesController {
         }
 
         officeMapper.update(patchRequest, target);
-        if(patchRequest.getAddress() != null) {
-            Geocoding.GeoPoint origin = geocoding.geocode(patchRequest.getAddress());
-            if (origin == null) {
-                throw new IllegalArgumentException("Unable to geocode nearAddress");
-            }
-            target.setLatitude(origin.getLat());
-            target.setLongitude(origin.getLng());
-        }
         try {
             officeService.patchOffice(target, patchRequest.getImages(), addedImages);
         } catch (Exception e) {

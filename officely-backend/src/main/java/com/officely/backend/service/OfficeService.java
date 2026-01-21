@@ -610,6 +610,12 @@ public class OfficeService {
         return office;
     }
     public OfficeEntity patchOffice(OfficeEntity updated) {
+        Geocoding.GeoPoint origin = geocoding.geocode(updated.getAddress());
+        if (origin == null) {
+            throw new IllegalArgumentException("Unable to geocode nearAddress");
+        }
+        updated.setLatitude(origin.getLat());
+        updated.setLongitude(origin.getLng());
         return officeRepository.save(updated);
     }
     @Transactional
@@ -644,6 +650,6 @@ public class OfficeService {
             }
         }
         updated.setPhotos(finalPhotos);
-        return officeRepository.save(updated);
+        return patchOffice(updated);
     }
 }
