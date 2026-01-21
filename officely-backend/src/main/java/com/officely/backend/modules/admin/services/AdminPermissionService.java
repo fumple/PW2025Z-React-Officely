@@ -1,5 +1,6 @@
 package com.officely.backend.modules.admin.services;
 
+import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.UserEntity;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,22 @@ public class AdminPermissionService {
     }
     public boolean canBlockUser(UserEntity actor, UserEntity targetUser) {
         if(actor.isAdmin())
+            return true;
+        return false;
+    }
+
+    public boolean canViewOffice(UserEntity actor, OfficeEntity target) {
+        if(actor.isAdmin())
+            return true;
+        if(target.getOwner().getId().equals(actor.getId()))
+            return true;
+        // TODO: Real permission check
+        return true;
+    }
+    public boolean canUpdateOffice(UserEntity actor, OfficeEntity target) {
+        if(actor.isAdmin())
+            return true;
+        if(target.getOwner().getId().equals(actor.getId()))
             return true;
         return false;
     }

@@ -1,12 +1,11 @@
 package com.officely.backend.service;
 
+import com.officely.backend.entity.*;
 import com.officely.backend.modules.flatly.api.offices.dto.*;
 import com.officely.backend.modules.flatly.api.offices.mapper.OfficeMapper;
 import com.officely.backend.modules.flatly.api.offices.mapper.OfficeOfferMapper;
-import com.officely.backend.entity.OfficeEntity;
-import com.officely.backend.entity.OfficeOfferEntity;
-import com.officely.backend.entity.WorkspaceType;
 import com.officely.backend.repository.OfficeOfferRepository;
+import com.officely.backend.repository.OfficePhotoRepository;
 import com.officely.backend.repository.OfficeRepository;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -22,11 +21,13 @@ public class OfficeService {
     private final OfficeRepository officeRepository;
     private final Geocoding geocoding;
     private final OfficeOfferRepository officeOfferRepository;
+    private final OfficePhotoRepository officePhotoRepository;
 
-    public OfficeService(OfficeRepository officeRepository, Geocoding geocoding, OfficeOfferRepository officeOfferRepository){
+    public OfficeService(OfficeRepository officeRepository, Geocoding geocoding, OfficeOfferRepository officeOfferRepository, OfficePhotoRepository officePhotoRepository){
         this.officeRepository = officeRepository;
         this.geocoding = geocoding;
         this.officeOfferRepository = officeOfferRepository;
+        this.officePhotoRepository = officePhotoRepository;
     }
 
     private static class OfficeWithDistance {
@@ -370,6 +371,9 @@ public class OfficeService {
 
         return dto;
     }
+    public Optional<OfficeEntity> getOfficeById(long id) {
+        return officeRepository.findById(id);
+    }
 
     public OfficeOffersResponseDto getOfficeOffers(String officeId, LocalDate startDate, LocalDate endDate, List<String> filter){
         if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
@@ -586,5 +590,26 @@ public class OfficeService {
             default:
                 return null;
         }
+    }
+
+    public Page<OfficeEntity> getOffices(PageRequest pageRequest) {
+        return officeRepository.findAll(pageRequest);
+    }
+    public Page<OfficeEntity> getOffices(PageRequest pageRequest, String search) {
+        try {
+            var id = Long.parseLong(search);
+            return officeRepository.getByIdOrNameContainingIgnoreCaseOrAddressContainingIgnoreCase(id, search, search, pageRequest);
+        } catch (Exception ex) {
+            return officeRepository.getByNameContainingIgnoreCaseOrAddressContainingIgnoreCase(search, search, pageRequest);
+        }
+    }
+
+    public OfficeEntity createOffice(OfficeEntity entity){
+        var office = officeRepository.save(entity);
+        office.setPhotos(officePhotoRepository.saveAll(entity.getPhotos()));
+        return office;
+    }
+    public OfficeEntity patchOffice(OfficeEntity updated) {
+        return officeRepository.save(updated);
     }
 }

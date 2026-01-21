@@ -4,9 +4,9 @@ import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.AdminUserMapper;
+import com.officely.backend.modules.admin.api.users.PaginatedResponse;
 import com.officely.backend.modules.admin.api.users.UserDto;
 import com.officely.backend.modules.admin.api.users.UserPatchRequest;
-import com.officely.backend.modules.admin.api.users.UsersResponse;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -36,7 +36,7 @@ public class AdminUsersController {
 
     @GetMapping
     @Secured("ROLE_FULL_ACCESS")
-    public ResponseEntity<UsersResponse> getUsers(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
+    public ResponseEntity<PaginatedResponse<UserDto>> getUsers(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
                                                   @RequestParam(required = false) String search,
                                                   @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
         var currentPage = pageToken == null ? 0 : pageToken;
@@ -47,7 +47,7 @@ public class AdminUsersController {
         }
 
         var users = search != null ? userService.getUsers(pageRequest, search) : userService.getUsers(pageRequest);
-        var response = new UsersResponse();
+        var response = new PaginatedResponse<UserDto>();
         response.setResults(users.get().map(userMapper::userToUserDto).map(e ->
             e.add(
                     linkTo(AdminUsersController.class).slash(e.getId()).withSelfRel(),

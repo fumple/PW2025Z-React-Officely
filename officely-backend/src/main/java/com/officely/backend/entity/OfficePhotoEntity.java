@@ -1,7 +1,10 @@
 package com.officely.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 @Entity
 @Table(name = "office_photos")
 public class OfficePhotoEntity {
@@ -9,17 +12,12 @@ public class OfficePhotoEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String url;
+    @Setter
+    @Column(name = "url")
+    private String filename;
 
+    @Setter
     @ManyToOne
     @JoinColumn(name = "office_id")
     private OfficeEntity office;
-
-    public Long getId() { return id; }
-
-    public String getUrl() { return url; }
-    public void setUrl(String url) { this.url = url; }
-
-    public OfficeEntity getOffice() { return office; }
-    public void setOffice(OfficeEntity office) { this.office = office; }
 }
