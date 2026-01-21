@@ -85,8 +85,8 @@ components:
         - dateOfBirth
         - nationality
         - phoneNumber
-        - isBlocked
-        - isAdmin
+        - blocked
+        - admin
         - _links
       properties:
         type:
@@ -116,10 +116,10 @@ components:
           type: string
           examples:
             - "+48222347211"
-        isBlocked:
+        blocked:
           type: boolean
           default: false
-        isAdmin:
+        admin:
           type: boolean
           default: false
           description: If true, then user has pretty much unrestricted access to all endpoints in the API, with the exception of /users/@me endpoints for other users
@@ -959,7 +959,7 @@ paths:
             schema: 
               type: object
               properties: 
-                isBlocked:
+                blocked:
                   type: boolean
       responses: 
         "204":
@@ -991,7 +991,7 @@ paths:
                             field:
                               type: string
                               enum:
-                                - isBlocked
+                                - blocked
                             message:
                               type: string
                               description: A human readable message
