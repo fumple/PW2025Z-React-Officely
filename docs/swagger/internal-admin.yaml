@@ -838,13 +838,9 @@ paths:
         - user_auth: []
       parameters: 
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1017,13 +1013,9 @@ paths:
         - user_auth: []
       parameters: 
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1274,13 +1266,9 @@ paths:
         - user_auth: []
       parameters: 
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1595,13 +1583,9 @@ paths:
           schema: 
             type: string
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1839,13 +1823,9 @@ paths:
           schema: 
             type: string
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
