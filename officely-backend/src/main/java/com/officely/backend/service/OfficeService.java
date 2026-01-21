@@ -7,28 +7,28 @@ import com.officely.backend.modules.flatly.api.offices.mapper.OfficeOfferMapper;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.OfficePhotoRepository;
 import com.officely.backend.repository.OfficeRepository;
+import com.officely.backend.storage.StorageService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OfficeService {
     private final OfficeRepository officeRepository;
     private final Geocoding geocoding;
     private final OfficeOfferRepository officeOfferRepository;
     private final OfficePhotoRepository officePhotoRepository;
-
-    public OfficeService(OfficeRepository officeRepository, Geocoding geocoding, OfficeOfferRepository officeOfferRepository, OfficePhotoRepository officePhotoRepository){
-        this.officeRepository = officeRepository;
-        this.geocoding = geocoding;
-        this.officeOfferRepository = officeOfferRepository;
-        this.officePhotoRepository = officePhotoRepository;
-    }
+    private final StorageService storageService;
 
     private static class OfficeWithDistance {
         private final OfficeDto office;
@@ -610,6 +610,40 @@ public class OfficeService {
         return office;
     }
     public OfficeEntity patchOffice(OfficeEntity updated) {
+        return officeRepository.save(updated);
+    }
+    @Transactional
+    public OfficeEntity patchOffice(OfficeEntity updated, List<String> photos, List<MultipartFile> addedPhotos) {
+        var currentPhotos = updated.getPhotos();
+        var finalPhotos = new ArrayList<OfficePhotoEntity>();
+        for(var photo: photos) {
+            if(photo.matches("^current\\[[0-9]+]$")) {
+                var indexStr = photo.substring("current[".length(), photo.length()-1);
+                var index = Integer.parseInt(indexStr);
+                if(index >= currentPhotos.size())
+                    throw new RuntimeException("Invalid index of photo");
+                var current = currentPhotos.get(index);
+
+                var entity = new OfficePhotoEntity();
+                entity.setFilename(current.getFilename());
+                entity.setOffice(updated);
+                officePhotoRepository.save(entity);
+                finalPhotos.add(entity);
+            } else if(photo.matches("^added\\[[0-9]+]$")) {
+                var indexStr = photo.substring("added[".length(), photo.length()-1);
+                var index = Integer.parseInt(indexStr);
+                if(index >= addedPhotos.size())
+                    throw new RuntimeException("Invalid index of photo");
+                var current = addedPhotos.get(index);
+                var filename = storageService.store(current);
+                var entity = new OfficePhotoEntity();
+                entity.setFilename(filename);
+                entity.setOffice(updated);
+                officePhotoRepository.save(entity);
+                finalPhotos.add(entity);
+            }
+        }
+        updated.setPhotos(finalPhotos);
         return officeRepository.save(updated);
     }
 }

@@ -155,8 +155,11 @@ public class AdminOfficesController {
             target.setLatitude(origin.getLat());
             target.setLongitude(origin.getLng());
         }
-        // TODO: Images!
-        officeService.patchOffice(target);
+        try {
+            officeService.patchOffice(target, patchRequest.getImages(), addedImages);
+        } catch (Exception e) {
+            throw new ValidationException("images", e.getMessage());
+        }
 
         return ResponseEntity.noContent().build();
     }
