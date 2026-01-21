@@ -772,6 +772,9 @@ paths:
                   type: string
                 password:
                   type: string
+                currentPassword:
+                  type: string
+                  description: Must be provided if new password is also given
                 nationality:
                   type: string
                   examples:
