@@ -5,6 +5,10 @@ import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficePhotoEntity;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.*;
+import com.officely.backend.modules.admin.api.users.offices.AdminOfficeMapper;
+import com.officely.backend.modules.admin.api.users.offices.OfficeDto;
+import com.officely.backend.modules.admin.api.users.offices.OfficePatchRequest;
+import com.officely.backend.modules.admin.api.users.offices.OfficePostRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.Geocoding;
 import com.officely.backend.service.OfficeService;
@@ -39,8 +43,8 @@ public class AdminOfficesController {
 
     @GetMapping
     public ResponseEntity<PaginatedResponse<OfficeDto>> getOffices(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
-                                                  @RequestParam(required = false) String search,
-                                                  @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
+                                                                   @RequestParam(required = false) String search,
+                                                                   @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
         var currentPage = pageToken == null ? 0 : pageToken;
         var pageRequest = PageRequest.of(currentPage, pageSize);
 
@@ -107,8 +111,8 @@ public class AdminOfficesController {
             entity.setOffice(office);
             return entity;
         }).toList());
-        officeService.createOffice(office);
-        return ResponseEntity.created(linkTo(methodOn(AdminOfficesController.class).getOffice(1L)).toUri()).build();
+        var created = officeService.createOffice(office);
+        return ResponseEntity.created(linkTo(methodOn(AdminOfficesController.class).getOffice(created.getId())).toUri()).build();
     }
 
     @GetMapping("/{officeId}")
@@ -119,13 +123,13 @@ public class AdminOfficesController {
             return ResponseEntity.notFound().build();
 
         var target = targetOpt.get();
-        if(!adminPermissionService.canViewOffice(actor, target)) {
+        if(!adminPermissionService.canManageOffice(actor, target)) {
             return ResponseEntity.notFound().build();
         }
 
         var response = officeMapper.officeToOfficeDto(target);
         response.add(linkTo(methodOn(AdminOfficesController.class).getOffice(officeId)).withSelfRel());
-        if(adminPermissionService.canUpdateOffice(actor, target))
+        if(adminPermissionService.canUpdateOfficeDetails(actor, target))
             response.add(linkTo(methodOn(AdminOfficesController.class).getOffice(officeId)).withRel("update"));
 
         return ResponseEntity.ok(response);
@@ -142,7 +146,7 @@ public class AdminOfficesController {
             return ResponseEntity.notFound().build();
 
         var target = targetOpt.get();
-        if(!adminPermissionService.canUpdateOffice(actor, target)) {
+        if(!adminPermissionService.canUpdateOfficeDetails(actor, target)) {
             return ResponseEntity.notFound().build();
         }
 

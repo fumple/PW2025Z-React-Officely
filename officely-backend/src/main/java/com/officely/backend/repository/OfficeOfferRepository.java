@@ -1,14 +1,13 @@
 package com.officely.backend.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import com.officely.backend.entity.OfficeOfferEntity;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -81,5 +80,9 @@ public interface OfficeOfferRepository extends JpaRepository<OfficeOfferEntity, 
     );
 
     List<OfficeOfferEntity> findByOfficeId(Long officeId);
+
+    Page<OfficeOfferEntity> getByOfficeId(Long officeId, Pageable pageable);
+    Page<OfficeOfferEntity> getByOfficeIdAndNameContainingIgnoreCaseOrPublicNameContainingIgnoreCase(Long officeId, String name, String publicName, Pageable pageable);
+    Page<OfficeOfferEntity> getByOfficeIdAndIdOrNameContainingIgnoreCaseOrPublicNameContainingIgnoreCase(Long officeId, Long id, String name, String publicName, Pageable pageable);
 }
 

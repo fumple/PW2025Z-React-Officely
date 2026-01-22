@@ -1,11 +1,14 @@
 package com.officely.backend.entity;
 
+import com.officely.backend.entity.properties.PropertyValue;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name="office_offers")
@@ -21,13 +24,16 @@ public class OfficeOfferEntity {
     private OfficeEntity office;
 
     @Setter
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name="item_id", nullable=false)
-    private OfficeItemEntity item;
+    @Column(nullable = false)
+    private String name;
+
+    @Setter
+    @Column()
+    private String publicName;
 
     @Setter
     @Column(nullable = false)
-    private String name;
+    private boolean available = false;
 
     @Setter
     @Column(name = "price_per_day", nullable = false)
@@ -46,20 +52,11 @@ public class OfficeOfferEntity {
     @Column(name = "workspace_type", nullable = false)
     private WorkspaceType workspaceType;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "office_features", joinColumns = @JoinColumn(name = "office_id"))
-    @Column(name = "feature_key")
-    private Set<String> features = new HashSet<>();
+    @Column(nullable = false, columnDefinition = "JSON")
+    @JdbcTypeCode(SqlTypes.JSON_ARRAY)
+    private List<PropertyValue> properties = new ArrayList<>();
 
-    public OfficeOfferEntity() {}
-
-    public OfficeOfferEntity(Long id, OfficeEntity office, OfficeItemEntity item, String name, Integer pricePerDay, Integer freeCancellationHours, Integer paymentHours){
-        this.id = id;
-        this.office = office;
-        this.item = item;
-        this.name = name;
-        this.pricePerDay = pricePerDay;
-        this.freeCancellationHours = freeCancellationHours;
-        this.paymentHours = paymentHours;
-    }
+    @Setter
+    @OneToMany(mappedBy = "offer")
+    private List<OfficeOfferPhotoEntity> photos = new ArrayList<>();
 }

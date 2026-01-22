@@ -9,7 +9,7 @@ import java.util.List;
 
 public class OfficeMapper {
     public static OfficeDto toDto(OfficeEntity entity){
-        List<String> photoUrls = PhotosToStringsMapper.map(entity.getPhotos());
+        List<String> photoUrls = PhotosToStringsMapper.mapOfficePhotos(entity.getPhotos());
 
         OfficeDto dto = new OfficeDto();
         dto.setId(String.valueOf(entity.getId()));
