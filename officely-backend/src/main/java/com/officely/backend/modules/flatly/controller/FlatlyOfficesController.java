@@ -1,6 +1,8 @@
 package com.officely.backend.modules.flatly.controller;
 
 import com.officely.backend.modules.flatly.api.offices.dto.*;
+import com.officely.backend.modules.flatly.api.offices.mapper.OfficeItemMapper;
+import com.officely.backend.modules.flatly.api.offices.mapper.OfficeOfferWithoutPriceMapper;
 import com.officely.backend.service.BookingService;
 import com.officely.backend.service.OfficeItemService;
 import com.officely.backend.service.OfficeOfferService;
@@ -68,12 +70,12 @@ public class FlatlyOfficesController {
     }
 
     @GetMapping("/{officeId}/items/{itemId}")
-    public OfficeItemDto getOfficeItemDetails(@PathVariable String officeId, @PathVariable String itemId) {
-        return officeItemService.getOfficeItem(officeId, itemId);
+    public OfficeItemDto getOfficeItemDetails(@PathVariable Long officeId, @PathVariable Long itemId) {
+        return OfficeItemMapper.toDto(officeId, officeItemService.getOfficeItem(officeId, itemId));
     }
 
     @GetMapping("/{officeId}/offers/{offerId}")
-    public OfficeOfferWithoutPriceDto getOfficeOfferDetails(@PathVariable String officeId, @PathVariable String offerId){
-        return officeOfferService.getOffer(officeId, offerId);
+    public OfficeOfferWithoutPriceDto getOfficeOfferDetails(@PathVariable Long officeId, @PathVariable Long offerId){
+        return OfficeOfferWithoutPriceMapper.toDto(officeOfferService.getOffer(officeId, offerId));
     }
 }

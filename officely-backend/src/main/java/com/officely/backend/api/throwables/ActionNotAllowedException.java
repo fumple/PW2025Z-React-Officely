@@ -5,8 +5,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AuthException extends RuntimeException {
-    public AuthException(String message) {
+public class ActionNotAllowedException extends RuntimeException {
+    public ActionNotAllowedException(String message) {
         super(message);
     }
 }

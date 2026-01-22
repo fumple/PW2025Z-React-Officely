@@ -28,7 +28,7 @@ public class AdminPermissionService {
         return false;
     }
 
-    public boolean canViewOffice(UserEntity actor, OfficeEntity target) {
+    public boolean canManageOffice(UserEntity actor, OfficeEntity target) {
         if(actor.isAdmin())
             return true;
         if(target.getOwner().getId().equals(actor.getId()))
@@ -36,7 +36,7 @@ public class AdminPermissionService {
         // TODO: Real permission check
         return true;
     }
-    public boolean canUpdateOffice(UserEntity actor, OfficeEntity target) {
+    public boolean canUpdateOfficeDetails(UserEntity actor, OfficeEntity target) {
         if(actor.isAdmin())
             return true;
         if(target.getOwner().getId().equals(actor.getId()))

@@ -1,8 +1,12 @@
 package com.officely.backend.modules.admin.controller;
 
 import com.officely.backend.api.pagination.PaginationDto;
+import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.*;
+import com.officely.backend.modules.admin.api.users.bookings.AdminBookingMapper;
+import com.officely.backend.modules.admin.api.users.bookings.BookingCancelRequest;
+import com.officely.backend.modules.admin.api.users.bookings.BookingDto;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.BookingService;
 import jakarta.validation.Valid;
@@ -27,6 +31,23 @@ public class AdminBookingsController {
     private final AdminPermissionService adminPermissionService;
     private final AdminBookingMapper bookingMapper;
 
+    private BookingDto bookingToDto(BookingEntity booking) {
+        var e = bookingMapper.bookingToBookingDto(booking);
+        e.add(
+                linkTo(AdminBookingsController.class).slash(e.getId()).withSelfRel(),
+                linkTo(AdminUsersController.class).slash(e.getUserId()).withRel("user"),
+                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office")
+                //linkTo(AdminOfficesController.class).slash(e.getItemId()).withRel("item"),
+                //linkTo(AdminOfficesController.class).slash(e.getOfferId()).withRel("offer")
+                //markPaid
+                //markRefunded
+        );
+        if(bookingService.canBookingBeCancelled(booking, true) != null) {
+            e.add(linkTo(methodOn(AdminBookingsController.class).cancelBooking(booking.getId(), null)).withRel("cancel"));
+        }
+        return e;
+    }
+
     @GetMapping
     public ResponseEntity<PaginatedResponse<BookingDto>> getBookings(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
                                                   @RequestParam(required = false) String search,
@@ -40,12 +61,8 @@ public class AdminBookingsController {
 
         var bookings = search != null ? bookingService.getBookings(pageRequest, search) : bookingService.getBookings(pageRequest);
         var response = new PaginatedResponse<BookingDto>();
-        response.setResults(bookings.get().map(bookingMapper::bookingToBookingDto).map(e ->
-            e.add(
-                    linkTo(AdminBookingsController.class).slash(e.getId()).withSelfRel(),
-                    linkTo(AdminBookingsController.class).slash(e.getId()).withRel("update")
-            )
-        ).toList());
+        response.setResults(bookings.get()
+                .map(this::bookingToDto).toList());
 
         var pagination = new PaginationDto();
         pagination.setLastPage(bookings.getTotalPages() - 1);
@@ -89,10 +106,23 @@ public class AdminBookingsController {
             return ResponseEntity.notFound().build();
         }
 
-        var response = bookingMapper.bookingToBookingDto(target);
-        response.add(linkTo(methodOn(AdminBookingsController.class).getBooking(bookingId)).withSelfRel());
-
+        var response = bookingToDto(target);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{bookingId}/cancel")
+    public ResponseEntity<Void> cancelBooking(@PathVariable Long bookingId, @RequestBody @Valid BookingCancelRequest request) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var targetOpt = bookingService.getBookingById(bookingId);
+        if(targetOpt.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        var target = targetOpt.get();
+        if(!adminPermissionService.canAccessBooking(actor, target)) {
+            return ResponseEntity.notFound().build();
+        }
+        bookingService.cancelBookingAsStaff(target, request.isWithRefund(), request.getReason());
+        return ResponseEntity.ok().build();
     }
 }
 

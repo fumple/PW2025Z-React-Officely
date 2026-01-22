@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users;
+package com.officely.backend.modules.admin.api.users.bookings;
 
 import lombok.Getter;
 import lombok.Setter;

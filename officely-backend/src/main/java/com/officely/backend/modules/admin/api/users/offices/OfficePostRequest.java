@@ -1,20 +1,24 @@
-package com.officely.backend.modules.admin.api.users;
+package com.officely.backend.modules.admin.api.users.offices;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
-public class OfficePatchRequest {
+public class OfficePostRequest {
+    @NotBlank
     private String name;
+    @NotBlank
     private String description;
+    @NotBlank
     private String address;
+    @NotBlank
     private String contactEmail;
+    @NotBlank
     private String contactPhone;
+    @NotBlank
     private String paymentAccountNumber;
+    @NotBlank
     private String paymentReceiverName;
-    private boolean published;
-    private List<String> images;
 }

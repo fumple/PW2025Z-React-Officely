@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users;
+package com.officely.backend.modules.admin.api.users.bookings;
 
 import com.officely.backend.entity.BookingEntity;
 import org.mapstruct.Mapper;

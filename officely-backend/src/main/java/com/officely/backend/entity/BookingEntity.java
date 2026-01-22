@@ -60,6 +60,10 @@ public class BookingEntity {
     @OneToOne(mappedBy = "booking")
     private PaymentEntity paymentInfo;
 
+    @Setter
+    @Column
+    private String cancellationReason;
+
     public BookingEntity() {}
 
     public BookingEntity(

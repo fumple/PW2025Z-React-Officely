@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users;
+package com.officely.backend.modules.admin.api.users.offices;
 
 import com.officely.backend.api.PhotosToStringsMapper;
 import com.officely.backend.entity.OfficeEntity;
@@ -17,6 +17,6 @@ public abstract class AdminOfficeMapper {
 
     @AfterMapping
     protected void mapPhotos(@MappingTarget OfficeDto target, OfficeEntity source) {
-        target.setPhotoUrls(PhotosToStringsMapper.map(source.getPhotos()));
+        target.setPhotoUrls(PhotosToStringsMapper.mapOfficePhotos(source.getPhotos()));
     }
 }

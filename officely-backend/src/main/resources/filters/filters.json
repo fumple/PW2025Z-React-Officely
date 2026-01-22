@@ -4,7 +4,7 @@
     "label": "Workspace",
     "elements": [
       {
-        "key": "workspace.type",
+        "key": "type",
         "label": "Workspace type",
         "type": "flags",
         "flags": [
@@ -19,25 +19,25 @@
     "label": "Amenities",
     "elements": [
       {
-        "key": "amenity.wifi",
+        "key": "wifi",
         "label": "Wi-Fi",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Wi-Fi" }]
       },
       {
-        "key": "amenity.24h",
+        "key": "24h",
         "label": "24/7 Access",
         "type": "flags",
         "flags": [{ "key": "true", "label": "24/7 Access" }]
       },
       {
-        "key": "amenity.kitchen",
+        "key": "kitchen",
         "label": "Kitchen",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Kitchen" }]
       },
       {
-        "key": "amenity.wheelchair",
+        "key": "wheelchair",
         "label": "Wheelchair access",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Wheelchair access" }]
@@ -49,13 +49,13 @@
     "label": "Environment",
     "elements": [
       {
-        "key": "env.quiet",
+        "key": "quiet",
         "label": "Quiet area",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Quiet area" }]
       },
       {
-        "key": "env.social",
+        "key": "social",
         "label": "Social / community vibe",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Social / community vibe" }]
@@ -67,13 +67,13 @@
     "label": "Equipment",
     "elements": [
       {
-        "key": "equipment.monitor",
+        "key": "monitor",
         "label": "Monitor included",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Monitor included" }]
       },
       {
-        "key": "equipment.printing",
+        "key": "printing",
         "label": "Printer",
         "type": "flags",
         "flags": [{ "key": "true", "label": "Printer" }]
