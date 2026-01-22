@@ -10,8 +10,8 @@ import java.util.List;
 
 @Getter
 @Setter
-public class UsersResponse extends RepresentationModel<UsersResponse> {
-    private List<UserDto> results;
+public class PaginatedResponse<T> extends RepresentationModel<PaginatedResponse<T>> {
+    private List<T> results;
     @JsonProperty("_pagination")
     private PaginationDto pagination;
 }

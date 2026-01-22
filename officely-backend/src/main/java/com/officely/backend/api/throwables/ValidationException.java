@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ValidationException extends Throwable {
+public class ValidationException extends RuntimeException {
     public ValidationException(String field, String message) {
         super(message);
         this.field = field;
