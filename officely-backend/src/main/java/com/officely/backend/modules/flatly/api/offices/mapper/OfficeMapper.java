@@ -1,15 +1,15 @@
 package com.officely.backend.modules.flatly.api.offices.mapper;
 
+import com.officely.backend.api.PhotosToStringsMapper;
 import com.officely.backend.modules.flatly.api.offices.dto.CoordinatesDto;
 import com.officely.backend.modules.flatly.api.offices.dto.OfficeDto;
 import com.officely.backend.entity.OfficeEntity;
-import com.officely.backend.entity.OfficePhotoEntity;
 
 import java.util.List;
 
 public class OfficeMapper {
     public static OfficeDto toDto(OfficeEntity entity){
-        List<String> photoUrls = entity.getPhotos().stream().map(OfficePhotoEntity::getUrl).toList();
+        List<String> photoUrls = PhotosToStringsMapper.mapOfficePhotos(entity.getPhotos());
 
         OfficeDto dto = new OfficeDto();
         dto.setId(String.valueOf(entity.getId()));

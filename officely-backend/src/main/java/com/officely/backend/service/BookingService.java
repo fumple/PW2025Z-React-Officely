@@ -1,13 +1,16 @@
 package com.officely.backend.service;
 
+import com.officely.backend.api.throwables.ActionNotAllowedException;
+import com.officely.backend.entity.*;
 import com.officely.backend.modules.flatly.api.bookings.dto.BookingDto;
 import com.officely.backend.modules.flatly.api.bookings.dto.BookingsResponseDto;
 import com.officely.backend.modules.flatly.api.bookings.mapper.BookingMapper;
-import com.officely.backend.entity.*;
 import com.officely.backend.repository.BookingRepository;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.PaymentRepository;
 import com.officely.backend.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,25 +23,15 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class BookingService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final OfficeOfferRepository officeOfferRepository;
     private final PaymentRepository paymentRepository;
-
-    public BookingService(
-            BookingRepository bookingRepository,
-            UserRepository userRepository,
-            OfficeOfferRepository officeOfferRepository,
-            PaymentRepository paymentRepository) {
-
-        this.bookingRepository = bookingRepository;
-        this.userRepository = userRepository;
-        this.officeOfferRepository = officeOfferRepository;
-        this.paymentRepository = paymentRepository;
-    }
 
     public Long bookOfficeUsingOffer(
             String officeId,
@@ -69,19 +62,19 @@ public class BookingService {
         Instant creationDate = Instant.now();
         Integer totalPrice = (int) (officeOfferEntity.getPricePerDay() * days);
 
-        BookingEntity bookingEntity = new BookingEntity(userEntity, officeEntity, officeOfferEntity, officeOfferEntity.getItem(),
+        BookingEntity bookingEntity = new BookingEntity(userEntity, officeEntity, officeOfferEntity, null, // TODO: FIND AVAILABLE ITEM!
                 status, startDate, endDate, creationDate, totalPrice);
 
         Long bookingId = bookingRepository.save(bookingEntity).getId();
 
         PaymentEntity payment = new PaymentEntity();
-        payment.setAccountNumber("PL00123456789012345678901234");
-        payment.setReceiverName("Officely Sp. z o.o.");
+        payment.setAccountNumber(officeEntity.getPaymentAccountNumber());
+        payment.setReceiverName(officeEntity.getPaymentReceiverName());
         payment.setTransferTitle("BOOKING " + bookingId);
         payment.setDueDate(bookingEntity.getCreationDate().plus(officeOfferEntity.getPaymentHours(), ChronoUnit.HOURS));
         payment.setStatus(PaymentStatus.pendingPayment);
         payment.setBooking(bookingEntity);
-        bookingEntity.setPayment(payment);
+        bookingEntity.setPaymentInfo(payment);
 
         paymentRepository.save(payment);
 
@@ -132,27 +125,62 @@ public class BookingService {
 
         BookingEntity booking = bookingRepository.findByIdAndUserId(bookingIdLong, userIdLong)
                 .orElseThrow(() -> new NoSuchElementException("The given user or booking was not found"));
+        cancelBooking(booking);
+    }
 
-        BookingStatus status = booking.getBookingStatus();
-        if (status == BookingStatus.cancelledByUser || status == BookingStatus.cancelledByStaff) {
-            throw new IllegalArgumentException("Booking is already cancelled");
-        }
-        if (booking.getStartDate().isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Cancelling a past/active booking is not allowed");
-        }
-
-        int freeHours = booking.getOffer().getFreeCancellationHours();
-        ZoneId zone = ZoneId.of("UTC");
-        Instant start = booking.getStartDate().atStartOfDay(zone).toInstant();
-
-        Instant deadline = start.minus(Duration.ofHours(freeHours));
-        Instant now = Instant.now();
-
-        if(now.isAfter(deadline)){
-            throw new IllegalArgumentException("Cancellation deadline has passed");
+    public void cancelBooking(BookingEntity booking){
+        var denyReason = canBookingBeCancelled(booking, true);
+        if (denyReason != null) {
+            throw new ActionNotAllowedException(denyReason);
         }
 
         booking.setBookingStatus(BookingStatus.cancelledByUser);
+        booking.getPaymentInfo().setStatus(booking.getPaymentInfo().getStatus() == PaymentStatus.received ?
+                PaymentStatus.pendingRefund : PaymentStatus.cancelled);
+        paymentRepository.save(booking.getPaymentInfo());
+        bookingRepository.save(booking);
+    }
+    public String canBookingBeCancelled(BookingEntity booking, boolean asStaff) {
+        BookingStatus status = booking.getBookingStatus();
+        if (status == BookingStatus.cancelledByUser || status == BookingStatus.cancelledByStaff) {
+            return "Booking is already cancelled";
+        }
+        if (!asStaff && booking.getStartDate().isBefore(LocalDate.now())) {
+            return "Cancelling a past/active booking is not allowed";
+        }
+        if (asStaff && booking.getEndDate().isBefore(LocalDate.now())) {
+            return "Cancelling a past booking is not allowed";
+        }
+        if(!asStaff) {
+            int freeHours = booking.getOffer().getFreeCancellationHours();
+            ZoneId zone = ZoneId.of("UTC");
+            Instant start = booking.getStartDate().atStartOfDay(zone).toInstant();
+
+            Instant deadline = start.minus(Duration.ofHours(freeHours));
+            Instant now = Instant.now();
+
+            if(now.isAfter(deadline)){
+                return "Cancellation deadline has passed";
+            }
+        }
+        return null;
+    }
+    public void cancelBookingAsStaff(BookingEntity booking, boolean withRefund, String reason){
+        var denyReason = canBookingBeCancelled(booking, true);
+        if (denyReason != null) {
+            throw new ActionNotAllowedException(denyReason);
+        }
+
+        booking.setBookingStatus(BookingStatus.cancelledByStaff);
+        booking.setCancellationReason(reason);
+        if(withRefund) {
+            booking.getPaymentInfo().setStatus(booking.getPaymentInfo().getStatus() == PaymentStatus.received ?
+                    PaymentStatus.pendingRefund : PaymentStatus.cancelled);
+        } else {
+            booking.getPaymentInfo().setStatus(booking.getPaymentInfo().getStatus() == PaymentStatus.pendingPayment ?
+                    PaymentStatus.cancelled : booking.getPaymentInfo().getStatus());
+        }
+        paymentRepository.save(booking.getPaymentInfo());
         bookingRepository.save(booking);
     }
 
@@ -175,5 +203,16 @@ public class BookingService {
             }
         }
         return pageIndex;
+    }
+
+    public Page<BookingEntity> getBookings(PageRequest pageRequest) {
+        return bookingRepository.findAll(pageRequest);
+    }
+    public Page<BookingEntity> getBookings(PageRequest pageRequest, String search) {
+        // TODO: Implement
+        return bookingRepository.findAll(pageRequest);
+    }
+    public Optional<BookingEntity> getBookingById(long id) {
+        return bookingRepository.findById(id);
     }
 }

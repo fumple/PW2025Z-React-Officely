@@ -1,33 +1,34 @@
 package com.officely.backend.service;
 
+import com.officely.backend.entity.*;
 import com.officely.backend.modules.flatly.api.offices.dto.*;
 import com.officely.backend.modules.flatly.api.offices.mapper.OfficeMapper;
 import com.officely.backend.modules.flatly.api.offices.mapper.OfficeOfferMapper;
-import com.officely.backend.entity.OfficeEntity;
-import com.officely.backend.entity.OfficeOfferEntity;
-import com.officely.backend.entity.WorkspaceType;
 import com.officely.backend.repository.OfficeOfferRepository;
+import com.officely.backend.repository.OfficePhotoRepository;
 import com.officely.backend.repository.OfficeRepository;
+import com.officely.backend.storage.StorageService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OfficeService {
     private final OfficeRepository officeRepository;
     private final Geocoding geocoding;
     private final OfficeOfferRepository officeOfferRepository;
-
-    public OfficeService(OfficeRepository officeRepository, Geocoding geocoding, OfficeOfferRepository officeOfferRepository){
-        this.officeRepository = officeRepository;
-        this.geocoding = geocoding;
-        this.officeOfferRepository = officeOfferRepository;
-    }
+    private final OfficePhotoRepository officePhotoRepository;
+    private final StorageService storageService;
 
     private static class OfficeWithDistance {
         private final OfficeDto office;
@@ -370,6 +371,9 @@ public class OfficeService {
 
         return dto;
     }
+    public Optional<OfficeEntity> getOfficeById(long id) {
+        return officeRepository.findById(id);
+    }
 
     public OfficeOffersResponseDto getOfficeOffers(String officeId, LocalDate startDate, LocalDate endDate, List<String> filter){
         if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
@@ -586,5 +590,66 @@ public class OfficeService {
             default:
                 return null;
         }
+    }
+
+    public Page<OfficeEntity> getOffices(PageRequest pageRequest) {
+        return officeRepository.findAll(pageRequest);
+    }
+    public Page<OfficeEntity> getOffices(PageRequest pageRequest, String search) {
+        try {
+            var id = Long.parseLong(search);
+            return officeRepository.getByIdOrNameContainingIgnoreCaseOrAddressContainingIgnoreCase(id, search, search, pageRequest);
+        } catch (Exception ex) {
+            return officeRepository.getByNameContainingIgnoreCaseOrAddressContainingIgnoreCase(search, search, pageRequest);
+        }
+    }
+
+    public OfficeEntity createOffice(OfficeEntity entity){
+        var office = officeRepository.save(entity);
+        office.setPhotos(officePhotoRepository.saveAll(entity.getPhotos()));
+        return office;
+    }
+    public OfficeEntity patchOffice(OfficeEntity updated) {
+        Geocoding.GeoPoint origin = geocoding.geocode(updated.getAddress());
+        if (origin == null) {
+            throw new IllegalArgumentException("Unable to geocode nearAddress");
+        }
+        updated.setLatitude(origin.getLat());
+        updated.setLongitude(origin.getLng());
+        return officeRepository.save(updated);
+    }
+    @Transactional
+    public OfficeEntity patchOffice(OfficeEntity updated, List<String> photos, List<MultipartFile> addedPhotos) {
+        var currentPhotos = updated.getPhotos();
+        var finalPhotos = new ArrayList<OfficePhotoEntity>();
+        for(var photo: photos) {
+            if(photo.matches("^current\\[[0-9]+]$")) {
+                var indexStr = photo.substring("current[".length(), photo.length()-1);
+                var index = Integer.parseInt(indexStr);
+                if(index >= currentPhotos.size())
+                    throw new RuntimeException("Invalid index of photo");
+                var current = currentPhotos.get(index);
+
+                var entity = new OfficePhotoEntity();
+                entity.setFilename(current.getFilename());
+                entity.setOffice(updated);
+                officePhotoRepository.save(entity);
+                finalPhotos.add(entity);
+            } else if(photo.matches("^added\\[[0-9]+]$")) {
+                var indexStr = photo.substring("added[".length(), photo.length()-1);
+                var index = Integer.parseInt(indexStr);
+                if(index >= addedPhotos.size())
+                    throw new RuntimeException("Invalid index of photo");
+                var current = addedPhotos.get(index);
+                var filename = storageService.store(current);
+                var entity = new OfficePhotoEntity();
+                entity.setFilename(filename);
+                entity.setOffice(updated);
+                officePhotoRepository.save(entity);
+                finalPhotos.add(entity);
+            }
+        }
+        updated.setPhotos(finalPhotos);
+        return patchOffice(updated);
     }
 }

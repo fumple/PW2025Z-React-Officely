@@ -6,18 +6,18 @@ import lombok.Setter;
 
 @Getter
 @Entity
-@Table(name = "office_photos")
-public class OfficePhotoEntity {
+@Table(name = "office_offer_photos")
+public class OfficeOfferPhotoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Setter
-    @Column(name = "url")
+    @Column(name = "filename")
     private String filename;
 
     @Setter
     @ManyToOne
-    @JoinColumn(name = "office_id")
-    private OfficeEntity office;
+    @JoinColumn(name = "office_offer_id")
+    private OfficeOfferEntity offer;
 }

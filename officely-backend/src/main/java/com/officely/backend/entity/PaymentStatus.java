@@ -4,5 +4,6 @@ public enum PaymentStatus {
     pendingPayment,
     received,
     pendingRefund,
-    refunded
+    refunded,
+    cancelled
 }
