@@ -2211,7 +2211,7 @@ paths:
           description: Forbidden
     post:
       tags: [ Members ]
-      summary: Create an office member (only owner can do this)
+      summary: Create an office member (only owner can do this, limit of 50 members per office not including owner, owner is not in the members list)
       security:
         - user_auth: []
       parameters:
