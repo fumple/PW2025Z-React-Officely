@@ -1,5 +1,6 @@
 package com.officely.backend.service;
 
+import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.repository.OfficeOfferRepository;
 import jakarta.annotation.Nullable;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
 
@@ -15,6 +17,8 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OfficeOfferService {
     private final OfficeOfferRepository officeOfferRepository;
+    private final OfficeItemService officeItemService;
+    private final FiltersService filtersService;
 
     public OfficeOfferEntity getOffer(Long officeId, Long offerId){
         return officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
@@ -33,8 +37,15 @@ public class OfficeOfferService {
         }
     }
 
-    public OfficeOfferEntity createOffer(OfficeOfferEntity entity, @Nullable String sourceId){
-        // TODO: Implement sourceId
-        return officeOfferRepository.save(entity);
+    @Transactional
+    public OfficeOfferEntity createOffer(OfficeOfferEntity entity, @Nullable Long sourceId){
+        filtersService.validateProperties(entity.getProperties());
+        var saved = officeOfferRepository.save(entity);
+        if(sourceId != null) {
+            officeOfferRepository.findByIdAndOfficeId(sourceId, entity.getOffice().getId())
+                    .orElseThrow(() -> new ValidationException("sourceId", "The given source offer was not found"));
+            officeItemService.moveItemsToNewOffer(sourceId, saved.getId());
+        }
+        return saved;
     }
 }

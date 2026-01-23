@@ -22,7 +22,7 @@ public class UploadsController {
     public ResponseEntity<Resource> getFile(@PathVariable String filename) {
         try {
             var file = storageService.loadAsResource(filename);
-            // TODO: Shouldn't cause a download
+            // TODO: Shouldn't cause a download?
             return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,
                     "attachment; filename=\"" + file.getFilename() + "\"").body(file);
         } catch (StorageFileNotFoundException ex) {

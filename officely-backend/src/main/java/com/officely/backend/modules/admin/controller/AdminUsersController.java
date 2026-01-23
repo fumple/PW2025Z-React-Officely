@@ -4,7 +4,7 @@ import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.AdminUserMapper;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.users.UserDto;
 import com.officely.backend.modules.admin.api.users.UserPatchRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
@@ -56,7 +56,7 @@ public class AdminUsersController {
         ).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(users.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(users.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);

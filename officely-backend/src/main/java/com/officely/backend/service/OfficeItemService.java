@@ -45,4 +45,8 @@ public class OfficeItemService {
         }
         return officeItemRepository.save(entity);
     }
+
+    public void moveItemsToNewOffer(long sourceId, long targetId) {
+        officeItemRepository.updateOfferId(sourceId, targetId);
+    }
 }

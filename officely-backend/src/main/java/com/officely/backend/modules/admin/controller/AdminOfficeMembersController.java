@@ -1,16 +1,16 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.CreatedResponse;
+import com.officely.backend.api.ListResponse;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeMemberEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.ListResponse;
 import com.officely.backend.modules.admin.api.officemembers.AdminOfficeMemberMapper;
 import com.officely.backend.modules.admin.api.officemembers.OfficeMemberDto;
 import com.officely.backend.modules.admin.api.officemembers.OfficeMemberPostRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.OfficeMemberService;
 import com.officely.backend.service.OfficeService;
-import com.officely.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +19,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/admin/offices/{officeId}/members")
@@ -32,16 +31,18 @@ public class AdminOfficeMembersController {
     private final AdminPermissionService adminPermissionService;
     private final OfficeMemberService officeMemberService;
     private final AdminOfficeMemberMapper adminOfficeMemberMapper;
-    private final UserService userService;
 
     private OfficeMemberDto toDto(UserEntity actor, OfficeMemberEntity member) {
         var e = adminOfficeMemberMapper.officeMemberToOfficeMemberDto(member);
         e.add(
-                linkTo(AdminOfficeMembersController.class).slash(e.getId()).withSelfRel(),
-                linkTo(AdminOfficesController.class).slash(member.getOffice().getId()).withRel("office")
+                linkTo(methodOn(AdminOfficeMembersController.class)
+                        .getMember(member.getOffice().getId(), member.getId())).withSelfRel(),
+                linkTo(methodOn(AdminOfficesController.class)
+                        .getOffice(member.getOffice().getId())).withRel("office")
         );
         if (adminPermissionService.canUpdateOfficeDetails(actor, member.getOffice())) {
-            e.add(linkTo(AdminOfficeMembersController.class).slash(e.getId()).withRel("delete"));
+            e.add(linkTo(methodOn(AdminOfficeMembersController.class)
+                    .deleteMember(member.getOffice().getId(), member.getId())).withRel("delete"));
         }
         return e;
     }
@@ -61,16 +62,16 @@ public class AdminOfficeMembersController {
         var items = officeMemberService.getMembers(officeId).stream().map(e -> toDto(actor, e)).toList();
         var response = new ListResponse<OfficeMemberDto>();
         response.setResults(items);
-        response.add(linkTo(AdminOfficeMembersController.class).withSelfRel());
+        response.add(linkTo(methodOn(AdminOfficeMembersController.class).getMembers(officeId)).withSelfRel());
         if (adminPermissionService.canUpdateOfficeDetails(actor, target)) {
-            response.add(linkTo(AdminOfficeMembersController.class).withRel("create"));
+            response.add(linkTo(methodOn(AdminOfficeMembersController.class).getMembers(officeId)).withRel("create"));
         }
 
         return ResponseEntity.ok(response);
     }
 
     @PostMapping
-    public ResponseEntity<List<OfficeMemberDto>> createMember(@PathVariable Long officeId, @RequestBody @Valid OfficeMemberPostRequest request) {
+    public ResponseEntity<CreatedResponse> createMember(@PathVariable Long officeId, @RequestBody @Valid OfficeMemberPostRequest request) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if (targetOpt.isEmpty())
@@ -81,17 +82,16 @@ public class AdminOfficeMembersController {
             return ResponseEntity.notFound().build();
         }
 
-        var user = userService.findById(request.getUserId());
-        if (user.isEmpty()) {
-            throw new ValidationException("userId", "User was not found");
+        OfficeMemberEntity membership;
+        try {
+            membership = officeMemberService.createMember(target, request.getEmail());
+        } catch (ValidationException e) {
+            throw new ValidationException("userId", e.getMessage());
         }
 
-        var membership = officeMemberService.createMember(target, user.get());
-        if (membership.isEmpty()) {
-            throw new ValidationException("userId", "Failed to create membership, user may already be a member!");
-        }
-
-        return ResponseEntity.created(linkTo(AdminOfficeMembersController.class).slash(membership.get().getId()).toUri()).build();
+        return ResponseEntity.created(linkTo(methodOn(AdminOfficeMembersController.class)
+                        .getMember(officeId, membership.getId())).toUri())
+                .body(new CreatedResponse(membership.getId().toString()));
     }
 
     @GetMapping("/{membershipId}")
