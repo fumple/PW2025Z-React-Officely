@@ -229,7 +229,6 @@ components:
       required:
         - id
         - name
-        - description
         - floor
         - room
         - _links
@@ -237,8 +236,6 @@ components:
         id:
           type: string
         name:
-          type: string
-        description:
           type: string
         floor:
           type: string
