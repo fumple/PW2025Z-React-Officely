@@ -1,9 +1,9 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.officeoffers.AdminOfficeOfferMapper;
 import com.officely.backend.modules.admin.api.officeoffers.OfficeOfferDto;
 import com.officely.backend.modules.admin.api.officeoffers.OfficeOfferPostRequest;
@@ -113,8 +113,8 @@ public class AdminOfficeOffersController {
 
         var offer = adminOfficeOfferMapper.officeOfferPostRequestToOfficeOffer(request);
         offer.setOffice(target);
-        var created = officeOfferService.createOffer(offer, request.getSourceId());
-        return ResponseEntity.created(linkTo(methodOn(AdminOfficeOffersController.class).getOffer(officeId, created.getId())).toUri()).build();
+        offer = officeOfferService.createOffer(offer, request.getSourceId());
+        return ResponseEntity.created(linkTo(methodOn(AdminOfficeOffersController.class).getOffer(officeId, offer.getId())).toUri()).build();
     }
 
     @GetMapping("/{offerId}")
