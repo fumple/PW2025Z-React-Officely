@@ -210,6 +210,7 @@ components:
                 - received
                 - pendingRefund
                 - refunded
+                - cancelled
             accountNumber:
               type: string
             receiverName:
