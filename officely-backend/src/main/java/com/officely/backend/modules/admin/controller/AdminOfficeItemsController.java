@@ -4,7 +4,7 @@ import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeItemEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.officeitems.AdminOfficeItemMapper;
 import com.officely.backend.modules.admin.api.officeitems.OfficeItemDto;
 import com.officely.backend.modules.admin.api.officeitems.OfficeItemPatchRequest;
@@ -42,8 +42,8 @@ public class AdminOfficeItemsController {
         e.add(
                 linkTo(AdminOfficeItemsController.class).slash(e.getId()).withSelfRel(),
                 linkTo(AdminOfficeItemsController.class).slash(e.getId()).withRel("update"),
-                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office")
-                // TODO: offer
+                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office"),
+                linkTo(methodOn(AdminOfficeOffersController.class).getOffer(item.getOffice().getId(), item.getOffer().getId())).withRel("offer")
         );
         return e;
     }

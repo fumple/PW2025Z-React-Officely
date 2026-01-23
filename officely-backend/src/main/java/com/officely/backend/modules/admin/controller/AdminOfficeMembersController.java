@@ -1,9 +1,10 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.CreatedResponse;
+import com.officely.backend.api.ListResponse;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeMemberEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.ListResponse;
 import com.officely.backend.modules.admin.api.officemembers.AdminOfficeMemberMapper;
 import com.officely.backend.modules.admin.api.officemembers.OfficeMemberDto;
 import com.officely.backend.modules.admin.api.officemembers.OfficeMemberPostRequest;
@@ -18,8 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
@@ -70,7 +69,7 @@ public class AdminOfficeMembersController {
     }
 
     @PostMapping
-    public ResponseEntity<List<OfficeMemberDto>> createMember(@PathVariable Long officeId, @RequestBody @Valid OfficeMemberPostRequest request) {
+    public ResponseEntity<CreatedResponse> createMember(@PathVariable Long officeId, @RequestBody @Valid OfficeMemberPostRequest request) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if (targetOpt.isEmpty())
@@ -91,7 +90,8 @@ public class AdminOfficeMembersController {
             throw new ValidationException("userId", "Failed to create membership, user may already be a member!");
         }
 
-        return ResponseEntity.created(linkTo(AdminOfficeMembersController.class).slash(membership.get().getId()).toUri()).build();
+        return ResponseEntity.created(linkTo(AdminOfficeMembersController.class).slash(membership.get().getId()).toUri())
+                .body(new CreatedResponse(membership.get().getId().toString()));
     }
 
     @GetMapping("/{membershipId}")

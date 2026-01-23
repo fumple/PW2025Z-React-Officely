@@ -3,7 +3,7 @@ package com.officely.backend.modules.admin.controller;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.bookings.AdminBookingMapper;
 import com.officely.backend.modules.admin.api.bookings.BookingCancelRequest;
 import com.officely.backend.modules.admin.api.bookings.BookingDto;
@@ -36,11 +36,13 @@ public class AdminBookingsController {
         e.add(
                 linkTo(AdminBookingsController.class).slash(e.getId()).withSelfRel(),
                 linkTo(AdminUsersController.class).slash(e.getUserId()).withRel("user"),
-                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office")
-                //linkTo(AdminOfficesController.class).slash(e.getItemId()).withRel("item"),
-                //linkTo(AdminOfficesController.class).slash(e.getOfferId()).withRel("offer")
+                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office"),
+                linkTo(methodOn(AdminOfficeItemsController.class).getItem(booking.getOffice().getId(), booking.getItem().getId())).withRel("item"),
+                linkTo(methodOn(AdminOfficeOffersController.class).getOffer(booking.getOffice().getId(), booking.getOffer().getId())).withRel("offer")
                 //markPaid
                 //markRefunded
+                //cancel
+                // TODO: Remaining links!
         );
         if(bookingService.canBookingBeCancelled(booking, true) != null) {
             e.add(linkTo(methodOn(AdminBookingsController.class).cancelBooking(booking.getId(), null)).withRel("cancel"));

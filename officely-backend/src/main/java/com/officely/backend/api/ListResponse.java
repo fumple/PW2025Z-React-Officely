@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api;
+package com.officely.backend.api;
 
 import lombok.Getter;
 import lombok.Setter;

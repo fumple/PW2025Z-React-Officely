@@ -4,7 +4,7 @@ import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.AdminUserMapper;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.users.UserDto;
 import com.officely.backend.modules.admin.api.users.UserPatchRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
