@@ -2,13 +2,14 @@ package com.officely.backend.modules.admin.controller;
 
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
+import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.users.*;
-import com.officely.backend.modules.admin.api.users.offices.AdminOfficeMapper;
-import com.officely.backend.modules.admin.api.users.offices.OfficeDto;
-import com.officely.backend.modules.admin.api.users.offices.OfficePatchRequest;
-import com.officely.backend.modules.admin.api.users.offices.OfficePostRequest;
+import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.modules.admin.api.offices.AdminOfficeMapper;
+import com.officely.backend.modules.admin.api.offices.OfficeDto;
+import com.officely.backend.modules.admin.api.offices.OfficePatchRequest;
+import com.officely.backend.modules.admin.api.offices.OfficePostRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.Geocoding;
 import com.officely.backend.service.OfficeService;
@@ -41,10 +42,26 @@ public class AdminOfficesController {
     private final StorageService storageService;
     private final Geocoding geocoding;
 
+    private OfficeDto toDto(UserEntity actor, OfficeEntity office) {
+        var e = officeMapper.officeToOfficeDto(office);
+        e.add(
+                linkTo(AdminOfficesController.class).slash(e.getId()).withSelfRel(),
+                linkTo(AdminOfficesController.class).slash(e.getId()).slash("items").withRel("items"),
+                linkTo(AdminOfficesController.class).slash(e.getId()).slash("offers").withRel("offers"),
+                linkTo(AdminOfficesController.class).slash(e.getId()).slash("members").withRel("members")
+        );
+        if (adminPermissionService.canUpdateOfficeDetails(actor, office)) {
+            e.add(linkTo(AdminOfficesController.class).slash(e.getId()).withRel("update"));
+        }
+        return e;
+    }
+
     @GetMapping
     public ResponseEntity<PaginatedResponse<OfficeDto>> getOffices(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
                                                                    @RequestParam(required = false) String search,
                                                                    @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
         var currentPage = pageToken == null ? 0 : pageToken;
         var pageRequest = PageRequest.of(currentPage, pageSize);
 
@@ -54,12 +71,7 @@ public class AdminOfficesController {
 
         var offices = search != null ? officeService.getOffices(pageRequest, search) : officeService.getOffices(pageRequest);
         var response = new PaginatedResponse<OfficeDto>();
-        response.setResults(offices.get().map(officeMapper::officeToOfficeDto).map(e ->
-            e.add(
-                    linkTo(AdminOfficesController.class).slash(e.getId()).withSelfRel(),
-                    linkTo(AdminOfficesController.class).slash(e.getId()).withRel("update")
-            )
-        ).toList());
+        response.setResults(offices.get().map(e -> toDto(actor, e)).toList());
 
         var pagination = new PaginationDto();
         pagination.setLastPage(offices.getTotalPages() - 1);

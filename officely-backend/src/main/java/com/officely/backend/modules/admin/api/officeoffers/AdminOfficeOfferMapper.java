@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.officeoffers;
+package com.officely.backend.modules.admin.api.officeoffers;
 
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeOfferEntity;

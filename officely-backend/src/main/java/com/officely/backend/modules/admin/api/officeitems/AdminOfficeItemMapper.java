@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.officeitems;
+package com.officely.backend.modules.admin.api.officeitems;
 
 import com.officely.backend.entity.OfficeItemEntity;
 import org.mapstruct.*;

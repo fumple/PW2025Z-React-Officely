@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users;
+package com.officely.backend.modules.admin.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.officely.backend.api.pagination.PaginationDto;

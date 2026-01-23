@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.users;
+package com.officely.backend.modules.admin.api.users;
 
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
