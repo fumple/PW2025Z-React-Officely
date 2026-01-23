@@ -3,7 +3,7 @@ package com.officely.backend.service;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficeMemberEntity;
-import com.officely.backend.entity.UserEntity;
+import com.officely.backend.entity.UserType;
 import com.officely.backend.repository.OfficeMemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +18,7 @@ import java.util.Optional;
 public class OfficeMemberService {
     private static final int MAX_MEMBERS = 50;
     private final OfficeMemberRepository officeMemberRepository;
+    private final UserService userService;
 
     public List<OfficeMemberEntity> getMembers(Long officeId) {
         return officeMemberRepository.getByOfficeId(officeId);
@@ -35,7 +36,9 @@ public class OfficeMemberService {
         officeMemberRepository.deleteByIdAndOfficeId(membershipId, officeId);
     }
     @Transactional
-    public OfficeMemberEntity createMember(OfficeEntity office, UserEntity user) {
+    public OfficeMemberEntity createMember(OfficeEntity office, String email) {
+        var user = userService.findByTypeAndEmail(UserType.ADMIN, email)
+                .orElseThrow(() -> new ValidationException("", "The user was not found"));
         if(office.getOwner().getId().equals(user.getId())) {
             throw new ValidationException("", "User is already the owner of the office");
         }

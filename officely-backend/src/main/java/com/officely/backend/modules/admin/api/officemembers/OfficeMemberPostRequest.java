@@ -6,5 +6,5 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OfficeMemberPostRequest {
-    private long userId;
+    private String email;
 }

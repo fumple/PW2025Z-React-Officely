@@ -39,6 +39,10 @@ public class OfficeOfferEntity {
     private Integer pricePerDay;
 
     @Setter
+    @Column(name = "price_per_day_currency", nullable = false, length = 3)
+    private String pricePerDayCurrency;
+
+    @Setter
     @Column(name = "free_cancellation_hours", nullable = false)
     private Integer freeCancellationHours;
 

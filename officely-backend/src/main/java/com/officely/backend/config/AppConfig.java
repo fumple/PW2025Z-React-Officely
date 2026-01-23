@@ -55,7 +55,10 @@ public class AppConfig {
                     registry.addMapping("/**");
                 } else {
                     for (String mapping : mappings) {
-                        registry.addMapping(mapping).allowedOrigins(getCorsUrls());
+                        registry
+                                .addMapping(mapping)
+                                .allowedOrigins(getCorsUrls())
+                                .allowedMethods("*");
 
                     }
                 }
