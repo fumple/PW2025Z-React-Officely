@@ -69,7 +69,7 @@ public class AdminBookingsController {
                 .map(this::bookingToDto).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(bookings.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(bookings.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);

@@ -56,7 +56,7 @@ public class AdminUsersController {
         ).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(users.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(users.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);
