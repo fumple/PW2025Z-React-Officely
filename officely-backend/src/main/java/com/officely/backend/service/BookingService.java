@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -214,5 +215,34 @@ public class BookingService {
     }
     public Optional<BookingEntity> getBookingById(long id) {
         return bookingRepository.findById(id);
+    }
+
+    public boolean canBookingBeMarkedAsPaid(BookingEntity booking) {
+        return booking.getPaymentInfo().getStatus() == PaymentStatus.pendingPayment;
+    }
+    public boolean canBookingBeMarkedAsRefunded(BookingEntity booking) {
+        return booking.getPaymentInfo().getStatus() == PaymentStatus.pendingRefund;
+    }
+
+    @Transactional
+    public void markBookingAsPaid(BookingEntity booking){
+        var pi = booking.getPaymentInfo();
+        if(pi.getStatus() != PaymentStatus.pendingPayment) {
+            throw new ActionNotAllowedException("Only a booking with pending payment can be marked as paid");
+        }
+        booking.getPaymentInfo().setStatus(PaymentStatus.received);
+        paymentRepository.save(booking.getPaymentInfo());
+        bookingRepository.save(booking);
+    }
+
+    @Transactional
+    public void markBookingAsRefunded(BookingEntity booking){
+        var pi = booking.getPaymentInfo();
+        if(pi.getStatus() != PaymentStatus.pendingRefund) {
+            throw new ActionNotAllowedException("Only a booking with a pending refund can be marked as refunded");
+        }
+        booking.getPaymentInfo().setStatus(PaymentStatus.refunded);
+        paymentRepository.save(booking.getPaymentInfo());
+        bookingRepository.save(booking);
     }
 }
