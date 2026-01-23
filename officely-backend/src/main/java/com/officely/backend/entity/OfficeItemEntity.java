@@ -27,10 +27,6 @@ public class OfficeItemEntity {
     private String name;
 
     @Setter
-    @Column(nullable = false, length = 2000)
-    private String description;
-
-    @Setter
     @Column(nullable = false)
     private Integer floor;
 
