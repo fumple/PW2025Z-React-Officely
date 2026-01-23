@@ -45,6 +45,10 @@ public class OfficeEntity {
     private List<OfficePhotoEntity> photos = new ArrayList<>();
 
     @Setter
+    @OneToMany(mappedBy = "office", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OfficeMemberEntity> members = new ArrayList<>();
+
+    @Setter
     @OneToMany(mappedBy = "office", cascade = CascadeType.ALL)
     private List<OfficeOfferEntity> offers;
 
