@@ -24,8 +24,17 @@ const { LightTheme, DarkTheme } = adaptNavigationTheme({
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  const paperTheme = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
+  const paperThemeBase = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
   const navTheme = colorScheme === "dark" ? DarkTheme : LightTheme;
+
+  const paperTheme = {
+    ...paperThemeBase,
+    colors: {
+      ...paperThemeBase.colors,
+      primary: "#0F4366",
+      onPrimary: "#FFFFFF",
+    },
+  };
 
   return (
     <PaperProvider theme={paperTheme}>
