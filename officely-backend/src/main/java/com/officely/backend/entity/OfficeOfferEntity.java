@@ -1,14 +1,13 @@
 package com.officely.backend.entity;
 
-import com.officely.backend.entity.properties.PropertyValue;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Entity
 @Table(name="office_offers")
@@ -40,6 +39,10 @@ public class OfficeOfferEntity {
     private Integer pricePerDay;
 
     @Setter
+    @Column(name = "price_per_day_currency", nullable = false, length = 3)
+    private String pricePerDayCurrency;
+
+    @Setter
     @Column(name = "free_cancellation_hours", nullable = false)
     private Integer freeCancellationHours;
 
@@ -47,12 +50,7 @@ public class OfficeOfferEntity {
     @Column(name = "payment_hours", nullable = false)
     private Integer paymentHours;
 
-    // workspace type - desk/room(?)
-    @Enumerated(EnumType.STRING)
-    @Column(name = "workspace_type", nullable = false)
-    private WorkspaceType workspaceType;
-
     @Column(nullable = false, columnDefinition = "JSON")
-    @JdbcTypeCode(SqlTypes.JSON_ARRAY)
-    private List<PropertyValue> properties = new ArrayList<>();
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String, String> properties = new HashMap<>();
 }

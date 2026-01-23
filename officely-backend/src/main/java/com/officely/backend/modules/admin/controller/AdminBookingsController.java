@@ -1,9 +1,9 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.bookings.AdminBookingMapper;
 import com.officely.backend.modules.admin.api.bookings.BookingCancelRequest;
 import com.officely.backend.modules.admin.api.bookings.BookingDto;
@@ -36,14 +36,18 @@ public class AdminBookingsController {
         e.add(
                 linkTo(AdminBookingsController.class).slash(e.getId()).withSelfRel(),
                 linkTo(AdminUsersController.class).slash(e.getUserId()).withRel("user"),
-                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office")
-                //linkTo(AdminOfficesController.class).slash(e.getItemId()).withRel("item"),
-                //linkTo(AdminOfficesController.class).slash(e.getOfferId()).withRel("offer")
-                //markPaid
-                //markRefunded
+                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office"),
+                linkTo(methodOn(AdminOfficeItemsController.class).getItem(booking.getOffice().getId(), booking.getItem().getId())).withRel("item"),
+                linkTo(methodOn(AdminOfficeOffersController.class).getOffer(booking.getOffice().getId(), booking.getOffer().getId())).withRel("offer")
         );
         if(bookingService.canBookingBeCancelled(booking, true) != null) {
             e.add(linkTo(methodOn(AdminBookingsController.class).cancelBooking(booking.getId(), null)).withRel("cancel"));
+        }
+        if(bookingService.canBookingBeMarkedAsPaid(booking)) {
+            e.add(linkTo(methodOn(AdminBookingsController.class).markBookingAsPaid(booking.getId())).withRel("markPaid"));
+        }
+        if(bookingService.canBookingBeMarkedAsRefunded(booking)) {
+            e.add(linkTo(methodOn(AdminBookingsController.class).markBookingAsRefunded(booking.getId())).withRel("markRefunded"));
         }
         return e;
     }
@@ -65,7 +69,7 @@ public class AdminBookingsController {
                 .map(this::bookingToDto).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(bookings.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(bookings.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);
@@ -122,6 +126,38 @@ public class AdminBookingsController {
             return ResponseEntity.notFound().build();
         }
         bookingService.cancelBookingAsStaff(target, request.isWithRefund(), request.getReason());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{bookingId}/markPaid")
+    public ResponseEntity<Void> markBookingAsPaid(@PathVariable Long bookingId) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var targetOpt = bookingService.getBookingById(bookingId);
+        if(targetOpt.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        var target = targetOpt.get();
+        if(!adminPermissionService.canAccessBooking(actor, target)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        bookingService.markBookingAsPaid(target);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{bookingId}/markRefunded")
+    public ResponseEntity<Void> markBookingAsRefunded(@PathVariable Long bookingId) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var targetOpt = bookingService.getBookingById(bookingId);
+        if(targetOpt.isEmpty())
+            return ResponseEntity.notFound().build();
+
+        var target = targetOpt.get();
+        if(!adminPermissionService.canAccessBooking(actor, target)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        bookingService.markBookingAsRefunded(target);
         return ResponseEntity.ok().build();
     }
 }

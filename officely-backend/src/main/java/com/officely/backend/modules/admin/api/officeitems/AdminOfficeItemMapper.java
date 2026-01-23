@@ -5,6 +5,8 @@ import org.mapstruct.*;
 
 @Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public abstract class AdminOfficeItemMapper {
+    @Mapping(source = "office.id", target = "officeId")
+    @Mapping(source = "offer.id", target = "offerId")
     public abstract OfficeItemDto officeItemToOfficeItemDto(OfficeItemEntity entity);
     public abstract OfficeItemEntity officeItemPostRequestToOfficeItem(OfficeItemPostRequest request);
 

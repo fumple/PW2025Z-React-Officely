@@ -1,10 +1,11 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.CreatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeItemEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.officeitems.AdminOfficeItemMapper;
 import com.officely.backend.modules.admin.api.officeitems.OfficeItemDto;
 import com.officely.backend.modules.admin.api.officeitems.OfficeItemPatchRequest;
@@ -40,10 +41,10 @@ public class AdminOfficeItemsController {
     private OfficeItemDto officeItemToDto(OfficeItemEntity item) {
         var e = adminOfficeItemMapper.officeItemToOfficeItemDto(item);
         e.add(
-                linkTo(AdminOfficeItemsController.class).slash(e.getId()).withSelfRel(),
-                linkTo(AdminOfficeItemsController.class).slash(e.getId()).withRel("update"),
-                linkTo(AdminOfficesController.class).slash(e.getOfficeId()).withRel("office")
-                // TODO: offer
+                linkTo(methodOn(AdminOfficeItemsController.class).getItem(item.getOffice().getId(), item.getId())).withSelfRel(),
+                linkTo(methodOn(AdminOfficeItemsController.class).getItem(item.getOffice().getId(), item.getId())).withRel("update"),
+                linkTo(methodOn(AdminOfficesController.class).getOffice(item.getOffice().getId())).withRel("office"),
+                linkTo(methodOn(AdminOfficeOffersController.class).getOffer(item.getOffice().getId(), item.getOffer().getId())).withRel("offer")
         );
         return e;
     }
@@ -74,7 +75,7 @@ public class AdminOfficeItemsController {
         response.setResults(items.get().map(this::officeItemToDto).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(items.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(items.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);
@@ -104,7 +105,7 @@ public class AdminOfficeItemsController {
     }
 
     @PostMapping()
-    public ResponseEntity<Void> createItem(
+    public ResponseEntity<CreatedResponse> createItem(
             @PathVariable Long officeId,
             @RequestBody @Valid OfficeItemPostRequest request) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -128,7 +129,7 @@ public class AdminOfficeItemsController {
         item.setOffer(offer);
 
         var created = officeItemService.createOfficeItem(item);
-        return ResponseEntity.created(linkTo(methodOn(AdminOfficeItemsController.class).getItem(officeId, created.getId())).toUri()).build();
+        return ResponseEntity.created(linkTo(methodOn(AdminOfficeItemsController.class).getItem(officeId, created.getId())).toUri()).body(new CreatedResponse(item.getId().toString()));
     }
 
     @GetMapping("/{itemId}")
