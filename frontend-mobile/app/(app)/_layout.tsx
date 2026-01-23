@@ -1,17 +1,24 @@
 import { Tabs, router } from "expo-router";
 import { Appbar } from "react-native-paper";
+import { Image } from "react-native";
+
+const ICON_HOME = require("../assets/tabBarLogo.png");
 
 function AppTopBar({ title }: { title: string }) {
   return (
-    <Appbar.Header>
-      <Appbar.Content title={title} />
-      {/* right icon like in your screenshot */}
+    <Appbar.Header
+      style={{ backgroundColor: "#0F4366", height: 40, paddingBottom: 10 }}
+    >
+      <Appbar.Content
+        title="Officely"
+        titleStyle={{ color: "white", fontWeight: "600" }}
+        style={{ alignItems: "flex-start", marginLeft: -25 }}
+      />
+
       <Appbar.Action
         icon="logout"
-        onPress={() => {
-          // TODO: clear token etc.
-          router.replace("/(auth)/login");
-        }}
+        color="white"
+        onPress={() => router.replace("/(auth)/login")}
       />
     </Appbar.Header>
   );
@@ -21,38 +28,19 @@ export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
-        // Top bar for every tab screen:
         header: () => <AppTopBar title="Officely" />,
 
-        // Bottom bar styling (panel look):
         tabBarStyle: {
-          backgroundColor: "#0F4366", // or theme color
-          height: 64,
-          paddingBottom: 10,
+          backgroundColor: "#0F4366",
+          height: 80,
+          paddingBottom: 20,
           paddingTop: 8,
         },
         tabBarActiveTintColor: "white",
         tabBarInactiveTintColor: "rgba(255,255,255,0.7)",
+        tabBarShowLabel: false,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          // middle icon (building) in screenshot
-          tabBarIcon: ({ color, size }) => (
-            // Paper uses MaterialCommunityIcons names
-            // "office-building" looks like your center icon
-            <Appbar.Action
-              icon="office-building"
-              color={color}
-              size={size}
-              onPress={() => {}}
-            />
-          ),
-          title: "Home",
-        }}
-      />
-
       <Tabs.Screen
         name="search"
         options={{
@@ -64,7 +52,22 @@ export default function AppLayout() {
               onPress={() => {}}
             />
           ),
-          title: "Search",
+        }}
+      />
+
+      <Tabs.Screen
+        name="index"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={ICON_HOME}
+              style={{
+                width: 26,
+                height: 26,
+              }}
+              resizeMode="contain"
+            />
+          ),
         }}
       />
 
@@ -79,7 +82,6 @@ export default function AppLayout() {
               onPress={() => {}}
             />
           ),
-          title: "Profile",
         }}
       />
     </Tabs>
