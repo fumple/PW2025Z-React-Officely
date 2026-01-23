@@ -4,6 +4,7 @@ info:
   version: 0.0.1
 servers: 
   - url: https://officely-dev.noscorp.pl/admin
+  - url: http://localhost:8080/admin
 components: 
   securitySchemes: 
     user_auth:
@@ -391,8 +392,8 @@ components:
         type:
           type: string
           enum:
-            - shared
-            - individual
+            - SHARED
+            - INDIVIDUAL
         capacity:
           type: integer
           minimum: 1
@@ -570,7 +571,7 @@ paths:
                 nationality:
                   type: string
                   examples:
-                    - pl
+                    - PL
                 phoneNumber:
                   type: string
                   examples:
@@ -1415,6 +1416,9 @@ paths:
                   items:
                     type: string
                     format: binary
+            encoding: 
+              office:
+                contentType: application/json
       responses:
         "201":
           description: Created
@@ -1555,6 +1559,9 @@ paths:
                   items:
                     type: string
                     format: binary
+            encoding: 
+              office:
+                contentType: application/json
       responses:
         "204":
           description: Success
@@ -1968,8 +1975,8 @@ paths:
                 type:
                   type: string
                   enum:
-                    - shared
-                    - individual
+                    - SHARED
+                    - INDIVIDUAL
                 capacity:
                   type: integer
                   minimum: 1
@@ -2220,9 +2227,9 @@ paths:
             schema: 
               type: object
               required: 
-                - userId
+                - email
               properties:
-                userId:
+                email:
                   type: string
 
       responses:
@@ -2270,7 +2277,7 @@ paths:
                             field:
                               type: string
                               enum:
-                                - userId
+                                - email
                             message:
                               type: string
                               description: A human readable message
