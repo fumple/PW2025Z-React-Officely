@@ -1351,29 +1351,34 @@ paths:
             schema: 
               type: object
               required: 
-                - name
-                - description
-                - address
-                - contactEmail
-                - contactPhone
-                - paymentAccountNumber
-                - paymentReceiverName
+                - office
                 - images
               properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                address:
-                  type: string
-                contactEmail:
-                  type: string
-                contactPhone:
-                  type: string
-                paymentAccountNumber:
-                  type: string
-                paymentReceiverName:
-                  type: string
+                office:
+                  type: object
+                  required: 
+                    - name
+                    - description
+                    - address
+                    - contactEmail
+                    - contactPhone
+                    - paymentAccountNumber
+                    - paymentReceiverName
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    address:
+                      type: string
+                    contactEmail:
+                      type: string
+                    contactPhone:
+                      type: string
+                    paymentAccountNumber:
+                      type: string
+                    paymentReceiverName:
+                      type: string
                 images:
                   type: array
                   items:
@@ -1482,32 +1487,38 @@ paths:
           multipart/form-data: 
             schema: 
               type: object
+              required:
+                - office
+                - addedImages
               properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                address:
-                  type: string
-                contactEmail:
-                  type: string
-                contactPhone:
-                  type: string
-                published:
-                  type: boolean
-                paymentAccountNumber:
-                  type: string
-                paymentReceiverName:
-                  type: string
-                images:
-                  type: array
-                  description: Ordered list of images to be used, images not in this list will be removed, current refers to the active images and added refers to images included in this request
-                  items:
-                    type: string
-                  examples:
-                    - - "current[0]"
-                      - "added[0]"
-                      - "current[2]"
+                office:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    address:
+                      type: string
+                    contactEmail:
+                      type: string
+                    contactPhone:
+                      type: string
+                    published:
+                      type: boolean
+                    paymentAccountNumber:
+                      type: string
+                    paymentReceiverName:
+                      type: string
+                    images:
+                      type: array
+                      description: Ordered list of images to be used, images not in this list will be removed, current refers to the active images and added refers to images included in this request
+                      items:
+                        type: string
+                      examples:
+                        - - "current[0]"
+                          - "added[0]"
+                          - "current[2]"
                 addedImages:
                   type: array
                   items:
