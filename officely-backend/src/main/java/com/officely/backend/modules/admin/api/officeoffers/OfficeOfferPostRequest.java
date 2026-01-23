@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.officeoffers;
+package com.officely.backend.modules.admin.api.officeoffers;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

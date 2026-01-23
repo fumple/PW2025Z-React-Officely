@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.users;
+package com.officely.backend.modules.admin.api.users;
 
 import com.officely.backend.entity.UserEntity;
 import org.mapstruct.*;
