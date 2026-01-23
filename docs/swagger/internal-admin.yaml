@@ -1714,7 +1714,7 @@ paths:
       requestBody: 
         required: true
         content: 
-          multipart/form-data: 
+          application/json: 
             schema: 
               type: object
               required: 
@@ -1741,16 +1741,9 @@ paths:
                   type: integer
                   description: The payment must be made x hours after the booking was made
                 properties:
-                  type: array
-                  items:
+                  type: object
+                  additionalProperties:
                     type: string
-                    examples:
-                      - "desk.type.standing:true"
-                images:
-                  type: array
-                  items:
-                    type: string
-                    format: binary
       responses:
         "201":
           description: Created
