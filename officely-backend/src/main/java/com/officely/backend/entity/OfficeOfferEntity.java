@@ -55,8 +55,4 @@ public class OfficeOfferEntity {
     @Column(nullable = false, columnDefinition = "JSON")
     @JdbcTypeCode(SqlTypes.JSON_ARRAY)
     private List<PropertyValue> properties = new ArrayList<>();
-
-    @Setter
-    @OneToMany(mappedBy = "offer")
-    private List<OfficeOfferPhotoEntity> photos = new ArrayList<>();
 }

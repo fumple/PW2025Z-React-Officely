@@ -2,17 +2,14 @@ package com.officely.backend.modules.admin.controller;
 
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.OfficeOfferEntity;
-import com.officely.backend.entity.OfficeOfferPhotoEntity;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.users.PaginatedResponse;
 import com.officely.backend.modules.admin.api.users.officeoffers.AdminOfficeOfferMapper;
 import com.officely.backend.modules.admin.api.users.officeoffers.OfficeOfferDto;
 import com.officely.backend.modules.admin.api.users.officeoffers.OfficeOfferPostRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
-import com.officely.backend.service.Geocoding;
 import com.officely.backend.service.OfficeOfferService;
 import com.officely.backend.service.OfficeService;
-import com.officely.backend.storage.StorageService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -20,13 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -39,7 +32,6 @@ public class AdminOfficeOffersController {
     private final OfficeOfferService officeOfferService;
     private final AdminOfficeOfferMapper adminOfficeOfferMapper;
     private final AdminPermissionService adminPermissionService;
-    private final StorageService storageService;
 
     private OfficeOfferDto officeOfferToDto(OfficeOfferEntity item) {
         var e = adminOfficeOfferMapper.officeOfferToOfficeOfferDto(item);
@@ -105,11 +97,10 @@ public class AdminOfficeOffersController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping
     public ResponseEntity<Void> createOffer(
             @PathVariable Long officeId,
-            @RequestPart("offer") @Valid OfficeOfferPostRequest request,
-            @RequestPart("images") List<MultipartFile> images) {
+            @RequestBody @Valid OfficeOfferPostRequest request) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if(targetOpt.isEmpty())
@@ -122,13 +113,6 @@ public class AdminOfficeOffersController {
 
         var offer = adminOfficeOfferMapper.officeOfferPostRequestToOfficeOffer(request);
         offer.setOffice(target);
-        offer.setPhotos(images.stream().map(e -> {
-            var entity = new OfficeOfferPhotoEntity();
-            var filename = storageService.store(e);
-            entity.setFilename(filename);
-            entity.setOffer(offer);
-            return entity;
-        }).toList());
         var created = officeOfferService.createOffer(offer, request.getSourceId());
         return ResponseEntity.created(linkTo(methodOn(AdminOfficeOffersController.class).getOffer(officeId, created.getId())).toUri()).build();
     }
