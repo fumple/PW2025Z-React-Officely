@@ -303,6 +303,8 @@ components:
             - self
             - update
             - offers
+            - items
+            - members
           properties:
             self:
               $ref: '#/components/schemas/Link'
@@ -311,6 +313,8 @@ components:
             offers:
               $ref: '#/components/schemas/Link'
             items:
+              $ref: '#/components/schemas/Link'
+            members:
               $ref: '#/components/schemas/Link'
     OfficeOfferResource:
       type: object
@@ -398,6 +402,7 @@ components:
           required:
             - self
             - office
+            - offer
           properties:
             self:
               $ref: '#/components/schemas/Link'
