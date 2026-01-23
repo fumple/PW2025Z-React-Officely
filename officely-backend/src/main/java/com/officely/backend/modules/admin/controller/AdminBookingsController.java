@@ -3,10 +3,10 @@ package com.officely.backend.modules.admin.controller;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.users.*;
-import com.officely.backend.modules.admin.api.users.bookings.AdminBookingMapper;
-import com.officely.backend.modules.admin.api.users.bookings.BookingCancelRequest;
-import com.officely.backend.modules.admin.api.users.bookings.BookingDto;
+import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.modules.admin.api.bookings.AdminBookingMapper;
+import com.officely.backend.modules.admin.api.bookings.BookingCancelRequest;
+import com.officely.backend.modules.admin.api.bookings.BookingDto;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.BookingService;
 import jakarta.validation.Valid;
@@ -50,8 +50,8 @@ public class AdminBookingsController {
 
     @GetMapping
     public ResponseEntity<PaginatedResponse<BookingDto>> getBookings(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
-                                                  @RequestParam(required = false) String search,
-                                                  @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
+                                                                     @RequestParam(required = false) String search,
+                                                                     @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
         var currentPage = pageToken == null ? 0 : pageToken;
         var pageRequest = PageRequest.of(currentPage, pageSize);
 

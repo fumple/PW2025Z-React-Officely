@@ -1,9 +1,10 @@
 package com.officely.backend.service;
 
 import com.officely.backend.entity.OfficeOfferEntity;
-import com.officely.backend.repository.OfficeOfferPhotoRepository;
 import com.officely.backend.repository.OfficeOfferRepository;
 import jakarta.annotation.Nullable;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -11,14 +12,9 @@ import org.springframework.stereotype.Service;
 import java.util.NoSuchElementException;
 
 @Service
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OfficeOfferService {
     private final OfficeOfferRepository officeOfferRepository;
-    private final OfficeOfferPhotoRepository officeOfferPhotoRepository;
-
-    public OfficeOfferService(OfficeOfferRepository officeOfferRepository, OfficeOfferPhotoRepository officeOfferPhotoRepository){
-        this.officeOfferRepository = officeOfferRepository;
-        this.officeOfferPhotoRepository = officeOfferPhotoRepository;
-    }
 
     public OfficeOfferEntity getOffer(Long officeId, Long offerId){
         return officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
@@ -39,8 +35,6 @@ public class OfficeOfferService {
 
     public OfficeOfferEntity createOffer(OfficeOfferEntity entity, @Nullable String sourceId){
         // TODO: Implement sourceId
-        var office = officeOfferRepository.save(entity);
-        office.setPhotos(officeOfferPhotoRepository.saveAll(entity.getPhotos()));
-        return office;
+        return officeOfferRepository.save(entity);
     }
 }

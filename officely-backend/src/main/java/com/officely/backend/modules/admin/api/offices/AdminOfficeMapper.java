@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.offices;
+package com.officely.backend.modules.admin.api.offices;
 
 import com.officely.backend.api.PhotosToStringsMapper;
 import com.officely.backend.entity.OfficeEntity;

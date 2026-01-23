@@ -1,15 +1,12 @@
-package com.officely.backend.modules.admin.api.users.officeoffers;
+package com.officely.backend.modules.admin.api.officeoffers;
 
-import com.officely.backend.api.PhotosToStringsMapper;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.properties.FlagPropertyValue;
 import com.officely.backend.entity.properties.IntegerPropertyValue;
 import com.officely.backend.entity.properties.PropertyValue;
 import com.officely.backend.service.FiltersService;
-import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,11 +24,6 @@ public abstract class AdminOfficeOfferMapper {
 
     public abstract OfficeOfferDto officeOfferToOfficeOfferDto(OfficeOfferEntity entity);
     public abstract OfficeOfferEntity officeOfferPostRequestToOfficeOffer(OfficeOfferPostRequest request);
-
-    @AfterMapping
-    protected void mapPhotos(@MappingTarget OfficeOfferDto target, OfficeOfferEntity source) {
-        target.setPhotoUrls(PhotosToStringsMapper.mapOfficeOfferPhotos(source.getPhotos()));
-    }
 
     protected Map<String,String> map(List<PropertyValue> value) {
         var result = new HashMap<String, String>();

@@ -1,4 +1,4 @@
-package com.officely.backend.modules.admin.api.users.bookings;
+package com.officely.backend.modules.admin.api.bookings;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
