@@ -5,7 +5,7 @@ import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.admin.api.PaginatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.offices.AdminOfficeMapper;
 import com.officely.backend.modules.admin.api.offices.OfficeDto;
 import com.officely.backend.modules.admin.api.offices.OfficePatchRequest;
