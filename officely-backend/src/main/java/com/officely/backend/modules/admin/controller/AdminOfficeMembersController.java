@@ -85,13 +85,15 @@ public class AdminOfficeMembersController {
             throw new ValidationException("userId", "User was not found");
         }
 
-        var membership = officeMemberService.createMember(target, user.get());
-        if (membership.isEmpty()) {
-            throw new ValidationException("userId", "Failed to create membership, user may already be a member!");
+        OfficeMemberEntity membership;
+        try {
+            membership = officeMemberService.createMember(target, user.get());
+        } catch (ValidationException e) {
+            throw new ValidationException("userId", e.getMessage());
         }
 
-        return ResponseEntity.created(linkTo(AdminOfficeMembersController.class).slash(membership.get().getId()).toUri())
-                .body(new CreatedResponse(membership.get().getId().toString()));
+        return ResponseEntity.created(linkTo(AdminOfficeMembersController.class).slash(membership.getId()).toUri())
+                .body(new CreatedResponse(membership.getId().toString()));
     }
 
     @GetMapping("/{membershipId}")
