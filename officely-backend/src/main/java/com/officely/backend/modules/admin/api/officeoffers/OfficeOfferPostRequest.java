@@ -11,7 +11,7 @@ import java.util.Map;
 @Getter
 @Setter
 public class OfficeOfferPostRequest {
-    private String sourceId;
+    private Long sourceId;
 
     @NotBlank
     private String name;
