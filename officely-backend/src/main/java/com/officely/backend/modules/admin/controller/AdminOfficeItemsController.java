@@ -74,7 +74,7 @@ public class AdminOfficeItemsController {
         response.setResults(items.get().map(this::officeItemToDto).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(items.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(items.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);

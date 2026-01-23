@@ -68,7 +68,7 @@ public class AdminOfficeOffersController {
         response.setResults(offices.get().map(this::officeOfferToDto).toList());
 
         var pagination = new PaginationDto();
-        pagination.setLastPage(offices.getTotalPages() - 1);
+        pagination.setLastPage(Math.max(offices.getTotalPages() - 1, 0));
         pagination.setCurrentPage(currentPage);
         pagination.setPageSize(pageSize);
         response.setPagination(pagination);
