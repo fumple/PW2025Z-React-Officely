@@ -163,7 +163,6 @@ components:
         - paymentHours
         - paymentHoursType
         - properties
-        - photoUrls
         - _links
       properties: 
         id:
@@ -178,10 +177,6 @@ components:
         paymentHours:
           type: integer
           description: "The payment must be made x hours after the booking was made"
-        photoUrls:
-          type: array
-          items:
-            type: string
         properties:
           type: object
           additionalProperties: 
@@ -204,7 +199,6 @@ components:
         - paymentHours
         - paymentHoursType
         - properties
-        - photoUrls
         - _links
       properties: 
         id:
@@ -217,10 +211,6 @@ components:
         paymentHours:
           type: integer
           description: "The payment must be made x hours after the booking was made"
-        photoUrls:
-          type: array
-          items:
-            type: string
         properties:
           type: object
           additionalProperties: 

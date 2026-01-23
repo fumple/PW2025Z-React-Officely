@@ -322,7 +322,6 @@ components:
         - pricePerDayCurrency
         - freeCancellationHours
         - paymentHours
-        - photoUrls
         - properties
         - _links
       properties: 
@@ -343,10 +342,6 @@ components:
         paymentHours:
           type: integer
           description: The payment must be made x hours after the booking was made
-        photoUrls:
-          type: array
-          items:
-            type: string
         properties:
           type: object
           additionalProperties: 
