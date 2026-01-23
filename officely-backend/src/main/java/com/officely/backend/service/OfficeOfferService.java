@@ -18,6 +18,7 @@ import java.util.NoSuchElementException;
 public class OfficeOfferService {
     private final OfficeOfferRepository officeOfferRepository;
     private final OfficeItemService officeItemService;
+    private final FiltersService filtersService;
 
     public OfficeOfferEntity getOffer(Long officeId, Long offerId){
         return officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
@@ -38,10 +39,11 @@ public class OfficeOfferService {
 
     @Transactional
     public OfficeOfferEntity createOffer(OfficeOfferEntity entity, @Nullable Long sourceId){
+        filtersService.validateProperties(entity.getProperties());
         var saved = officeOfferRepository.save(entity);
         if(sourceId != null) {
             officeOfferRepository.findByIdAndOfficeId(sourceId, entity.getOffice().getId())
-                    .orElseThrow(() -> new ValidationException("", "The given source offer was not found"));
+                    .orElseThrow(() -> new ValidationException("sourceId", "The given source offer was not found"));
             officeItemService.moveItemsToNewOffer(sourceId, saved.getId());
         }
         return saved;

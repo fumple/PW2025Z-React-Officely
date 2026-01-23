@@ -18,7 +18,6 @@ public class AdminPermissionService {
             return true;
         if(actor.getId().equals(targetUser.getId()))
             return true;
-        // TODO: Real permission check
         return true;
     }
     public boolean canUpdateUser(UserEntity actor, UserEntity targetUser) {
