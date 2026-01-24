@@ -78,8 +78,8 @@ public class FlatlyUserController {
     private BookingDto toDto(BookingEntity entity) {
         var dto = BookingMapper.toDto(entity);
         dto.add(
-                linkTo(methodOn(FlatlyUserController.class).getUsersBookingInfo(entity.getUser().getId().toString(), dto.getId())).withSelfRel(),
-                linkTo(methodOn(FlatlyOfficesController.class).getOffice(dto.getOfficeId())).withRel("office"),
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookingInfo(entity.getUser().getId(), entity.getId())).withSelfRel(),
+                linkTo(methodOn(FlatlyOfficesController.class).getOffice(entity.getOffice().getId())).withRel("office"),
                 linkTo(methodOn(FlatlyOfficesController.class).getOfficeItemDetails(entity.getOffice().getId(), entity.getItem().getId())).withRel("item"),
                 linkTo(methodOn(FlatlyOfficesController.class).getOfficeOfferDetails(entity.getOffice().getId(), entity.getOffer().getId())).withRel("offer")
         );
@@ -90,7 +90,7 @@ public class FlatlyUserController {
     }
 
     @GetMapping("/{userId}/bookings/{bookingId}")
-    public BookingDto getUsersBookingInfo(@PathVariable String userId, @PathVariable String bookingId){
+    public BookingDto getUsersBookingInfo(@PathVariable long userId, @PathVariable long bookingId){
         return toDto(bookingService.getBookingInfo(userId, bookingId));
     }
 
