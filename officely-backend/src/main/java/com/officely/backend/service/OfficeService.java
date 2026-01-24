@@ -1,20 +1,22 @@
 package com.officely.backend.service;
 
-import com.officely.backend.entity.*;
-import com.officely.backend.modules.flatly.api.offices.dto.*;
-import com.officely.backend.modules.flatly.api.offices.mapper.OfficeMapper;
-import com.officely.backend.modules.flatly.api.offices.mapper.OfficeOfferMapper;
+import com.officely.backend.entity.OfficeEntity;
+import com.officely.backend.entity.OfficeOfferEntity;
+import com.officely.backend.entity.OfficePhotoEntity;
+import com.officely.backend.entity.WorkspaceType;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.OfficePhotoRepository;
 import com.officely.backend.repository.OfficeRepository;
 import com.officely.backend.storage.StorageService;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,56 +32,39 @@ public class OfficeService {
     private final OfficePhotoRepository officePhotoRepository;
     private final StorageService storageService;
 
-    private static class OfficeWithDistance {
-        private final OfficeDto office;
-        private final Double distanceMeters;
-        private final Integer minPrice;
-
-        private OfficeWithDistance(OfficeDto office, Double distanceMeters, Integer minPrice) {
-            this.office = office;
-            this.distanceMeters = distanceMeters;
-            this.minPrice = minPrice;
-        }
-
-        public OfficeDto getOffice() { return office; }
-        public Double getDistanceMeters() { return distanceMeters; }
-        public Integer getMinPrice() { return minPrice; }
+    @Getter
+    @AllArgsConstructor
+    public static class OfficeWithDistance {
+        private final OfficeEntity office;
+        private final double distanceMeters;
+        private final int minPrice;
     }
 
-    private static class OfficeSearchPage {
+    @Getter
+    @AllArgsConstructor
+    public static class OfficeSearchPage {
         private final List<OfficeWithDistance> offices;
         private final int currentPage;
         private final int lastPage;
         private final int pageSize;
-
-        private OfficeSearchPage(List<OfficeWithDistance> offices, int currentPage, int lastPage, int pageSize) {
-            this.offices = offices;
-            this.currentPage = currentPage;
-            this.lastPage = lastPage;
-            this.pageSize = pageSize;
-        }
-
-        public List<OfficeWithDistance> getOffices() { return offices; }
-        public int getCurrentPage() { return currentPage; }
-        public int getLastPage() { return lastPage; }
-        public int getPageSize() { return pageSize; }
+        private final int minPrice;
+        private final int maxPrice;
     }
-
-    public OfficeSearchResponseDto searchOffices(
+    public OfficeSearchPage searchOffices(
             LocalDate startDate,
             LocalDate endDate,
             String nearAddress,
             Integer maxDistanceFromAddress,
             List<String> filter,
             String sort,
-            Integer pageSize,
-            String pageToken
+            int pageSize,
+            Integer pageToken
     ) {
         if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Invalid booking period"); 
         }
 
-        if (pageSize == null || pageSize <= 0 || pageSize > 50){ pageSize = 50; }
+        if (pageSize <= 0 || pageSize > 50){ pageSize = 50; }
         Integer pageIndex = checkPageIndex(pageToken);
 
         boolean distanceMode = (maxDistanceFromAddress != null) ||  (sort != null && sort.equalsIgnoreCase("distance"));
@@ -94,7 +79,7 @@ public class OfficeService {
             page = listOfficesPriceMode(startDate, endDate, nearAddress, filter, sort, pageSize, pageIndex);
         }
 
-        return toSearchResponse(page, startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pageToken);
+        return page;
     }
 
     private OfficeSearchPage listOfficesDistanceMode(
@@ -125,16 +110,14 @@ public class OfficeService {
         Specification<OfficeEntity> spec = buildOfficeSpecification(filterMapNoPrice);
 
         List<OfficeEntity> entities = officeRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "id"));
-        List<OfficeDto> dtos = entities.stream().map(OfficeMapper::toDto).toList();
 
-        Map<String, Double> distances = computeDistances(dtos, nearAddress);
+        Map<Long, Double> distances = computeDistances(entities, nearAddress);
 
-        Map<String, Integer> prices = fetchMinTotalPrices(days, minPrice, maxPrice);
+        Map<Long, Integer> prices = fetchMinTotalPrices(days, minPrice, maxPrice);
 
-        List<OfficeWithDistance> owd = dtos.stream()
+        List<OfficeWithDistance> owd = entities.stream()
                 .map(o -> new OfficeWithDistance(o, distances.get(o.getId()),
                  prices.get(o.getId())))
-                .filter(o -> o.getDistanceMeters() != null) 
                 .toList();
 
         if (maxDistanceFromAddress != null) {
@@ -143,7 +126,6 @@ public class OfficeService {
 
         if (hasPriceFilter) {
             owd = owd.stream()
-                    .filter(o -> o.getMinPrice() != null)
                     .toList();
         }
 
@@ -180,8 +162,11 @@ public class OfficeService {
         int to = Math.min(from + pageSize, totalResults);
 
         List<OfficeWithDistance> resultsForPage =  (from >= totalResults) ? List.of() : owd.subList(from, to);
-       
-        return new OfficeSearchPage(resultsForPage, pageIndex, lastPage, pageSize);
+
+        var min = Collections.min(prices.values());
+        var max = Collections.max(prices.values());
+
+        return new OfficeSearchPage(resultsForPage, pageIndex, lastPage, pageSize, min, max);
     }
 
     private OfficeSearchPage listOfficesPriceMode(
@@ -210,13 +195,12 @@ public class OfficeService {
         Specification<OfficeEntity> spec = buildOfficeSpecification(filterMapNoPrice);
 
         List<OfficeEntity> allowedOffices = officeRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "id"));
-        List<OfficeDto> allowedDtos = allowedOffices.stream().map(OfficeMapper::toDto).toList();
-        Map<String, Integer> prices = fetchMinTotalPrices(days, minPrice, maxPrice);
+        Map<Long, Integer> prices = fetchMinTotalPrices(days, minPrice, maxPrice);
 
-        List<OfficeDto> dtos = allowedDtos.stream().filter(o -> prices.containsKey(o.getId())).toList();
+        var offices = allowedOffices.stream().filter(o -> prices.containsKey(o.getId())).toList();
 
-        Map<String, Double> distances = computeDistances(dtos, nearAddress);
-        List<OfficeWithDistance> owd = dtos.stream().map(o -> new OfficeWithDistance(o,
+        Map<Long, Double> distances = computeDistances(offices, nearAddress);
+        List<OfficeWithDistance> owd = offices.stream().map(o -> new OfficeWithDistance(o,
                 distances.get(o.getId()),
                 prices.get(o.getId())))
                 .toList();
@@ -244,103 +228,15 @@ public class OfficeService {
         int to = Math.min(from + pageSize, totalResults);
 
         List<OfficeWithDistance> resultsForPage = (from >= totalResults) ? List.of() : owd.subList(from, to);
-        return new OfficeSearchPage(resultsForPage, pageIndex, lastPage, pageSize);
+
+        var min = Collections.min(prices.values());
+        var max = Collections.max(prices.values());
+
+        return new OfficeSearchPage(resultsForPage, pageIndex, lastPage, pageSize, min, max);
     }
 
-    private OfficeSearchResponseDto toSearchResponse(OfficeSearchPage offices, LocalDate startDate,
-        LocalDate endDate, String nearAddress, Integer maxDistanceFromAddress, List<String>filter,
-        String sort, Integer pageSize, String pageToken){
-
-        OfficeSearchResponseDto response = new OfficeSearchResponseDto();
-        List<OfficeSearchResultDto> results = new ArrayList<>();
-
-        for(OfficeWithDistance owd: offices.getOffices()){
-            OfficeDto office = owd.getOffice();
-            OfficeSearchResultDto res = new OfficeSearchResultDto();
-            res.setOffice(office);
-
-            OfficeSearchQueryDetailsDto q = new OfficeSearchQueryDetailsDto();
-            if(owd.getDistanceMeters() != null){
-                q.setDistance((int)Math.round(owd.getDistanceMeters()));
-            }else{
-                q.setDistance(null);
-            }
-
-            q.setMinPrice(owd.getMinPrice());
-            res.setQuery(q);
-
-            String offersLink = "/offices/" + office.getId() + "/offers?startDate=" + startDate + "&endDate=" + endDate;
-            if (filter != null) {
-                for (String f : filter) {
-                    offersLink += "&filter=" + java.net.URLEncoder.encode(f, java.nio.charset.StandardCharsets.UTF_8);
-                }
-            }
-
-            OfficeSearchResultDto.Links links = new OfficeSearchResultDto.Links();
-            links.setOffers(offersLink);
-
-            res.setLinks(links);
-            results.add(res);
-        }
-
-        response.setResults(results);
-
-        Map<String, String> filterMap = parseFilter(filter);
-        Integer minPrice = parseInt(filterMap.get("price.min"));
-        Integer maxPrice = parseInt(filterMap.get("price.max"));
-
-        OfficeSearchResponseDto.Query query = new OfficeSearchResponseDto.Query();
-        query.setMinPrice(minPrice);
-        query.setMaxPrice(maxPrice);
-        response.setQuery(query);
-
-        OfficeSearchResponseDto.Pagination pagination = new OfficeSearchResponseDto.Pagination();
-        pagination.setCurrentPage(offices.getCurrentPage());
-        pagination.setLastPage(offices.getLastPage());
-        pagination.setPageSize(offices.getPageSize());
-        response.setPagination(pagination);
-
-        String base = "/offices" + "?startDate=" + startDate + "&endDate=" + endDate;
-
-        if (nearAddress != null) {
-            base += "&nearAddress=" + java.net.URLEncoder.encode(nearAddress, java.nio.charset.StandardCharsets.UTF_8);
-        }
-        if (maxDistanceFromAddress != null) {
-            base += "&maxDistanceFromAddress=" + maxDistanceFromAddress;
-        }
-        if (sort != null) {
-            base += "&sort=" + java.net.URLEncoder.encode(sort, java.nio.charset.StandardCharsets.UTF_8);
-        }
-        if (pageSize != null) {
-            base += "&pageSize=" + pageSize;
-        }
-        if (filter != null) {
-            for (String f : filter) {
-                base += "&filter=" + java.net.URLEncoder.encode(f, java.nio.charset.StandardCharsets.UTF_8);
-            }
-        }
-
-        int lastPage = offices.getLastPage();
-        int currentPage = offices.getCurrentPage();
-
-        OfficeSearchResponseDto.Links links = new OfficeSearchResponseDto.Links();
-        links.setSelf(base + "&pageToken=" + currentPage);
-        links.setFirst(base + "&pageToken=0");
-        links.setLast(base + "&pageToken=" + lastPage);
-
-        if (currentPage < lastPage) {
-            links.setNext(base + "&pageToken=" + (currentPage + 1));
-        }
-        if (currentPage > 0) {
-            links.setPrev(base + "&pageToken=" + (currentPage - 1));
-        }
-        response.setLinks(links);
-
-        return response;
-    }
-
-    private Map<String, Integer> fetchMinTotalPrices(long days, Integer minPrice, Integer maxPrice) {
-        Map<String, Integer> result = new HashMap<>();
+    private Map<Long, Integer> fetchMinTotalPrices(long days, Integer minPrice, Integer maxPrice) {
+        Map<Long, Integer> result = new HashMap<>();
 
         int page = 0;
         int batchSize = 500;
@@ -349,7 +245,7 @@ public class OfficeService {
             Page<OfficeOfferRepository.OfficeMinPrice> p = officeOfferRepository.findOfficeMinPricesAsc(days, minPrice, maxPrice, PageRequest.of(page, batchSize));
 
             for (OfficeOfferRepository.OfficeMinPrice row : p.getContent()) {
-                result.put(String.valueOf(row.getOfficeId()), row.getMinPrice().intValue());
+                result.put(row.getOfficeId(), row.getMinPrice().intValue());
             }
 
             if (!p.hasNext()) break;
@@ -358,24 +254,17 @@ public class OfficeService {
         return result;
     }
 
-    public OfficeDto getOfficeById(String officeId) {
-        Long id;
-        try {
-            id = Long.parseLong(officeId);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid officeId");
-        }
-
-        OfficeEntity entity = officeRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Office not found"));
-        OfficeDto dto = OfficeMapper.toDto(entity);
-
-        return dto;
-    }
     public Optional<OfficeEntity> getOfficeById(long id) {
         return officeRepository.findById(id);
     }
 
-    public OfficeOffersResponseDto getOfficeOffers(String officeId, LocalDate startDate, LocalDate endDate, List<String> filter){
+    @Getter
+    @AllArgsConstructor
+    public static class OfficeOffer {
+        private OfficeOfferEntity entity;
+        private int totalPrice;
+    }
+    public List<OfficeOffer> getOfficeOffers(long officeId, LocalDate startDate, LocalDate endDate, List<String> filter){
         if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Invalid booking period");
         }
@@ -385,59 +274,29 @@ public class OfficeService {
             throw new IllegalArgumentException("The booking period must last at least 1 day");
         }
 
-        Long id;
-        try {
-            id = Long.parseLong(officeId);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid officeId");
-        }
-
         Map<String, String> filterMap = parseFilter(filter);
         Integer minPrice = parseInt(filterMap.get("price.min"));
         Integer maxPrice = parseInt(filterMap.get("price.max"));
 
-        Specification<OfficeOfferEntity> spec = buildOfferSpec(id, filter);
+        Specification<OfficeOfferEntity> spec = buildOfferSpec(officeId, filter);
         List<OfficeOfferEntity> entities = officeOfferRepository.findAll(spec);
 
-        List<OfficeOfferDto> offers = new ArrayList<>();
+        List<OfficeOffer> offers = new ArrayList<>();
         for (OfficeOfferEntity entity : entities) {
             int totalPrice = Math.toIntExact(days * (long) entity.getPricePerDay());
 
             if (minPrice != null && totalPrice < minPrice) continue;
             if (maxPrice != null && totalPrice > maxPrice) continue;
 
-            OfficeOfferDto dto = OfficeOfferMapper.toDto(entity, days, id);
-
-            offers.add(dto);
+            offers.add(new OfficeOffer(entity, totalPrice));
         }
-        OfficeOffersResponseDto response = new OfficeOffersResponseDto();
-        response.setOffers(offers);
-
-        String self = "/offices/" + officeId + "/offers?startDate=" + startDate + "&endDate=" + endDate;
-        if (filter != null) {
-            for (String f : filter) {
-                self += "&filter=" + java.net.URLEncoder.encode(f, java.nio.charset.StandardCharsets.UTF_8);
-            }
-        }
-        OfficeOffersResponseDto.Links links = new OfficeOffersResponseDto.Links();
-        links.setSelf(self);
-
-        response.setLinks(links);
-
-        return response;
+        return offers;
     }
 
-    private Integer checkPageIndex(String pageToken){
-        int pageIndex = 0;
-        if(pageToken != null && !pageToken.isBlank()){
-            try{
-                pageIndex = Integer.parseInt(pageToken);
-                if(pageIndex < 0) { pageIndex = 0; }
-            }catch(Exception e){
-                pageIndex = 0;
-            }
-        }
-        return pageIndex;
+    private Integer checkPageIndex(Integer pageToken){
+        if(pageToken == null || pageToken < 0)
+            return 0;
+        return pageToken;
     }
 
     private Map<String, String> parseFilter(List<String> filter){
@@ -528,8 +387,8 @@ public class OfficeService {
         return R * c;
     }
 
-    private Map<String, Double> computeDistances(List<OfficeDto> offices, String nearAddress){
-        Map<String, Double> result = new HashMap<>();
+    private Map<Long, Double> computeDistances(List<OfficeEntity> offices, String nearAddress){
+        Map<Long, Double> result = new HashMap<>();
         if (nearAddress == null || nearAddress.isBlank()) {
             throw new IllegalArgumentException("nearAddress is required when using distance");
         }
@@ -542,11 +401,8 @@ public class OfficeService {
         double originLat = origin.getLat();
         double originLon = origin.getLng();
 
-        for(OfficeDto o: offices){
-            CoordinatesDto c = o.getCoordinates();
-            if (c == null || c.getLat() == null || c.getLon() == null) continue;
-
-            double distance = haversine(originLat, originLon, c.getLat(), c.getLon());
+        for(var o: offices){
+            double distance = haversine(originLat, originLon, o.getLatitude(), o.getLongitude());
             result.put(o.getId(), distance);
         }
         return result;
@@ -554,7 +410,7 @@ public class OfficeService {
 
     private List<OfficeWithDistance> applyDistanceFilter(List<OfficeWithDistance> offices, Integer maxDistanceFromAddress){
         return offices.stream()
-                .filter(o -> o.getDistanceMeters() != null && o.getDistanceMeters() <= maxDistanceFromAddress)
+                .filter(o -> o.getDistanceMeters() <= maxDistanceFromAddress)
                 .toList();
     }
 

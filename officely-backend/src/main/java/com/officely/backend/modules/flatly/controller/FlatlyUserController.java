@@ -1,14 +1,16 @@
 package com.officely.backend.modules.flatly.controller;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
-
+import com.officely.backend.api.CreatedResponse;
+import com.officely.backend.api.pagination.PaginationDto;
+import com.officely.backend.entity.BookingEntity;
+import com.officely.backend.entity.UserType;
 import com.officely.backend.modules.flatly.api.bookings.dto.BookingDto;
 import com.officely.backend.modules.flatly.api.bookings.dto.BookingsResponseDto;
+import com.officely.backend.modules.flatly.api.bookings.mapper.BookingMapper;
 import com.officely.backend.modules.flatly.api.users.dto.CreateUserRequestDto;
 import com.officely.backend.modules.flatly.api.users.dto.PatchUserRequestDto;
 import com.officely.backend.modules.flatly.api.users.dto.UsersResponseDto;
 import com.officely.backend.modules.flatly.api.users.mapper.UserMapper;
-import com.officely.backend.entity.UserType;
 import com.officely.backend.service.BookingService;
 import com.officely.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -18,6 +20,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/flatly/users")
@@ -50,11 +55,12 @@ public class FlatlyUserController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createUser(@RequestBody @Valid CreateUserRequestDto request) {
+    public ResponseEntity<CreatedResponse> createUser(@RequestBody @Valid CreateUserRequestDto request) {
         var user = userMapper.createRequestToUser(request);
         user.setType(UserType.FLATLY_CUSTOMER);
         var created = userService.createUser(user);
-        return ResponseEntity.created(linkTo(FlatlyUserController.class).slash(created.getId()).toUri()).build();
+        return ResponseEntity.created(linkTo(FlatlyUserController.class).slash(created.getId()).toUri())
+                .body(new CreatedResponse(created.getId().toString()));
     }
 
     @PatchMapping("/{userId}")
@@ -69,15 +75,60 @@ public class FlatlyUserController {
         return ResponseEntity.noContent().build();
     }
 
+    private BookingDto toDto(BookingEntity entity) {
+        var dto = BookingMapper.toDto(entity);
+        dto.add(
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookingInfo(entity.getUser().getId(), entity.getId())).withSelfRel(),
+                linkTo(methodOn(FlatlyOfficesController.class).getOffice(entity.getOffice().getId())).withRel("office"),
+                linkTo(methodOn(FlatlyOfficesController.class).getOfficeItemDetails(entity.getOffice().getId(), entity.getItem().getId())).withRel("item"),
+                linkTo(methodOn(FlatlyOfficesController.class).getOfficeOfferDetails(entity.getOffice().getId(), entity.getOffer().getId())).withRel("offer")
+        );
+        if(bookingService.canBookingBeCancelled(entity, false) == null) {
+            dto.add(linkTo(methodOn(FlatlyUserController.class).cancelBooking(entity.getUser().getId().toString(), entity.getId().toString())).withRel("cancel"));
+        }
+        return dto;
+    }
+
     @GetMapping("/{userId}/bookings/{bookingId}")
-    public BookingDto getUsersBookingInfo(@PathVariable String userId, @PathVariable String bookingId){
-        return bookingService.getBookingInfo(userId, bookingId);
+    public BookingDto getUsersBookingInfo(@PathVariable long userId, @PathVariable long bookingId){
+        return toDto(bookingService.getBookingInfo(userId, bookingId));
     }
 
     @GetMapping("/{userId}/bookings")
-    public BookingsResponseDto getUsersBookings(@PathVariable String userId, @RequestParam Integer pageSize,
-                                                @RequestParam(required = false) String pageToken){
-        return bookingService.getUserBookings(userId, pageSize, pageToken);
+    public BookingsResponseDto getUsersBookings(@PathVariable Long userId, @RequestParam int pageSize,
+                                                @RequestParam(required = false) Integer pageToken){
+        var response = new BookingsResponseDto();
+        var results = bookingService.getUserBookings(userId, pageSize, pageToken);
+        response.setBookings(results.get().map(this::toDto).toList());
+
+        var pagination = new PaginationDto();
+        pagination.setLastPage(Math.max(results.getTotalPages() - 1, 0));
+        pagination.setCurrentPage(results.getPageable().getPageNumber());
+        pagination.setPageSize(results.getPageable().getPageSize());
+        response.setPagination(pagination);
+
+        response.add(
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getCurrentPage()))
+                        .withSelfRel().expand(),
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, 0))
+                        .withRel("first").expand(),
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getLastPage()))
+                        .withRel("last").expand()
+        );
+        if(pagination.getCurrentPage() != pagination.getLastPage()) {
+            response.add(
+                    linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getCurrentPage()+1))
+                            .withRel("next").expand()
+            );
+        }
+        if(pagination.getCurrentPage() > 0) {
+            response.add(
+                    linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getCurrentPage()-1))
+                            .withRel("prev").expand()
+            );
+        }
+
+        return response;
     }
 
     @PostMapping("/{userId}/bookings/{bookingId}/cancel")

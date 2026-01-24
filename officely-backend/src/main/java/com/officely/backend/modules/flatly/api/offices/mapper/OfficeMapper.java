@@ -4,6 +4,9 @@ import com.officely.backend.api.PhotosToStringsMapper;
 import com.officely.backend.modules.flatly.api.offices.dto.CoordinatesDto;
 import com.officely.backend.modules.flatly.api.offices.dto.OfficeDto;
 import com.officely.backend.entity.OfficeEntity;
+import com.officely.backend.modules.flatly.api.offices.dto.OfficeSearchQueryDetailsDto;
+import com.officely.backend.modules.flatly.api.offices.dto.OfficeSearchResultDto;
+import com.officely.backend.service.OfficeService;
 
 import java.util.List;
 
@@ -25,11 +28,17 @@ public class OfficeMapper {
         dto.setContactEmail(entity.getContactEmail());
         dto.setContactPhone(entity.getContactPhone());
         dto.setPhotoUrls(photoUrls);
+        return dto;
+    }
 
-        OfficeDto.Links links = new OfficeDto.Links();
-        links.setSelf("/offices/" + entity.getId());
-        dto.setLinks(links);
-
+    public static OfficeSearchResultDto toDto(OfficeService.OfficeWithDistance entity) {
+        var officeDto = toDto(entity.getOffice());
+        var dto = new OfficeSearchResultDto();
+        var query = new OfficeSearchQueryDetailsDto();
+        query.setDistance((int) Math.round(entity.getDistanceMeters()));
+        query.setMinPrice(entity.getMinPrice());
+        dto.setOffice(officeDto);
+        dto.setQuery(query);
         return dto;
     }
 }
