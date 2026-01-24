@@ -11,7 +11,6 @@ public final class OfficeOfferWithoutPriceMapper {
     public static OfficeOfferWithoutPriceDto toDto(OfficeOfferEntity entity) {
         OfficeOfferWithoutPriceDto dto = new OfficeOfferWithoutPriceDto();
 
-        String officeId = entity.getOffice().getId().toString();
         String offerId = entity.getId().toString();
 
         dto.setId(offerId);
@@ -20,10 +19,6 @@ public final class OfficeOfferWithoutPriceMapper {
         dto.setPaymentHours(entity.getPaymentHours());
         dto.setPhotoUrls(List.of());
         dto.setProperties(Map.of());
-
-        OfficeOfferWithoutPriceDto.Links links = new OfficeOfferWithoutPriceDto.Links();
-        links.setSelf("/offices/" + officeId + "/offers/" + offerId + "/book");
-        dto.setLinks(links);
         return dto;
     }
 }

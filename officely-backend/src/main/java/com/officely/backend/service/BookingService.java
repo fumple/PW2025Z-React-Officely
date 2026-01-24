@@ -31,16 +31,12 @@ public class BookingService {
     private final PaymentRepository paymentRepository;
 
     public Long bookOfficeUsingOffer(
-            String officeId,
-            String offerId,
-            String userId,
+            long officeId,
+            long offerId,
+            long userId,
             LocalDate startDate,
             LocalDate endDate
     ) {
-        Long officeIdLong = parseId(officeId, "officeId");
-        Long offerIdLong = parseId(offerId, "offerId");
-        Long userIdLong = parseId(userId, "userId");
-
         if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Invalid booking period");
         }
@@ -50,8 +46,8 @@ public class BookingService {
             throw new IllegalArgumentException("The booking period must last at least 1 day");
         }
 
-        UserEntity userEntity = userRepository.findById(userIdLong).orElseThrow(() -> new NoSuchElementException("User not found"));
-        OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerIdLong, officeIdLong)
+        UserEntity userEntity = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+        OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
                 .orElseThrow(() -> new NoSuchElementException("The given office or offer was not found"));
         OfficeEntity officeEntity = officeOfferEntity.getOffice();
 
@@ -78,11 +74,8 @@ public class BookingService {
         return bookingId;
     }
 
-    public BookingEntity getBookingInfo(String userId, String bookingId){
-        Long userIdLong = parseId(userId, "userId");
-        Long bookingIdLong = parseId(bookingId, "bookingId");
-
-        return bookingRepository.findByIdAndUserId(bookingIdLong, userIdLong)
+    public BookingEntity getBookingInfo(long userId, long bookingId){
+        return bookingRepository.findByIdAndUserId(bookingId, userId)
                 .orElseThrow(() -> new NoSuchElementException("The given user or booking was not found"));
     }
 
