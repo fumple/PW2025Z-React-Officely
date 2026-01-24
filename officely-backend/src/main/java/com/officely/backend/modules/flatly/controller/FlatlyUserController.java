@@ -1,5 +1,6 @@
 package com.officely.backend.modules.flatly.controller;
 
+import com.officely.backend.api.CreatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserType;
@@ -54,11 +55,12 @@ public class FlatlyUserController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createUser(@RequestBody @Valid CreateUserRequestDto request) {
+    public ResponseEntity<CreatedResponse> createUser(@RequestBody @Valid CreateUserRequestDto request) {
         var user = userMapper.createRequestToUser(request);
         user.setType(UserType.FLATLY_CUSTOMER);
         var created = userService.createUser(user);
-        return ResponseEntity.created(linkTo(FlatlyUserController.class).slash(created.getId()).toUri()).build();
+        return ResponseEntity.created(linkTo(FlatlyUserController.class).slash(created.getId()).toUri())
+                .body(new CreatedResponse(created.getId().toString()));
     }
 
     @PatchMapping("/{userId}")
