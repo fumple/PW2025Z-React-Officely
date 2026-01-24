@@ -7,6 +7,9 @@ import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 
 import { styled } from "@mui/material/styles";
+import { getDashboardStats } from "../api/dashBoardApi";
+import { useEffect, useMemo, useState } from "react";
+import Typography from "@mui/material/Typography";
 
 const StatCard = styled(Paper)(({ theme }) => ({
   background: theme.palette.background.paper,
@@ -36,59 +39,98 @@ const StatLabel = styled("div")(({ theme }) => ({
   color: theme.palette.text.secondary,
 }));
 
-type Stat = {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-};
-
-const STATS: Stat[] = [
-  {
-    icon: <LocationOnIcon fontSize="large" />,
-    value: "100",
-    label: "Active offices",
-  },
-  {
-    icon: <CalendarMonthIcon fontSize="large" />,
-    value: "100",
-    label: "Future bookings",
-  },
-  {
-    icon: <CheckBoxIcon fontSize="large" />,
-    value: "100",
-    label: "Past bookings",
-  },
-  {
-    icon: <AttachMoneyIcon fontSize="large" />,
-    value: "0",
-    label: "Pending payments",
-  },
-];
-
 export const MainPage = () => {
-  return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 200px)",
-        gap: 2, // uses theme spacing
-        alignItems: "start",
-        "@media (max-width: 920px)": {
-          gridTemplateColumns: "repeat(2, 200px)",
-        },
-        "@media (max-width: 480px)": { gridTemplateColumns: "1fr" },
-      }}
-    >
-      {STATS.map((s) => (
-        <StatCard key={s.label}>
-          <Box sx={{ mb: 1.25, color: "text.primary", display: "inline-flex" }}>
-            {s.icon}
-          </Box>
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    activeOffices: 0,
+    futureBookings: 0,
+    pastBookings: 0,
+    pendingPayments: 0,
+  });
 
-          <StatValue>{s.value}</StatValue>
-          <StatLabel>{s.label}</StatLabel>
-        </StatCard>
-      ))}
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      setApiError(null);
+
+      const res = await getDashboardStats();
+      if (!alive) return;
+
+      if (res.ok) setStats(res.data);
+      else
+        setApiError(
+          res.error?.errors?.[0]?.message ?? "Failed to load dashboard stats.",
+        );
+
+      setLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const cards = useMemo(
+    () => [
+      {
+        icon: <LocationOnIcon fontSize="large" />,
+        value: String(stats.activeOffices),
+        label: "Active offices",
+      },
+      {
+        icon: <CalendarMonthIcon fontSize="large" />,
+        value: String(stats.futureBookings),
+        label: "Future bookings",
+      },
+      {
+        icon: <CheckBoxIcon fontSize="large" />,
+        value: String(stats.pastBookings),
+        label: "Past bookings",
+      },
+      {
+        icon: <AttachMoneyIcon fontSize="large" />,
+        value: String(stats.pendingPayments),
+        label: "Pending payments",
+      },
+    ],
+    [stats],
+  );
+  return (
+    <Box>
+      {apiError ? (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {apiError}
+        </Typography>
+      ) : null}
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 200px)",
+          gap: 2,
+          alignItems: "start",
+          "@media (max-width: 920px)": {
+            gridTemplateColumns: "repeat(2, 200px)",
+          },
+          "@media (max-width: 480px)": { gridTemplateColumns: "1fr" },
+          opacity: loading ? 0.6 : 1,
+        }}
+      >
+        {cards.map((s) => (
+          <StatCard key={s.label}>
+            <Box
+              sx={{ mb: 1.25, color: "text.primary", display: "inline-flex" }}
+            >
+              {s.icon}
+            </Box>
+            <StatValue>{s.value}</StatValue>
+            <StatLabel>{s.label}</StatLabel>
+          </StatCard>
+        ))}
+      </Box>
     </Box>
   );
 };

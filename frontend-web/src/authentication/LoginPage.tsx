@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link as RouterLink } from "react-router";
+import { useState, useEffect } from "react";
+import { Link as RouterLink, useNavigate } from "react-router";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -10,8 +10,61 @@ import Link from "@mui/material/Link";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Typography from "@mui/material/Typography";
 
+import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+import * as authApi from "../api/authApi";
+import { getToken } from "../api/http";
+
+type FormValues = {
+  email: string;
+  password: string;
+};
+
+const schema: yup.ObjectSchema<FormValues> = yup
+  .object({
+    email: yup
+      .string()
+      .trim()
+      .required("Email is required")
+      .email("Please enter a valid email"),
+    password: yup.string().required("Password is required"),
+  })
+  .required();
+
 export const LoginPage = () => {
-  const [hasError, setError] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (getToken()) navigate("/app", { replace: true });
+  }, [navigate]);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: yupResolver(schema),
+    defaultValues: { email: "", password: "" },
+    mode: "onSubmit",
+  });
+
+  const onSubmit = async ({ email, password }: FormValues) => {
+    setApiError(null);
+    const res = await authApi.login({ type: "admin", email, password });
+    if (res.ok) {
+      navigate("/app");
+      return;
+    }
+
+    const msg =
+      res.error?.errors?.[0]?.message ??
+      (res.status === 400 ? "Invalid email and/or password." : "Login failed.");
+
+    setApiError(msg);
+  };
 
   return (
     <Box
@@ -34,35 +87,56 @@ export const LoginPage = () => {
 
       <Box
         component="form"
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={handleSubmit(onSubmit)}
         sx={{ display: "flex", flexDirection: "column", gap: "6px" }}
       >
-        <FormControl variant="outlined" error={hasError}>
-          <FormLabel htmlFor="email" sx={{ mt: "6px" }}>
-            Email
-          </FormLabel>
-          <OutlinedInput id="email" type="email" />
-        </FormControl>
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.email}>
+              <FormLabel htmlFor="email" sx={{ mt: "6px" }}>
+                Email
+              </FormLabel>
+              <OutlinedInput
+                {...field}
+                id="email"
+                type="email"
+                autoComplete="email"
+                sx={{ bgcolor: "#fff" }}
+              />
+              <FormHelperText>{errors.email?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-        <FormControl variant="outlined" error={hasError}>
-          <FormLabel htmlFor="password" sx={{ mt: "6px" }}>
-            Password
-          </FormLabel>
-          <OutlinedInput id="password" type="password" />
-        </FormControl>
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.password}>
+              <FormLabel htmlFor="password" sx={{ mt: "6px" }}>
+                Password
+              </FormLabel>
+              <OutlinedInput
+                {...field}
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                sx={{ bgcolor: "#fff" }}
+              />
+              <FormHelperText>{errors.password?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-        {hasError && (
-          <FormHelperText sx={{ margin: "4px 0 2px 0" }}>
-            Invalid email and/or password
+        {apiError ? (
+          <FormHelperText sx={{ margin: "4px 0 2px 0" }} error>
+            {apiError}
           </FormHelperText>
-        )}
+        ) : null}
 
-        <Button
-          variant="contained"
-          type="submit"
-          fullWidth
-          onClick={() => setError(true)}
-        >
+        <Button variant="contained" type="submit" fullWidth>
           Log in
         </Button>
       </Box>

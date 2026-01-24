@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 
 import Box from "@mui/material/Box";
@@ -9,64 +9,82 @@ import FormLabel from "@mui/material/FormLabel";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Typography from "@mui/material/Typography";
 
+import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+import * as authApi from "../api/authApi";
+
+type LocationState = { email?: string; code?: string } | null;
+
+type FormValues = {
+  newPassword: string;
+  repeatPassword: string;
+};
+
+const schema: yup.ObjectSchema<FormValues> = yup
+  .object({
+    newPassword: yup
+      .string()
+      .required("New password is required")
+      .min(8, "password must be at least 8 characters")
+      .matches(/[a-z]/, "password must include a lowercase letter")
+      .matches(/[A-Z]/, "password must include an uppercase letter")
+      .matches(/[0-9]/, "password must include a number")
+      .matches(/[!@#$%^&*]/, "password must include one of: ! @ # $ % ^ & *"),
+    repeatPassword: yup
+      .string()
+      .required("Please repeat your password")
+      .oneOf([yup.ref("newPassword")], "Passwords do not match."),
+  })
+  .required();
+
 export const PasswordChangePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const state = (location.state as boolean | null) ?? null;
+  const state = (location.state as LocationState) ?? null;
+  const email = state?.email;
+  const code = state?.code;
 
-  const [password, setPassword] = useState("");
-  const [repeat, setRepeat] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: yupResolver(schema),
+    defaultValues: { newPassword: "", repeatPassword: "" },
+    mode: "onSubmit",
+  });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!password || !repeat) {
-      setError("Please fill in both fields.");
-      return;
+  useEffect(() => {
+    if (!email || !code) {
+      navigate("/password-recovery", { replace: true });
     }
-    if (password !== repeat) {
-      setError("Passwords do not match.");
-      return;
-    }
+  }, [email, code, navigate]);
 
-    setError(null);
-    // TODO (backend): call authApi.resetPassword({ token, password })
-    navigate("/password-change/success", { replace: true });
-  };
-
-  if (!state) {
-    return (
-      <Box
-        sx={{
-          width: "240px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          textAlign: "center",
-          gap: "8px",
-        }}
-      >
-        <Typography component="p" variant="subtitle1">
-          Invalid link
-        </Typography>
-
-        <Typography component="p" variant="body2">
-          This password reset link is available only after correct code
-          submission.
-        </Typography>
-
-        <Button variant="contained" fullWidth onClick={() => navigate("/")}>
-          Return to main page
-        </Button>
-      </Box>
-    );
+  if (!email || !code) {
+    return null;
   }
 
-  const mismatch = repeat.length > 0 && password !== repeat;
-  const showError = Boolean(error) || mismatch;
-  const helperText = error ?? (mismatch ? "Passwords do not match." : "");
+  const onSubmit = async ({ newPassword }: FormValues) => {
+    setApiError(null);
+    const res = await authApi.resetPassword({ email, code, newPassword });
+
+    if (res.ok) {
+      navigate("/password-change/success", { replace: true });
+      return;
+    }
+
+    const msg =
+      res.error?.errors?.[0]?.message ??
+      (res.status === 400
+        ? "Password reset failed. Check the recovery code and try again."
+        : "Password reset failed.");
+
+    setApiError(msg);
+  };
 
   return (
     <Box
@@ -85,31 +103,50 @@ export const PasswordChangePage = () => {
 
       <Box
         component="form"
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
         sx={{ display: "flex", flexDirection: "column", gap: "6px" }}
       >
-        <FormControl variant="outlined" error={showError}>
-          <FormLabel htmlFor="newPassword">New password</FormLabel>
-          <OutlinedInput
-            id="newPassword"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-          />
-        </FormControl>
+        <Controller
+          name="newPassword"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.newPassword}>
+              <FormLabel htmlFor="newPassword">New password</FormLabel>
+              <OutlinedInput
+                {...field}
+                id="newPassword"
+                type="password"
+                autoComplete="new-password"
+                sx={{ bgcolor: "#fff" }}
+              />
+              <FormHelperText>{errors.newPassword?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
 
-        <FormControl variant="outlined" error={showError}>
-          <FormLabel htmlFor="repeatPassword">Repeat password</FormLabel>
-          <OutlinedInput
-            id="repeatPassword"
-            type="password"
-            value={repeat}
-            onChange={(e) => setRepeat(e.target.value)}
-            autoComplete="new-password"
-          />
-          {helperText ? <FormHelperText>{helperText}</FormHelperText> : null}
-        </FormControl>
+        <Controller
+          name="repeatPassword"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.repeatPassword}>
+              <FormLabel htmlFor="repeatPassword">Repeat password</FormLabel>
+              <OutlinedInput
+                {...field}
+                id="repeatPassword"
+                type="password"
+                autoComplete="new-password"
+                sx={{ bgcolor: "#fff" }}
+              />
+              <FormHelperText>{errors.repeatPassword?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
+
+        {apiError ? (
+          <FormHelperText error sx={{ mt: "4px" }}>
+            {apiError}
+          </FormHelperText>
+        ) : null}
 
         <Button variant="contained" fullWidth type="submit">
           Save
