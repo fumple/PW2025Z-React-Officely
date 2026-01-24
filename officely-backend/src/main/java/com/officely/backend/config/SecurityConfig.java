@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/flatly/**")
                         .hasAuthority("FLATLY")
-                        .requestMatchers("/admin/login", "/admin/filters", "/admin/signup", "/admin/resetPassword", "/admin/resetPasswordEmail")
+                        .requestMatchers("/admin/login", "/admin/filters", "/admin/signup", "/admin/resetPassword", "/admin/checkResetCode", "/admin/resetPasswordEmail")
                         .permitAll()
                         .requestMatchers("/admin/**")
                         .hasAuthority("ADMIN")
