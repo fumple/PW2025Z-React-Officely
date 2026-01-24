@@ -14,6 +14,7 @@ import com.officely.backend.service.OfficeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,8 +79,13 @@ public class AdminOfficeMembersController {
             return ResponseEntity.notFound().build();
 
         var target = targetOpt.get();
-        if (!adminPermissionService.canUpdateOfficeDetails(actor, target)) {
+        var canView = adminPermissionService.canManageOffice(actor, target);
+        var canUpdateDetails = adminPermissionService.canUpdateOfficeDetails(actor, target);
+        if(!canView) {
             return ResponseEntity.notFound().build();
+        }
+        if(!canUpdateDetails) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         OfficeMemberEntity membership;
@@ -123,8 +129,13 @@ public class AdminOfficeMembersController {
             return ResponseEntity.notFound().build();
 
         var target = targetOpt.get();
-        if (!adminPermissionService.canUpdateOfficeDetails(actor, target)) {
+        var canView = adminPermissionService.canManageOffice(actor, target);
+        var canUpdateDetails = adminPermissionService.canUpdateOfficeDetails(actor, target);
+        if(!canView) {
             return ResponseEntity.notFound().build();
+        }
+        if(!canUpdateDetails) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         var item = officeMemberService.getMember(officeId, membershipId);
