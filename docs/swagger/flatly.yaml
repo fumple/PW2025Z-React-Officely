@@ -42,6 +42,13 @@ components:
       scheme: Bearer
       in: header
   schemas:
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
     PageSize:
       type: integer
       minimum: 1
@@ -142,7 +149,7 @@ components:
             - self
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeSearchQueryDetails:
       type: object
       required: 
@@ -187,9 +194,9 @@ components:
             - accept
           properties:
             accept:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/offices/2056/offers/12/book"
+                - href: "/offices/2056/offers/12/book"
     OfficeOfferWithoutPrice:
       type: object
       required:
@@ -221,9 +228,9 @@ components:
             - self
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/offices/2056/offers/12"
+                - href: "/offices/2056/offers/12"
     OfficeItemResource:
       type: object
       required:
@@ -251,7 +258,7 @@ components:
             - self
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
     UserResource:
       type: object
       required:
@@ -301,17 +308,17 @@ components:
             - bookings
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/users/2056"
+                - href: "/users/2056"
             update:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/users/2056"
+                - href: "/users/2056"
             bookings:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/users/2056/bookings"
+                - href: "/users/2056/bookings"
     BookingResource:
       type: object
       required:
@@ -403,15 +410,15 @@ components:
             - offer
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
             item:
-              type: string
+              $ref: '#/components/schemas/Link'
             offer:
-              type: string
+              $ref: '#/components/schemas/Link'
             cancel:
-              type: string
+              $ref: '#/components/schemas/Link'
 
 tags:
   - name: Filters
@@ -442,9 +449,9 @@ paths:
                     type: object
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                         examples:
-                          - '/filters'
+                          - href: '/filters'
         "401":
           $ref: '#/components/responses/Unauthorized'
   '/offices':
@@ -541,7 +548,7 @@ paths:
                             - offers
                           properties:
                             offers:
-                              type: string
+                              $ref: '#/components/schemas/Link'
                   query:
                     type: object
                     required:
@@ -574,15 +581,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "400":
           description: "Validation error"
           content: 
@@ -674,7 +681,7 @@ paths:
                     type: object
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "400":
           description: "Validation error"
           content: 
@@ -829,9 +836,9 @@ paths:
                       - create
                     properties:
                       create:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                         examples:
-                          - /users
+                          - href: /users
         "401":
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -1063,15 +1070,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "400":
           description: "Validation error"
           content: 
