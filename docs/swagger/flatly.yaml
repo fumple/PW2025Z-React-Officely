@@ -765,6 +765,15 @@ paths:
               description: URL to the newly created booking (for example /users/2056/bookings/5)
               schema: 
                 type: string
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
         "400":
           description: "Validation error"
           content: 
@@ -885,6 +894,15 @@ paths:
               description: URL to the newly created user (for example /users/2056)
               schema: 
                 type: string
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
         "400":
           description: "Validation error"
           content: 
