@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -68,5 +67,12 @@ public class PasswordResetService {
         user.setPassword(newPassword);
         userService.patchUser(user);
         passwordResetRepository.delete(entity);
+    }
+
+    @Transactional
+    public boolean checkResetCode(UserEntity user, String code) throws ValidationException {
+        deleteExpiredCodes();
+        var entity = passwordResetRepository.getByCode(code.toUpperCase());
+        return entity != null && Objects.equals(entity.getUser().getId(), user.getId());
     }
 }
