@@ -5,17 +5,17 @@ import FormHelperText from "@mui/material/FormHelperText";
 import FormLabel from "@mui/material/FormLabel";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import Typography from "@mui/material/Typography";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { useEffect, useState } from "react";
+import * as apiAuth from "../api/authApi";
 
 type FormValues = {
   code: string;
 };
-
-const correctCode = "123456";
 
 const schema: yup.ObjectSchema<FormValues> = yup
   .object({
@@ -23,16 +23,25 @@ const schema: yup.ObjectSchema<FormValues> = yup
       .string()
       .trim()
       .required("The code is required to proceed")
-      .oneOf([correctCode], "The code is incorrect"),
+      .matches(
+        /^[A-Za-z0-9]{6}$/,
+        "Code must be 6 characters (letters and digits)",
+      ),
   })
   .required();
 
 export const PasswordRecoverySuccessPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as { email?: string } | null;
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  const email = state?.email;
 
   const {
     control,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: yupResolver(schema),
@@ -40,11 +49,42 @@ export const PasswordRecoverySuccessPage = () => {
     mode: "onSubmit",
   });
 
-  const onSubmit = () => {
-    navigate("/password-change", {
-      replace: true,
-      state: { allowPasswordChange: true },
-    });
+  useEffect(() => {
+    if (!email) navigate("/password-recovery", { replace: true });
+  }, [email, navigate]);
+
+  if (!email) return null;
+
+  const onSubmit = async ({ code }: FormValues) => {
+    setApiError(null);
+    const res = await apiAuth.checkResetCode({ email, code });
+    console.log("checkResetCode payload:", { email, code });
+    console.log("checkResetCode res:", res);
+    if (res.ok) {
+      if (res.data?.valid === true) {
+        navigate("/password-change", { state: { email, code } });
+        return;
+      }
+      setError("code", { type: "server", message: "Invalid code." });
+      return;
+    }
+    if (res.status === 429) {
+      setApiError("Too many requests. Please try again later.");
+      return;
+    }
+
+    const first = res.error?.errors?.[0];
+    if (first?.field === "code") {
+      setError("code", {
+        type: "server",
+        message: first.message ?? "Invalid code.",
+      });
+      return;
+    }
+
+    setApiError(
+      first?.message ?? "Could not verify the code. Please try again.",
+    );
   };
 
   return (
@@ -91,13 +131,19 @@ export const PasswordRecoverySuccessPage = () => {
                 id="code"
                 type="text"
                 autoComplete="one-time-code"
-                inputProps={{ inputMode: "numeric" }}
+                inputProps={{ autoCapitalize: "characters" }}
                 sx={{ bgcolor: "#fff" }}
               />
               <FormHelperText>{errors.code?.message}</FormHelperText>
             </FormControl>
           )}
         />
+
+        {apiError ? (
+          <FormHelperText error sx={{ margin: "4px 0 2px 0" }}>
+            {apiError}
+          </FormHelperText>
+        ) : null}
 
         <Button variant="contained" type="submit" fullWidth>
           Submit

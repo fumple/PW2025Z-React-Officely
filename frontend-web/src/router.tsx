@@ -24,7 +24,8 @@ import { PricingTableEditPage } from "./application/office-pages/PricingTableEdi
 import { PricingTableCreatePage } from "./application/office-pages/PricingTableCreatePage";
 import { ItemCreatePage } from "./application/office-pages/ItemCreatePage";
 import { EmployeeDetailsPage } from "./application/office-pages/EmployeeDetailsPage";
-import { SignupPage } from "./authentication/SignUpPage";
+import { SignupPage } from "./authentication/SignupPage";
+import { RequireAuth } from "./authentication/RequireAuth";
 
 export const router = createBrowserRouter([
   {
@@ -62,96 +63,101 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    path: "/app",
-    Component: AppLayout,
+    Component: RequireAuth,
     children: [
       {
-        index: true, //defines a component that is passed for this route where no additional part is defined
-        Component: MainPage,
-      },
-      {
-        path: "offices",
+        path: "/app",
+        Component: AppLayout,
         children: [
           {
-            index: true,
-            Component: OfficesManagementPage,
+            index: true, //defines a component that is passed for this route where no additional part is defined
+            Component: MainPage,
           },
           {
-            path: "new",
-            Component: OfficeCreatePage,
-          },
-          {
-            path: ":officeId",
+            path: "offices",
             children: [
               {
                 index: true,
-                Component: OfficeDetailsPage,
+                Component: OfficesManagementPage,
               },
               {
-                path: "item/:itemId",
-                Component: ItemDetailsPage,
+                path: "new",
+                Component: OfficeCreatePage,
               },
               {
-                path: "item/:itemId/edit",
-                Component: ItemEditPage,
+                path: ":officeId",
+                children: [
+                  {
+                    index: true,
+                    Component: OfficeDetailsPage,
+                  },
+                  {
+                    path: "item/:itemId",
+                    Component: ItemDetailsPage,
+                  },
+                  {
+                    path: "item/:itemId/edit",
+                    Component: ItemEditPage,
+                  },
+                  {
+                    path: "item/new",
+                    Component: ItemCreatePage,
+                  },
+                  {
+                    path: "pricing-table/:pricingTableId",
+                    Component: PricingTableDetailsPage,
+                  },
+                  {
+                    path: "pricing-table/:pricingTableId/edit",
+                    Component: PricingTableEditPage,
+                  },
+                  {
+                    path: "pricing-table/new",
+                    Component: PricingTableCreatePage,
+                  },
+                  {
+                    path: "employee/:employeeId",
+                    Component: EmployeeDetailsPage,
+                  },
+                ],
               },
               {
-                path: "item/new",
-                Component: ItemCreatePage,
-              },
-              {
-                path: "pricing-table/:pricingTableId",
-                Component: PricingTableDetailsPage,
-              },
-              {
-                path: "pricing-table/:pricingTableId/edit",
-                Component: PricingTableEditPage,
-              },
-              {
-                path: "pricing-table/new",
-                Component: PricingTableCreatePage,
-              },
-              {
-                path: "employee/:employeeId",
-                Component: EmployeeDetailsPage,
+                path: ":officeId/edit",
+                Component: OfficeEditPage,
               },
             ],
           },
           {
-            path: ":officeId/edit",
-            Component: OfficeEditPage,
+            path: "bookings",
+            children: [
+              {
+                index: true,
+                Component: BookingsManagementPage,
+              },
+              {
+                path: ":bookingId",
+                Component: BookingDetailsPage,
+              },
+            ],
+          },
+          {
+            path: "users",
+            children: [
+              {
+                index: true,
+                Component: UsersManagementPage,
+              },
+              {
+                path: ":userId",
+                Component: UserDetailsPage,
+              },
+            ],
+          },
+          {
+            path: "payments",
+            Component: PaymentsOverviewPage,
           },
         ],
-      },
-      {
-        path: "bookings",
-        children: [
-          {
-            index: true,
-            Component: BookingsManagementPage,
-          },
-          {
-            path: ":bookingId",
-            Component: BookingDetailsPage,
-          },
-        ],
-      },
-      {
-        path: "users",
-        children: [
-          {
-            index: true,
-            Component: UsersManagementPage,
-          },
-          {
-            path: ":userId",
-            Component: UserDetailsPage,
-          },
-        ],
-      },
-      {
-        path: "payments",
-        Component: PaymentsOverviewPage,
       },
     ],
   },
