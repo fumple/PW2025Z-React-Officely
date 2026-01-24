@@ -2,9 +2,6 @@ package com.officely.backend.service;
 
 import com.officely.backend.api.throwables.ActionNotAllowedException;
 import com.officely.backend.entity.*;
-import com.officely.backend.modules.flatly.api.bookings.dto.BookingDto;
-import com.officely.backend.modules.flatly.api.bookings.dto.BookingsResponseDto;
-import com.officely.backend.modules.flatly.api.bookings.mapper.BookingMapper;
 import com.officely.backend.repository.BookingRepository;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.PaymentRepository;
@@ -22,7 +19,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -82,42 +78,24 @@ public class BookingService {
         return bookingId;
     }
 
-    public BookingDto getBookingInfo(String userId, String bookingId){
+    public BookingEntity getBookingInfo(String userId, String bookingId){
         Long userIdLong = parseId(userId, "userId");
         Long bookingIdLong = parseId(bookingId, "bookingId");
 
-        BookingEntity booking = bookingRepository.findByIdAndUserId(bookingIdLong, userIdLong)
+        return bookingRepository.findByIdAndUserId(bookingIdLong, userIdLong)
                 .orElseThrow(() -> new NoSuchElementException("The given user or booking was not found"));
-
-        return BookingMapper.toDto(booking);
     }
 
-    public BookingsResponseDto getUserBookings(String userId, Integer pageSize, String pageToken){
-        Long userIdLong = parseId(userId, "userId");
-        if (pageSize == null || pageSize <= 0 || pageSize>50){ pageSize = 50; }
-        Integer pageIndex = checkPageIndex(pageToken);
+    public Page<BookingEntity> getUserBookings(Long userId, int pageSize, Integer pageToken){
+        if (pageSize <= 0 || pageSize>50){ pageSize = 50; }
+        int pageIndex = checkPageIndex(pageToken);
 
         PageRequest pageRequest = PageRequest.of(pageIndex, pageSize, Sort
                 .by(Sort.Direction.DESC, "startDate")
                 .and(Sort.by(Sort.Direction.DESC, "id"))
         );
 
-        Page<BookingEntity> page = bookingRepository.findByUserIdOrderByStartDateDesc(userIdLong, pageRequest);
-
-        List<BookingDto> bookings = page.getContent().stream().map(BookingMapper::toDto).toList();
-
-        BookingsResponseDto.Pagination pagination = new BookingsResponseDto.Pagination();
-
-        pagination.setCurrentPage(pageIndex);
-        pagination.setLastPage(Math.max(page.getTotalPages() - 1, 0));
-        pagination.setPageSize(pageSize);
-
-        BookingsResponseDto.Links links = new BookingsResponseDto.Links();
-        links.setSelf("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=" + pageIndex);
-        links.setFirst("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=0");
-        links.setLast("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=" + pagination.getLastPage());
-
-        return new BookingsResponseDto(bookings, pagination, links);
+        return bookingRepository.findByUserIdOrderByStartDateDesc(userId, pageRequest);
     }
 
     public void cancelBooking(String userId, String bookingId){
@@ -193,17 +171,10 @@ public class BookingService {
         }
     }
 
-    private Integer checkPageIndex(String pageToken){
-        int pageIndex = 0;
-        if(pageToken != null && !pageToken.isBlank()){
-            try{
-                pageIndex = Integer.parseInt(pageToken);
-                if(pageIndex < 0) { pageIndex = 0; }
-            }catch(Exception e){
-                pageIndex = 0;
-            }
-        }
-        return pageIndex;
+    private int checkPageIndex(Integer pageToken){
+        if(pageToken == null || pageToken < 0)
+            return 0;
+        return pageToken;
     }
 
     public Page<BookingEntity> getBookings(PageRequest pageRequest) {
