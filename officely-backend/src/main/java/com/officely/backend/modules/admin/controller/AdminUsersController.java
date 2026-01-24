@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -128,11 +129,16 @@ public class AdminUsersController {
 
         var targetUser = targetUserOpt.get();
 
+        var canView = adminPermissionService.canViewUser(actor, targetUser);
         var canUpdate = adminPermissionService.canUpdateUser(actor, targetUser);
         var canBlock = adminPermissionService.canBlockUser(actor, targetUser);
 
         if(!canUpdate && !canBlock) {
-            return ResponseEntity.notFound().build();
+            if(!canView) {
+                return ResponseEntity.notFound().build();
+            } else {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
         }
 
         if(targetUser.isBlocked() != patchRequest.isBlocked() && !canBlock) {

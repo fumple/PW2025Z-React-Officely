@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -158,8 +159,13 @@ public class AdminOfficesController {
             return ResponseEntity.notFound().build();
 
         var target = targetOpt.get();
-        if(!adminPermissionService.canUpdateOfficeDetails(actor, target)) {
+        var canView = adminPermissionService.canManageOffice(actor, target);
+        var canUpdateDetails = adminPermissionService.canUpdateOfficeDetails(actor, target);
+        if(!canView) {
             return ResponseEntity.notFound().build();
+        }
+        if(!canUpdateDetails) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         officeMapper.update(patchRequest, target);

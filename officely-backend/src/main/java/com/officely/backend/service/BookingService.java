@@ -2,9 +2,6 @@ package com.officely.backend.service;
 
 import com.officely.backend.api.throwables.ActionNotAllowedException;
 import com.officely.backend.entity.*;
-import com.officely.backend.modules.flatly.api.bookings.dto.BookingDto;
-import com.officely.backend.modules.flatly.api.bookings.dto.BookingsResponseDto;
-import com.officely.backend.modules.flatly.api.bookings.mapper.BookingMapper;
 import com.officely.backend.repository.BookingRepository;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.PaymentRepository;
@@ -22,7 +19,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -35,16 +31,12 @@ public class BookingService {
     private final PaymentRepository paymentRepository;
 
     public Long bookOfficeUsingOffer(
-            String officeId,
-            String offerId,
-            String userId,
+            long officeId,
+            long offerId,
+            long userId,
             LocalDate startDate,
             LocalDate endDate
     ) {
-        Long officeIdLong = parseId(officeId, "officeId");
-        Long offerIdLong = parseId(offerId, "offerId");
-        Long userIdLong = parseId(userId, "userId");
-
         if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Invalid booking period");
         }
@@ -54,8 +46,8 @@ public class BookingService {
             throw new IllegalArgumentException("The booking period must last at least 1 day");
         }
 
-        UserEntity userEntity = userRepository.findById(userIdLong).orElseThrow(() -> new NoSuchElementException("User not found"));
-        OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerIdLong, officeIdLong)
+        UserEntity userEntity = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+        OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
                 .orElseThrow(() -> new NoSuchElementException("The given office or offer was not found"));
         OfficeEntity officeEntity = officeOfferEntity.getOffice();
 
@@ -82,42 +74,21 @@ public class BookingService {
         return bookingId;
     }
 
-    public BookingDto getBookingInfo(String userId, String bookingId){
-        Long userIdLong = parseId(userId, "userId");
-        Long bookingIdLong = parseId(bookingId, "bookingId");
-
-        BookingEntity booking = bookingRepository.findByIdAndUserId(bookingIdLong, userIdLong)
+    public BookingEntity getBookingInfo(long userId, long bookingId){
+        return bookingRepository.findByIdAndUserId(bookingId, userId)
                 .orElseThrow(() -> new NoSuchElementException("The given user or booking was not found"));
-
-        return BookingMapper.toDto(booking);
     }
 
-    public BookingsResponseDto getUserBookings(String userId, Integer pageSize, String pageToken){
-        Long userIdLong = parseId(userId, "userId");
-        if (pageSize == null || pageSize <= 0 || pageSize>50){ pageSize = 50; }
-        Integer pageIndex = checkPageIndex(pageToken);
+    public Page<BookingEntity> getUserBookings(Long userId, int pageSize, Integer pageToken){
+        if (pageSize <= 0 || pageSize>50){ pageSize = 50; }
+        int pageIndex = checkPageIndex(pageToken);
 
         PageRequest pageRequest = PageRequest.of(pageIndex, pageSize, Sort
                 .by(Sort.Direction.DESC, "startDate")
                 .and(Sort.by(Sort.Direction.DESC, "id"))
         );
 
-        Page<BookingEntity> page = bookingRepository.findByUserIdOrderByStartDateDesc(userIdLong, pageRequest);
-
-        List<BookingDto> bookings = page.getContent().stream().map(BookingMapper::toDto).toList();
-
-        BookingsResponseDto.Pagination pagination = new BookingsResponseDto.Pagination();
-
-        pagination.setCurrentPage(pageIndex);
-        pagination.setLastPage(Math.max(page.getTotalPages() - 1, 0));
-        pagination.setPageSize(pageSize);
-
-        BookingsResponseDto.Links links = new BookingsResponseDto.Links();
-        links.setSelf("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=" + pageIndex);
-        links.setFirst("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=0");
-        links.setLast("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=" + pagination.getLastPage());
-
-        return new BookingsResponseDto(bookings, pagination, links);
+        return bookingRepository.findByUserIdOrderByStartDateDesc(userId, pageRequest);
     }
 
     public void cancelBooking(String userId, String bookingId){
@@ -193,17 +164,10 @@ public class BookingService {
         }
     }
 
-    private Integer checkPageIndex(String pageToken){
-        int pageIndex = 0;
-        if(pageToken != null && !pageToken.isBlank()){
-            try{
-                pageIndex = Integer.parseInt(pageToken);
-                if(pageIndex < 0) { pageIndex = 0; }
-            }catch(Exception e){
-                pageIndex = 0;
-            }
-        }
-        return pageIndex;
+    private int checkPageIndex(Integer pageToken){
+        if(pageToken == null || pageToken < 0)
+            return 0;
+        return pageToken;
     }
 
     public Page<BookingEntity> getBookings(PageRequest pageRequest) {
