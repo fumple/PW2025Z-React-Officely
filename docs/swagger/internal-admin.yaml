@@ -968,6 +968,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     patch:
       tags: [Users]
       summary: "[Admin] Modify an user"
@@ -1035,6 +1037,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
 
   '/bookings':
     get:
@@ -1141,6 +1145,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/bookings/{bookingId}/cancel':
     post:
       tags: [ Bookings ]
@@ -1199,6 +1205,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/bookings/{bookingId}/markPaid':
     post:
       tags: [ Bookings ]
@@ -1243,6 +1251,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/bookings/{bookingId}/markRefunded':
     post:
       tags: [ Bookings ]
@@ -1287,6 +1297,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
 
   # ====== OFFICES =======
   '/offices':
@@ -1505,9 +1517,11 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     patch:
       tags: [ Offices ]
-      summary: Modify an office
+      summary: Modify an office (only the owner may use this)
       security:
         - user_auth: []
       parameters:
@@ -1616,6 +1630,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     
   # ====== OFFERS =======
   '/offices/{officeId}/offers':
@@ -1707,6 +1723,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [ Offers ]
       summary: Create an offer
@@ -1820,6 +1838,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/offices/{officeId}/offers/{offerId}':
     get:
       tags: [ Offers ]
@@ -1848,6 +1868,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
 
 
   # ====== Items =======
@@ -1940,6 +1962,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [ Items ]
       summary: Create an item
@@ -2049,6 +2073,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/offices/{officeId}/items/{itemId}':
     get:
       tags: [ Items ]
@@ -2077,6 +2103,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     patch:
       tags: [ Items ]
       summary: Modify an item
@@ -2166,6 +2194,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
 
 
   # ====== Members =======
@@ -2209,6 +2239,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [ Members ]
       summary: Create an office member (only owner can do this, limit of 50 members per office not including owner, owner is not in the members list)
@@ -2294,6 +2326,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/offices/{officeId}/members/{memberId}':
     get:
       tags: [ Members ]
@@ -2322,6 +2356,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     delete:
       tags: [ Members ]
       summary: Delete a member (office owner only)
@@ -2345,3 +2381,5 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
