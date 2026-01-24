@@ -75,4 +75,13 @@ public class AdminAuthController {
         passwordResetService.resetPassword(user.get(), request.getCode(), request.getNewPassword());
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/checkResetCode")
+    public ResponseEntity<CheckResetCodeResponse> checkResetCode(@RequestBody @Valid CheckResetCodeRequest request) throws ValidationException {
+        var user = userService.findByTypeAndEmail(UserType.ADMIN, request.getEmail());
+        if(user.isEmpty()) {
+            throw new ValidationException("email", "Invalid email address");
+        }
+        return ResponseEntity.ok(new CheckResetCodeResponse(passwordResetService.checkResetCode(user.get(), request.getCode())));
+    }
 }
