@@ -16,10 +16,12 @@ import com.officely.backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -58,9 +60,13 @@ public class FlatlyUserController {
     public ResponseEntity<CreatedResponse> createUser(@RequestBody @Valid CreateUserRequestDto request) {
         var user = userMapper.createRequestToUser(request);
         user.setType(UserType.FLATLY_CUSTOMER);
-        var created = userService.createUser(user);
-        return ResponseEntity.created(linkTo(FlatlyUserController.class).slash(created.getId()).toUri())
-                .body(new CreatedResponse(created.getId().toString()));
+        try {
+            var created = userService.createUser(user);
+            return ResponseEntity.created(linkTo(FlatlyUserController.class).slash(created.getId()).toUri())
+                    .body(new CreatedResponse(created.getId().toString()));
+        } catch (UnsupportedOperationException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
     }
 
     @PatchMapping("/{userId}")
@@ -90,8 +96,10 @@ public class FlatlyUserController {
     }
 
     @GetMapping("/{userId}/bookings/{bookingId}")
-    public BookingDto getUsersBookingInfo(@PathVariable long userId, @PathVariable long bookingId){
-        return toDto(bookingService.getBookingInfo(userId, bookingId));
+    public ResponseEntity<BookingDto> getUsersBookingInfo(@PathVariable long userId, @PathVariable long bookingId){
+        var bookingOpt = bookingService.getBookingInfo(userId, bookingId);
+        return bookingOpt.map(booking -> ResponseEntity.ok(toDto(booking)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{userId}/bookings")
@@ -133,7 +141,11 @@ public class FlatlyUserController {
 
     @PostMapping("/{userId}/bookings/{bookingId}/cancel")
     public ResponseEntity<Void> cancelBooking(@PathVariable String userId, @PathVariable String bookingId){
-        bookingService.cancelBooking(userId, bookingId);
+        try {
+            bookingService.cancelBooking(userId, bookingId);
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok().build();
     }
 }
