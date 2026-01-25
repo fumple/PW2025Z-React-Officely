@@ -1,17 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { Button, Text, TextInput } from "react-native-paper";
+import { Button, HelperText, Text, TextInput } from "react-native-paper";
 import { AuthScreenShell } from "./AuthScreenShell";
+import { apiFetch } from "@/src/api/client";
+import { router, useLocalSearchParams } from "expo-router";
 
 const CODE_LENGTH = 6;
+const RESEND_SECONDS = 30;
 
 export default function RecoverWaitScreen() {
+  const { email } = useLocalSearchParams<{ email: string }>();
+
   const [code, setCode] = useState("");
-  const [seconds, setSeconds] = useState(30);
+  const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const canResend = useMemo(() => seconds <= 0 && !loading, [seconds, loading]);
-  const canConfirm = code.length === CODE_LENGTH;
+  const canConfirm = !loading && code.length === CODE_LENGTH;
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -19,39 +25,79 @@ export default function RecoverWaitScreen() {
     return () => clearInterval(t);
   }, [seconds]);
 
-  const resend = async () => {
+  const onResend = async () => {
     setLoading(true);
+    setApiError(null);
     try {
-      // TODO: API call resend
-      setSeconds(30);
+      await apiFetch("/resetPasswordEmail", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setSeconds(RESEND_SECONDS);
+    } catch (e: any) {
+      setApiError("Failed to resend the code.");
     } finally {
       setLoading(false);
     }
   };
 
-  const authenticateCode = () => {};
+  const onConfirm = async () => {
+    if (!email || code.length !== CODE_LENGTH) return;
+
+    setLoading(true);
+    setApiError(null);
+    try {
+      const res = await apiFetch("/checkResetCode", {
+        method: "POST",
+        body: JSON.stringify({ email, code }),
+      });
+
+      if (!res?.valid) {
+        setApiError("Invalid code.");
+        return;
+      }
+
+      router.push({
+        pathname: "./reset-password",
+        params: { email, code },
+      });
+    } catch {
+      setApiError("Invalid code.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AuthScreenShell title={`Wait ${Math.max(0, seconds)}s`}>
       <View style={styles.form}>
-        <TextInput
-          mode="outlined"
-          label="Input the code here"
-          value={code}
-          onChangeText={setCode}
-          autoCapitalize="none"
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-
-        <View style={{ alignItems: "center" }}>
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="Input the code here"
+            value={code}
+            onChangeText={(t) => {
+              setCode(t);
+              if (apiError) setApiError(null);
+            }}
+            autoCapitalize="none"
+            keyboardType="number-pad"
+            maxLength={CODE_LENGTH}
+            error={!!apiError}
+          />
+          {apiError && (
+            <HelperText type="error" style={styles.helper}>
+              {apiError}
+            </HelperText>
+          )}
+        </View>
+        <View style={styles.resend}>
           <Text variant="bodySmall" style={styles.hint}>
             You don’t see the code?{" "}
             <Text
-              disabled={!canResend}
-              onPress={resend}
+              onPress={canResend ? onResend : undefined}
               variant="bodySmall"
-              style={styles.bold}
+              style={[styles.bold, !canResend && { opacity: 0.4 }]}
             >
               Send the code again
             </Text>
@@ -60,7 +106,7 @@ export default function RecoverWaitScreen() {
 
         <Button
           mode="contained"
-          onPress={authenticateCode}
+          onPress={onConfirm}
           loading={loading}
           disabled={!canConfirm}
           style={styles.primaryBtn}
@@ -75,6 +121,19 @@ export default function RecoverWaitScreen() {
 
 const styles = StyleSheet.create({
   form: { gap: 12 },
+  field: { marginBottom: 4 },
+  helper: {
+    marginTop: 2,
+    marginBottom: -4,
+  },
+  resend: {
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  resendLink: {
+    fontWeight: "700",
+  },
   hint: { opacity: 0.8 },
   bold: { fontWeight: "700" },
   primaryBtn: { marginTop: 2, borderRadius: 6 },

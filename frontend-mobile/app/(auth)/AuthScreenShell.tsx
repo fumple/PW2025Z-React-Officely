@@ -1,6 +1,7 @@
 import React from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
+import { KeyboardAvoidingView, Platform } from "react-native";
 
 export function AuthScreenShell({
   title,
@@ -10,8 +11,14 @@ export function AuthScreenShell({
   children: React.ReactNode;
 }) {
   return (
-    <View style={styles.safe}>
-      <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.safe}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <Image
             source={require("../assets/logo1.png")}
@@ -22,18 +29,17 @@ export function AuthScreenShell({
             {title}
           </Text>
         </View>
-
         <View style={styles.body}>{children}</View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, justifyContent: "center" },
-  container: { flex: 1, paddingHorizontal: 18, paddingTop: 8 },
+  safe: { flex: 1 },
+  container: { paddingHorizontal: 18, paddingTop: 40, paddingBottom: 18 },
   header: { alignItems: "center", paddingTop: 10, paddingBottom: 10 },
   logo: { width: 130, height: 130, marginBottom: 10 },
   title: { marginTop: 6 },
-  body: { flex: 1, paddingTop: 10 },
+  body: { paddingTop: 10 },
 });
