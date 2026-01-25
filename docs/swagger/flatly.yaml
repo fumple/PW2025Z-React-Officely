@@ -859,17 +859,31 @@ paths:
           application/json: 
             schema: 
               type: object
+              required: 
+                - email
+                - firstName
+                - lastName
+                - dateOfBirth
+                - nationality
+                - phoneNumber
               properties: 
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                   examples:
                     - bob.react@example.com
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                   examples:
                     - Bob
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                   examples:
                     - React
                 dateOfBirth:
@@ -879,10 +893,12 @@ paths:
                     - "2025-04-01"
                 nationality:
                   type: string
+                  pattern: "^[A-Z]{2}$"
                   examples:
-                    - pl
+                    - PL
                 phoneNumber:
                   type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
                   examples:
                     - "+48222347211"
       responses: 
@@ -960,8 +976,26 @@ paths:
               properties:
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - Bob
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - React
+                nationality:
+                  type: string
+                  pattern: "^[A-Z]{2}$"
+                  examples:
+                    - PL
+                phoneNumber:
+                  type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
+                  examples:
+                    - "+48222347211"
       responses: 
         "204":
           description: Success
