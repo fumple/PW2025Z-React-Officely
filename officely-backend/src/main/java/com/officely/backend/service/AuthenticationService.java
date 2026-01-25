@@ -43,7 +43,10 @@ public class AuthenticationService {
     public Optional<UserEntity> checkAdminToken(String token) {
         try {
             var id = Long.parseLong(token);
-            return userService.findById(id);
+            var user = userService.findById(id);
+            if(user.isPresent() && user.get().getType() != UserType.ADMIN)
+                return Optional.empty();
+            return user;
         } catch (NumberFormatException ex) {
             return Optional.empty();
         }
