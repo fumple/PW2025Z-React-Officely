@@ -8,9 +8,9 @@ import org.hibernate.validator.constraints.Length;
 @Getter
 @Setter
 public class PatchUserRequestDto {
-    @Length(max = 32)
+    @Length(min = 1, max = 32)
     private String firstName;
-    @Length(max = 32)
+    @Length(min = 1, max = 32)
     private String lastName;
     @Pattern(regexp = "^[A-Z]{2}$")
     private String nationality;
