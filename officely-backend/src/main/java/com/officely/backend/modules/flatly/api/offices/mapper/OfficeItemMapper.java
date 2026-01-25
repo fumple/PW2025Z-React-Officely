@@ -11,7 +11,7 @@ public final class OfficeItemMapper {
         OfficeItemDto dto = new OfficeItemDto();
         dto.setId(entity.getId().toString());
         dto.setName(entity.getName());
-        dto.setFloor(entity.getFloor().toString());
+        dto.setFloor(String.valueOf(entity.getFloor()));
         dto.setRoom(entity.getRoom());
         return dto;
     }

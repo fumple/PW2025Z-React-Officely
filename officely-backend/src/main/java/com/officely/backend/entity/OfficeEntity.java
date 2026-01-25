@@ -21,24 +21,24 @@ public class OfficeEntity {
     private UserEntity owner;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String name;
 
     @Setter
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", length = 4096)
     private String description;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 256)
     private String address;
 
     @Setter
     @Column(nullable = false)
-    private Double latitude;
+    private double latitude;
 
     @Setter
     @Column(nullable = false)
-    private Double longitude;
+    private double longitude;
 
     @Setter
     @OneToMany(mappedBy = "office")
@@ -61,18 +61,18 @@ public class OfficeEntity {
     private List<OfficeItemEntity> items;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 256)
     private String contactEmail;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     private String contactPhone;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 34)
     private String paymentAccountNumber;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String paymentReceiverName;
 }

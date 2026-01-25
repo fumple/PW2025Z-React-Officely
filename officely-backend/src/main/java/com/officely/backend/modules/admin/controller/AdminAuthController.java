@@ -26,6 +26,9 @@ public class AdminAuthController {
 
     @PostMapping("/login")
     public LoginResponse logIn(@RequestBody @Valid LoginRequest request) throws AuthException {
+        if(!request.getType().equals("admin")) {
+            throw new ValidationException("type", "User type must be 'admin'");
+        }
         var result = authenticationService.logIn(UserType.ADMIN, request.getEmail(), request.getPassword());
         if(result.success()) {
             var response = new LoginResponse();
@@ -39,6 +42,9 @@ public class AdminAuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<Void> signUp(@RequestBody @Valid SignUpRequest request) {
+        if(!request.getType().equals("admin")) {
+            throw new ValidationException("type", "User type must be 'admin'");
+        }
         var user = authMapper.signUpRequestToUser(request);
         user.setType(UserType.ADMIN);
         userService.createUser(user);
