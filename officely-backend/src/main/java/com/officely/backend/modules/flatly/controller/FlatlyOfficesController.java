@@ -67,6 +67,8 @@ public class FlatlyOfficesController {
     public OfficeSearchResponseDto searchOffices(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required=false) Double nearLat,
+            @RequestParam(required=false) Double nearLon,
             @RequestParam String nearAddress,
             @RequestParam(required=false) Integer maxDistanceFromAddress,
             @RequestParam(required = false) List<String> filter,
@@ -74,7 +76,7 @@ public class FlatlyOfficesController {
             @RequestParam int pageSize,
             @RequestParam(required = false) Integer pageToken
     ){
-        var search = officeService.searchOffices(startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pageToken);
+        var search = officeService.searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pageToken);
 
         var response = new OfficeSearchResponseDto();
         var pagination = new PaginationDto();
@@ -86,22 +88,22 @@ public class FlatlyOfficesController {
         response.setResults(search.getOffices().stream().map(e -> toDto(e, startDate, endDate, filter)).toList());
 
         response.add(
-                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()))
+                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()))
                         .withSelfRel().expand(),
-                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, 0))
+                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, 0))
                         .withRel("first").expand(),
-                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getLastPage()))
+                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getLastPage()))
                         .withRel("last").expand()
         );
         if(pagination.getCurrentPage() != pagination.getLastPage()) {
             response.add(
-                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()+1))
+                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()+1))
                             .withRel("next").expand()
             );
         }
         if(pagination.getCurrentPage() > 0) {
             response.add(
-                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()-1))
+                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()-1))
                             .withRel("prev").expand()
             );
         }
