@@ -23,11 +23,11 @@ public class OfficeOfferEntity {
     private OfficeEntity office;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String name;
 
     @Setter
-    @Column()
+    @Column(length = 64)
     private String publicName;
 
     @Setter
@@ -36,7 +36,7 @@ public class OfficeOfferEntity {
 
     @Setter
     @Column(name = "price_per_day", nullable = false)
-    private Integer pricePerDay;
+    private int pricePerDay;
 
     @Setter
     @Column(name = "price_per_day_currency", nullable = false, length = 3)
@@ -44,11 +44,11 @@ public class OfficeOfferEntity {
 
     @Setter
     @Column(name = "free_cancellation_hours", nullable = false)
-    private Integer freeCancellationHours;
+    private int freeCancellationHours;
 
     @Setter
     @Column(name = "payment_hours", nullable = false)
-    private Integer paymentHours;
+    private int paymentHours;
 
     @Column(nullable = false, columnDefinition = "JSON")
     @JdbcTypeCode(SqlTypes.JSON)

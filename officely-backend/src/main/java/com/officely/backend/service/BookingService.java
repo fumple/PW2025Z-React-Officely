@@ -195,6 +195,7 @@ public class BookingService {
             throw new ActionNotAllowedException("Only a booking with pending payment can be marked as paid");
         }
         booking.getPaymentInfo().setStatus(PaymentStatus.received);
+        booking.getPaymentInfo().setPaidAt(Instant.now());
         paymentRepository.save(booking.getPaymentInfo());
         bookingRepository.save(booking);
     }
