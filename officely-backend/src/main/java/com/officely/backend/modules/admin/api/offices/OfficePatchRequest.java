@@ -1,6 +1,7 @@
 package com.officely.backend.modules.admin.api.offices;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
@@ -23,7 +24,7 @@ public class OfficePatchRequest {
     @Email
     private String contactEmail;
 
-    @Length(max = 16)
+    @Pattern(regexp = "^\\+[1-9]\\d{1,14}$")
     private String contactPhone;
 
     @Length(max = 34)

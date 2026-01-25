@@ -19,7 +19,7 @@ public class OfficeOfferPostRequest {
     @Length(max = 64)
     private String name;
 
-    @Length(max = 64)
+    @Length(min = 1, max = 64)
     private String publicName;
 
     @Min(1)
