@@ -34,3 +34,9 @@ cors:
 
 flatly:
   token: abc
+
+mail:
+  from: "Officely <system@officely.noscorp.pl>"
+  host: "mail.noscorp.pl"
+  domain-whitelist:
+    - noscorp.pl
