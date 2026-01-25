@@ -74,9 +74,8 @@ public class BookingService {
         return bookingId;
     }
 
-    public BookingEntity getBookingInfo(long userId, long bookingId){
-        return bookingRepository.findByIdAndUserId(bookingId, userId)
-                .orElseThrow(() -> new NoSuchElementException("The given user or booking was not found"));
+    public Optional<BookingEntity> getBookingInfo(long userId, long bookingId){
+        return bookingRepository.findByIdAndUserId(bookingId, userId);
     }
 
     public Page<BookingEntity> getUserBookings(Long userId, int pageSize, Integer pageToken){
