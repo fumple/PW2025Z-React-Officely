@@ -3,17 +3,22 @@ package com.officely.backend.modules.admin.api.users;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.validator.constraints.Length;
 
 @Getter
 @Setter
 public class UserPatchRequest {
+    @Length(max = 32)
     private String firstName;
+    @Length(max = 32)
     private String lastName;
 
     @Email
+    @Length(max = 256)
     private String email;
-    @Size(min = 8, max = 64)
+    @Length(min = 8, max = 64)
     private String password;
+    @Length(min = 8, max = 64)
     private String currentPassword;
 
     @Pattern(regexp = "^[A-Z]{2}$")
