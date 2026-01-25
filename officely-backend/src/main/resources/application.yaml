@@ -30,8 +30,7 @@ spring:
       max-request-size: 250MB
 
 cors:
-  urls: http://localhost:8080,https://editor.swagger.io/
-  mappings: /**
+  origins: '*'
 
 flatly:
   token: abc
