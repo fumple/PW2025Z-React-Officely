@@ -54,14 +54,14 @@ public class BookingEntity {
 
     @Setter
     @Column(name = "total_price", nullable = false)
-    private Integer totalPrice;
+    private int totalPrice;
 
     @Setter
     @OneToOne(mappedBy = "booking")
     private PaymentEntity paymentInfo;
 
     @Setter
-    @Column
+    @Column(length = 64)
     private String cancellationReason;
 
     public BookingEntity() {}
