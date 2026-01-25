@@ -1,19 +1,43 @@
-import { View } from "react-native";
-import { Text, Button } from "react-native-paper";
+import { useEffect, useState } from "react";
+import { View, Image, ActivityIndicator } from "react-native";
+import { router } from "expo-router";
+import { useAuthStore } from "../src/auth/authStore";
 
 export default function Index() {
+  const restore = useAuthStore((s) => s.restore);
+  const me = useAuthStore((s) => s.me);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      await restore();
+      setReady(true);
+    };
+    run();
+  }, [restore]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (me) router.replace("/(app)");
+    else router.replace("/(auth)/login");
+  }, [ready, me]);
+
   return (
     <View
       style={{
         flex: 1,
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#fff",
       }}
     >
-      <Text variant="bodyMedium">Edit app/index.tsx to edit this screen.</Text>
-      <Button icon="hand-wave" mode="contained">
-        Example button!
-      </Button>
+      <Image
+        source={require("./assets/logo1.png")}
+        style={{ width: 180, height: 180, marginBottom: 24 }}
+        resizeMode="contain"
+      />
+
+      <ActivityIndicator size="large" />
     </View>
   );
 }

@@ -5,6 +5,7 @@ import {
   MD3DarkTheme,
   MD3LightTheme,
   PaperProvider,
+  Portal,
 } from "react-native-paper";
 import { useColorScheme } from "react-native";
 import {
@@ -38,10 +39,12 @@ export default function RootLayout() {
 
   return (
     <PaperProvider theme={paperTheme}>
-      <ThemeProvider value={navTheme}>
-        <Stack />
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <Portal.Host>
+        <ThemeProvider value={navTheme}>
+          <Stack screenOptions={{ headerShown: false }} />
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </Portal.Host>
     </PaperProvider>
   );
 }
