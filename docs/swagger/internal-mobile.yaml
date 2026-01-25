@@ -476,8 +476,13 @@ paths:
                     - customer
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 password:
                   type: string
+                  minLength: 1
+                  maxLength: 64
       responses: 
         "200":
           description: "Success"
@@ -552,22 +557,40 @@ paths:
                     - customer
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - Bob
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - React
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
+                  examples:
+                    - bob.react@example.com
                 password:
                   type: string
+                  minLength: 8
+                  maxLength: 64
                 dateOfBirth:
                   type: string
+                  format: date
                   examples:
                     - "2025-04-01"
                 nationality:
                   type: string
+                  pattern: "^[A-Z]{2}$"
                   examples:
-                    - pl
+                    - PL
                 phoneNumber:
                   type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
                   examples:
                     - "+48222347211"
       responses: 
@@ -643,6 +666,9 @@ paths:
               properties:
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
               required:
                 - email
       responses:
@@ -703,8 +729,13 @@ paths:
               properties:
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 code:
                   type: string
+                  minLength: 1
+                  maxLength: 6
               required:
                 - email
                 - code
@@ -776,10 +807,17 @@ paths:
               properties:
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 code:
                   type: string
+                  minLength: 1
+                  maxLength: 6
                 newPassword:
                   type: string
+                  minLength: 8
+                  maxLength: 64
               required:
                 - email
                 - code
@@ -861,18 +899,34 @@ paths:
               properties: 
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 password:
                   type: string
+                  minLength: 8
+                  maxLength: 64
+                currentPassword:
+                  type: string
+                  description: Must be provided if new password is also given
+                  minLength: 8
+                  maxLength: 64
                 nationality:
                   type: string
+                  pattern: "^[A-Z]{2}$"
                   examples:
-                    - pl
+                    - PL
                 phoneNumber:
                   type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
                   examples:
                     - "+48222347211"
       responses: 
