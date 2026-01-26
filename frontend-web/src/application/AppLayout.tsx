@@ -58,7 +58,7 @@ export const AppLayout = () => {
           .map((b) => b.toString(16).padStart(2, "0"))
           .join("");
 
-        const url = `https://gravatar.com/avatar/${hashHex}?s=80&d=identicon`;
+        const url = `https://gravatar.com/avatar/${hashHex}?s=80&d=identicon&r=g`;
 
         if (alive) setAvatarUrl(url);
       }

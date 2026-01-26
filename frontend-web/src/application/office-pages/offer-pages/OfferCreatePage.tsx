@@ -18,7 +18,7 @@ import SaveIcon from "@mui/icons-material/Save";
 
 type CurrencyUnit = "PLN" | "USD" | "EUR";
 
-type PricingTableFormValues = {
+type OfferFormValues = {
   name: string;
   pricePerDay: number;
   unit: CurrencyUnit;
@@ -26,7 +26,7 @@ type PricingTableFormValues = {
   timeForPaymentHours: number;
 };
 
-const schema: yup.ObjectSchema<PricingTableFormValues> = yup
+const schema: yup.ObjectSchema<OfferFormValues> = yup
   .object({
     name: yup.string().trim().required("Name is required"),
     pricePerDay: yup
@@ -51,7 +51,7 @@ const schema: yup.ObjectSchema<PricingTableFormValues> = yup
   })
   .required();
 
-export const PricingTableCreatePage = () => {
+export const OfferCreatePage = () => {
   const navigate = useNavigate();
   const { officeId } = useParams<{ officeId: string }>();
 
@@ -59,7 +59,7 @@ export const PricingTableCreatePage = () => {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<PricingTableFormValues>({
+  } = useForm<OfferFormValues>({
     resolver: yupResolver(schema),
     defaultValues: {
       name: "",
@@ -78,15 +78,14 @@ export const PricingTableCreatePage = () => {
     "&.Mui-focused": { bgcolor: "#fff" },
   } as const;
 
-  const onSubmit = (data: PricingTableFormValues) => {
+  const onSubmit = (data: OfferFormValues) => {
     console.log({
       ...data,
       timeForPaymentBasis: "afterReservation",
     });
 
-    // demo id for now
-    const pricingTableId = "1";
-    navigate(`../pricing-table/${pricingTableId}`);
+    const offerId = "1";
+    navigate(`../offer/${offerId}`);
   };
 
   return (
@@ -101,7 +100,7 @@ export const PricingTableCreatePage = () => {
           mb: "12px",
         }}
       >
-        Create pricing table
+        Create Offer
       </Typography>
 
       <Box
