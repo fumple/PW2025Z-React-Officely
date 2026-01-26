@@ -1003,6 +1003,16 @@ paths:
             format: date
             examples:
               - "2026-01-26"
+        - name: nearLat
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: nearLon
+          in: query
+          required: false
+          schema:
+            type: number
         - name: nearAddress
           in: query
           required: true
