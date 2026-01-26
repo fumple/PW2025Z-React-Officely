@@ -8,20 +8,20 @@ import Paper from "@mui/material/Paper";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 
-export const PricingTableDetailsPage = () => {
+export const OfferDetailsPage = () => {
   const navigate = useNavigate();
 
-  const { pricingTableId } = useParams<{ pricingTableId: string }>();
-  if (!pricingTableId) return null;
+  const { offerId } = useParams<{ offerId: string }>();
+  if (!offerId) return null;
 
   const officeName = "Lorem Ipsum Office";
-  const pricingTableName = "Standard";
+  const offerName = "Standard";
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
       <Box sx={{ maxWidth: 720 }}>
         <Typography variant="h5" component="h1" sx={{ m: 0 }}>
-          {officeName} - Pricing Table {pricingTableName}
+          {officeName} - Offer {offerName}
         </Typography>
 
         <Box

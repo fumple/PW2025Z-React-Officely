@@ -17,12 +17,12 @@ import { OfficeDetailsPage } from "./application/office-pages/OfficeDetailsPage"
 import { OfficeEditPage } from "./application/office-pages/OfficeEditPage";
 import { BookingDetailsPage } from "./application/booking-pages/BookingDetailsPage";
 import { UserDetailsPage } from "./application/user-pages/UserDetailsPage";
-import { ItemDetailsPage } from "./application/office-pages/ItemDetailsPage";
-import { ItemEditPage } from "./application/office-pages/ItemEditPage";
-import { PricingTableDetailsPage } from "./application/office-pages/PricingTableDetailsPage";
-import { PricingTableEditPage } from "./application/office-pages/PricingTableEditPage";
-import { PricingTableCreatePage } from "./application/office-pages/PricingTableCreatePage";
-import { ItemCreatePage } from "./application/office-pages/ItemCreatePage";
+import { ItemDetailsPage } from "./application/office-pages/item-pages/ItemDetailsPage";
+import { ItemEditPage } from "./application/office-pages/item-pages/ItemEditPage";
+import { OfferDetailsPage } from "./application/office-pages/offer-pages/OfferDetailsPage";
+import { OfferEditPage } from "./application/office-pages/offer-pages/OfferEditPage";
+import { OfferCreatePage } from "./application/office-pages/offer-pages/OfferCreatePage";
+import { ItemCreatePage } from "./application/office-pages/item-pages/ItemCreatePage";
 import { EmployeeDetailsPage } from "./application/office-pages/EmployeeDetailsPage";
 import { SignupPage } from "./authentication/SignupPage";
 import { RequireAuth } from "./authentication/RequireAuth";
@@ -33,7 +33,7 @@ export const router = createBrowserRouter([
     Component: AuthLayout,
     children: [
       {
-        index: true, //defines a component that is passed for this route where no additional part is defined
+        index: true,
         Component: MainPageLoggedOut,
       },
       {
@@ -70,7 +70,7 @@ export const router = createBrowserRouter([
         Component: AppLayout,
         children: [
           {
-            index: true, //defines a component that is passed for this route where no additional part is defined
+            index: true,
             Component: MainPage,
           },
           {
@@ -104,16 +104,16 @@ export const router = createBrowserRouter([
                     Component: ItemCreatePage,
                   },
                   {
-                    path: "pricing-table/:pricingTableId",
-                    Component: PricingTableDetailsPage,
+                    path: "offer/:offerId",
+                    Component: OfferDetailsPage,
                   },
                   {
-                    path: "pricing-table/:pricingTableId/edit",
-                    Component: PricingTableEditPage,
+                    path: "offer/:offerId/edit",
+                    Component: OfferEditPage,
                   },
                   {
-                    path: "pricing-table/new",
-                    Component: PricingTableCreatePage,
+                    path: "offer/new",
+                    Component: OfferCreatePage,
                   },
                   {
                     path: "employee/:employeeId",

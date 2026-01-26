@@ -39,7 +39,21 @@ const schema: yup.ObjectSchema<SignupValues> = yup
     firstName: yup.string().trim().required("first name is required"),
     lastName: yup.string().trim().required("last name is required"),
     nationality: yup.string().trim().required("nationality is required"),
-    dateOfBirth: yup.string().trim().required("date of birth is required"),
+    dateOfBirth: yup
+      .string()
+      .required("Date of birth is required")
+      .test(
+        "min-age-15",
+        "You must be at least 15 years old",
+        (v) =>
+          !!v &&
+          new Date(v) <=
+            new Date(
+              new Date().getFullYear() - 15,
+              new Date().getMonth(),
+              new Date().getDate(),
+            ),
+      ),
     phoneNumber: yup.string().trim().required("phone number is required"),
     password: yup
       .string()
@@ -80,20 +94,14 @@ export const SignupPage = () => {
 
   const onSubmit = async (data: SignupValues) => {
     setApiError(null);
-    console.log("SIGNUP payload", {
-      type: "admin",
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      password: data.password,
-      dateOfBirth: data.dateOfBirth,
-      nationality: data.nationality,
-      phoneNumber: data.phoneNumber,
-    });
+    let firstName = data.firstName.trim();
+    firstName = firstName[0].toUpperCase() + firstName.slice(1);
+    let lastName = data.lastName.trim();
+    lastName = lastName[0].toUpperCase() + lastName.slice(1);
     const res = await authApi.signup({
       type: "admin",
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName: firstName,
+      lastName: lastName,
       email: data.email,
       password: data.password,
       dateOfBirth: data.dateOfBirth,

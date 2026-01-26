@@ -18,7 +18,7 @@ import SaveIcon from "@mui/icons-material/Save";
 
 type CurrencyUnit = "PLN" | "USD" | "EUR";
 
-type PricingTableFormValues = {
+type OfferFormValues = {
   name: string;
   pricePerDay: number;
   unit: CurrencyUnit;
@@ -26,7 +26,7 @@ type PricingTableFormValues = {
   timeForPaymentHours: number;
 };
 
-const schema: yup.ObjectSchema<PricingTableFormValues> = yup
+const schema: yup.ObjectSchema<OfferFormValues> = yup
   .object({
     name: yup.string().trim().required("Name is required"),
     pricePerDay: yup
@@ -51,22 +51,22 @@ const schema: yup.ObjectSchema<PricingTableFormValues> = yup
   })
   .required();
 
-export const PricingTableEditPage = () => {
+export const OfferEditPage = () => {
   const navigate = useNavigate();
-  const { pricingTableId } = useParams<{ pricingTableId: string }>();
+  const { offerId } = useParams<{ offerId: string }>();
 
-  const pricingTableName = "Standard";
-  const pricingTableCompanyName = "Regular";
+  const offerName = "Standard";
+  const offerCompanyName = "Regular";
   const officeName = "Lorem Ipsum Office";
 
   const {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<PricingTableFormValues>({
+  } = useForm<OfferFormValues>({
     resolver: yupResolver(schema),
     defaultValues: {
-      name: pricingTableName,
+      name: offerName,
       pricePerDay: 0,
       unit: "PLN",
       freeCancelHours: 0,
@@ -74,7 +74,7 @@ export const PricingTableEditPage = () => {
     },
   });
 
-  if (!pricingTableId) return null;
+  if (!offerId) return null;
 
   const inputBgSx = {
     bgcolor: "#fff",
@@ -82,21 +82,21 @@ export const PricingTableEditPage = () => {
     "&.Mui-focused": { bgcolor: "#fff" },
   } as const;
 
-  const onSubmit = (data: PricingTableFormValues) => {
+  const onSubmit = (data: OfferFormValues) => {
     console.log({
       ...data,
       timeForPaymentBasis: "afterReservation",
     });
 
     // demo id for now
-    const pricingTableId = "1";
-    navigate(`../pricing-table/${pricingTableId}`);
+    const offerId = "1";
+    navigate(`../offer/${offerId}`);
   };
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
       <Typography variant="h5" component="h1" sx={{ m: 0, mb: "12px" }}>
-        {officeName} - {pricingTableCompanyName} Pricing Table
+        {officeName} - {offerCompanyName} Offer
       </Typography>
 
       <Box
