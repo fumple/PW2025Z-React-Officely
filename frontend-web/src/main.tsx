@@ -8,17 +8,10 @@ import "@fontsource/roboto/700.css";
 
 import "./index.css";
 import CssBaseline from "@mui/material/CssBaseline";
-import { App } from "./App";
+import "leaflet/dist/leaflet.css";
 
-import { createBrowserRouter } from "react-router";
-import { RouterProvider } from "react-router/dom";
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <App />,
-  },
-]);
+import { RouterProvider } from "react-router";
+import { router } from "./router";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
