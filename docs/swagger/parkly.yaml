@@ -1,0 +1,582 @@
+openapi: 3.1.0
+info:
+  title: Parkly
+  version: 0.0.1
+  description: |-
+    This is the unchanged documentation that we've received from Parkly.
+    It is uploaded here for reference.
+  termsOfService: http://swagger.io/terms/
+  license:
+    name: Apache 2.0
+    url: http://springdoc.org
+servers:
+  - url: http://localhost:8080
+    description: Generated server url
+tags:
+  - name: Parking
+    description: Operations related to Parking Lots
+  - name: Bookings
+    description: Operations for reserving parking spots
+paths:
+  /api/bookings:
+    get:
+      tags:
+        - Bookings
+      summary: My Bookings
+      description: Returns list of bookings. Identified by Header ID or Email Header.
+      operationId: getMyBookings
+      parameters:
+        - name: x-user-id
+          in: header
+          description: Internal User ID
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: x-user-email
+          in: header
+          description: Partner User Email (Alternative to ID)
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of bookings retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+      security:
+        - bearerAuth: []
+    post:
+      tags:
+        - Bookings
+      summary: Book a Spot
+      description: Creates a new reservation. User identified by Header ID or Body Email.
+      operationId: createBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+        required: true
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CreateBookingResponse'
+        '400':
+          description: Invalid dates or missing user identifier
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Parking lot not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: No suitable spot available for these dates
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+  /api/bookings/{id}:
+    get:
+      tags:
+        - Bookings
+      summary: Booking Details
+      description: Get details. Identified by Header ID or Email param.
+      operationId: getBookingDetails
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: email
+          in: query
+          description: Partner Email (if ID not present)
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '403':
+          description: Access denied (User does not own this booking)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking ID not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - Bookings
+      summary: Cancel Booking
+      description: Soft delete. Identified by Header ID or Email param.
+      operationId: cancelBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: x-user-email
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Booking cancelled successfully
+        '400':
+          description: Booking is ongoing or finished
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - Bookings
+      summary: Edit Booking
+      description: Update time/check price. Identified by Header ID or Body Email.
+      operationId: editBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditBookingRequest'
+        required: true
+      responses:
+        '200':
+          description: Booking updated (or price calculated)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Invalid new dates or missing identifier
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+  /api/parkings:
+    get:
+      tags:
+        - Parking
+      summary: List all parking lots
+      description: >-
+        Get a simplified list of parkings for map/list view. Filtered by
+        proximity, dates, and features.
+      operationId: getAllParkings
+      parameters:
+        - name: latitude
+          in: query
+          description: User's current latitude
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: longitude
+          in: query
+          description: User's current longitude
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: radius
+          in: query
+          description: Search radius in meters
+          required: false
+          schema:
+            type: number
+            format: double
+            default: 1000
+        - name: startDate
+          in: query
+          description: Booking start date (ISO)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Booking end date (ISO)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: isEv
+          in: query
+          description: Require EV charging
+          required: false
+          schema:
+            type: boolean
+        - name: isDisabled
+          in: query
+          description: Require disabled spot
+          required: false
+          schema:
+            type: boolean
+        - name: isBig
+          in: query
+          description: Require big spot
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of parkings retrieved successfully
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingResponse'
+        '404':
+          description: No parkings found matching the criteria
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/parkings/{parkingId}:
+    get:
+      tags:
+        - Parking
+      summary: Get parking details
+      description: Get full details including gallery and full address.
+      operationId: getParking
+      parameters:
+        - name: parkingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Booking start date for pricing
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: Booking end date for pricing
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Parking found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ParkingDetailsResponse'
+        '404':
+          description: Parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CreateBookingRequest:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum:
+            - parkly
+            - officely
+        email:
+          type: string
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+        parking_id:
+          type: string
+          format: uuid
+        is_ev:
+          type: boolean
+        is_disabled:
+          type: boolean
+        is_big:
+          type: boolean
+      required:
+        - end
+        - parking_id
+        - source
+        - start
+    CreateBookingResponse:
+      type: object
+      properties:
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - Confirmed
+            - Cancelled
+            - Completed
+            - InProgress
+        source:
+          type: string
+          enum:
+            - parkly
+            - officely
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+    EditBookingRequest:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        email:
+          type: string
+        confirmed:
+          type: boolean
+        is_confirmed:
+          type: boolean
+      required:
+        - end
+        - start
+    BookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        parkingName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        imageUrl:
+          type: string
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - Confirmed
+            - Cancelled
+            - Completed
+            - InProgress
+        source:
+          type: string
+          enum:
+            - parkly
+            - officely
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+    ParkingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        city:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        priceForPeriod:
+          type: number
+        mainImageUrl:
+          type: string
+    ParkingDetailsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        priceForPeriod:
+          type: number
+        imageUrls:
+          type: array
+          items:
+            type: string
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
