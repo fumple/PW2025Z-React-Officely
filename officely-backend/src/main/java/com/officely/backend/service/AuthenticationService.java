@@ -51,6 +51,17 @@ public class AuthenticationService {
             return Optional.empty();
         }
     }
+    public Optional<UserEntity> checkCustomerToken(String token) {
+        try {
+            var id = Long.parseLong(token);
+            var user = userService.findById(id);
+            if(user.isPresent() && user.get().getType() != UserType.LOCAL_CUSTOMER)
+                return Optional.empty();
+            return user;
+        } catch(NumberFormatException ex) {
+            return Optional.empty();
+        }
+    }
 
     public boolean validatePasswordMinimumRequirements(String password) {
         return password.length() >= 8 && password.length() <= 64;
