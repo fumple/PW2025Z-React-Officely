@@ -2,6 +2,7 @@ package com.officely.backend.config;
 
 import com.officely.backend.modules.admin.controller.AdminAuthFilter;
 import com.officely.backend.modules.flatly.controller.FlatlyAuthFilter;
+import com.officely.backend.modules.mobile.controller.MobileAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,6 +31,8 @@ public class SecurityConfig {
     private AdminAuthFilter adminAuthFilter;
     @Autowired
     private FlatlyAuthFilter flatlyAuthFilter;
+    @Autowired
+    private MobileAuthFilter mobileAuthFilter;
 
     private final String corsOrigins;
 
@@ -71,13 +74,18 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/admin/**")
                         .hasAuthority("ADMIN")
+                        .requestMatchers("/mobile/login", "/mobile/signup", "/mobile/resetPassword", "/mobile/checkResetCode", "/mobile/resetPasswordEmail")
+                        .permitAll()
+                        .requestMatchers("/mobile/**")
+                        .hasAuthority("LOCAL_CUSTOMER")
                 )
                 .anonymous(AbstractHttpConfigurer::disable)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
                 .addFilterBefore(adminAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(flatlyAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(flatlyAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(mobileAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
