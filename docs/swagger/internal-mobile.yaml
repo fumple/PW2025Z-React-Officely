@@ -518,7 +518,67 @@ components:
           type: boolean
         big:
           type: boolean
-
+    ParklyBookingResourceWithLink:
+      type: object
+      required:
+        - _links
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        parkingName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        imageUrl:
+          type: string
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - Confirmed
+            - Cancelled
+            - Completed
+            - InProgress
+        source:
+          type: string
+          enum:
+            - parkly
+            - officely
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+        _links:
+          type: object
+          required:
+            - self
+          properties:
+            self:
+              $ref: '#/components/schemas/Link'
+            update:
+              $ref: '#/components/schemas/Link'
+            cancel:
+              $ref: '#/components/schemas/Link'
 
 tags:
   - name: Filters
@@ -1946,7 +2006,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ParklyBookingResource'
+                  $ref: '#/components/schemas/ParklyBookingResourceWithLink'
         "400":
           description: "Validation error"
           content: 
@@ -2115,4 +2175,166 @@ paths:
                               description: A human readable message?
         "409":
           description: No suitable spot available for these dates
-          
+  '/partners/parkly/bookings/{bookingId}':
+    get:
+      tags:
+        - Parkly - Bookings
+      summary: Booking Details
+      description: Get details
+      security: 
+        - user_auth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/ParklyBookingResourceWithLink'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: The booking was not found or the user is not allowed to view it
+    delete:
+      tags:
+        - Parkly - Bookings
+      security:
+        - user_auth: []
+      summary: Cancel Booking
+      description: Soft delete
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Booking cancelled successfully
+        "400":
+          description: The booking is ongoing or finished
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ActionNotAllowed
+                        message:
+                          type: string
+                          description: A human readable message
+                          const: The booking cannot be cancelled as it is ongoing or finished
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: The booking was not found or the user is not allowed to manage it
+    patch:
+      summary: Edit Booking
+      description: Update time/check price.
+      tags:
+        - Parkly - Bookings
+      security:
+        - user_auth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required:
+                - start
+                - end
+                - confirmed
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+                confirmed:
+                  type: boolean
+      responses:
+        "200":
+          description: Booking updated (or price calculated)
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/ParklyBookingResource'
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - start
+                                - end
+                                - confirmed
+                            message:
+                              type: string
+                              description: A human readable message
+                        - type: object
+                          required:
+                            - type
+                            - error
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: PartnerError
+                            error:
+                              type: string
+                              description: Error type?
+                            message:
+                              type: string
+                              description: A human readable message?
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: The booking was not found or the user is not allowed to manage it
+        "409":
+          description: (NOT IN PARKLY DOCS) No suitable spot available for these dates
