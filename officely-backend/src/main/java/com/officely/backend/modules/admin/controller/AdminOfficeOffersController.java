@@ -130,11 +130,11 @@ public class AdminOfficeOffersController {
             return ResponseEntity.notFound().build();
         }
 
-        var offer = officeOfferService.getOffer(officeId, offerId);
-        if(offer == null)
-            return ResponseEntity.notFound().build();
-        var response = officeOfferToDto(offer);
-        return ResponseEntity.ok(response);
+        return officeOfferService.getOffer(officeId, offerId)
+                .map(this::officeOfferToDto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+
     }
 }
 

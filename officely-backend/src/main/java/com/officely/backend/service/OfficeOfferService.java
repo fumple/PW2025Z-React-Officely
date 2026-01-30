@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -20,9 +21,8 @@ public class OfficeOfferService {
     private final OfficeItemService officeItemService;
     private final FiltersService filtersService;
 
-    public OfficeOfferEntity getOffer(Long officeId, Long offerId){
-        return officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
-                .orElseThrow(() -> new NoSuchElementException("The given office or offer was not found"));
+    public Optional<OfficeOfferEntity> getOffer(Long officeId, Long offerId) {
+        return officeOfferRepository.findByIdAndOfficeId(officeId, offerId);
     }
 
     public Page<OfficeOfferEntity> getOffers(Long officeId, PageRequest pageRequest) {
