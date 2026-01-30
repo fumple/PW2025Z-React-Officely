@@ -9,15 +9,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OfficeItemService {
     private final OfficeItemRepository officeItemRepository;
 
-    public OfficeItemEntity getOfficeItem(Long officeId, Long itemId){
-        return officeItemRepository.findByIdAndOfficeId(itemId, officeId)
-                .orElseThrow(() -> new NoSuchElementException("The given office or item was not found"));
+    public Optional<OfficeItemEntity> getOfficeItem(Long officeId, Long itemId) {
+        return officeItemRepository.findByIdAndOfficeId(officeId, itemId);
     }
 
     public Page<OfficeItemEntity> getItems(Long officeId, PageRequest pageRequest) {
