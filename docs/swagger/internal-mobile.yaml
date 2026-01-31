@@ -4,31 +4,6 @@ servers:
 info:
   title: Officely - Internal Mobile API
   version: 0.0.1
-  description:  |
-    Uses:
-    1. view available filters
-       - GET /filters
-    2.  Make a booking
-        1. Find a place to book
-            - GET /offices?startDate=...&endDate=...&addr=...&maxDist=1000&sort=...&pageSize=10&pageToken=... -> list of offices with: distance, minPrice, maxPrice
-            - GET /offices/{officeId}/offers?startDate=...&endDate=... -> list of offers with availability info, price info and cancellation info
-        2. Create or find user
-            1. Find user
-                - GET /users?email=bob@example.com -> id: string
-            2. Create user if not found
-                - POST /users {email, firstName, lastName} -> id: string
-        3. Create booking
-            - POST /users/{userId}/bookings {officeId, offerId} -> bookingId: string
-            - GET /users/{userId}/bookings/{bookingId} -> payment info (bank transfer), time left to pay, to cancel
-        4. Cancel booking
-            - POST /users/{userId}/bookings/{bookingId}/cancel
-    3. View bookings
-        1. Find user
-            - GET /users?email=bob@example.com -> id: string
-        2. Fetch booking list
-            - GET /users/{id}/bookings -> list of bookings without details of offices and items
-            - GET /offices/{officeId} -> office details
-            - GET /offices/{officeId}/items/{itemId} -> item details
 components:
   responses:
     Unauthorized:
@@ -166,7 +141,6 @@ components:
         - totalPrice
         - freeCancellationHours
         - paymentHours
-        - paymentHoursType
         - properties
         - _links
       properties: 
@@ -202,7 +176,6 @@ components:
         - name
         - freeCancellationHours
         - paymentHours
-        - paymentHoursType
         - properties
         - _links
       properties: 
@@ -310,15 +283,15 @@ components:
             self:
               $ref: '#/components/schemas/Link'
               examples:
-                - href: "/users/2056"
+                - href: "/users/@me"
             update:
               $ref: '#/components/schemas/Link'
               examples:
-                - href: "/users/2056"
+                - href: "/users/@me"
             bookings:
               $ref: '#/components/schemas/Link'
               examples:
-                - href: "/users/2056/bookings"
+                - href: "/bookings"
     BookingResource:
       type: object
       required:
@@ -416,6 +389,191 @@ components:
             item:
               $ref: '#/components/schemas/Link'
             offer:
+              $ref: '#/components/schemas/Link'
+            cancel:
+              $ref: '#/components/schemas/Link'
+    ParklyParkingSearchResource:
+      type: object
+      description: Nullability of properties is unknown!
+      required:
+        - _links
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        city:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        priceForPeriod:
+          type: number
+        mainImageUrl:
+          type: string
+        _links:
+          type: object
+          required:
+            - details
+          properties:
+            details:
+              $ref: '#/components/schemas/Link'
+    ParklyParkingDetailsResource:
+      type: object
+      description: Nullability of properties is unknown!
+      required:
+        - _links
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        priceForPeriod:
+          type: number
+        imageUrls:
+          type: array
+          items:
+            type: string
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+        _links:
+          type: object
+          required:
+            - self
+          properties:
+            self:
+              $ref: '#/components/schemas/Link'
+    ParklyBookingResource:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        parkingName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        imageUrl:
+          type: string
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - Confirmed
+            - Cancelled
+            - Completed
+            - InProgress
+        source:
+          type: string
+          enum:
+            - parkly
+            - officely
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+    ParklyBookingResourceWithLink:
+      type: object
+      required:
+        - _links
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        parkingName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        imageUrl:
+          type: string
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - Confirmed
+            - Cancelled
+            - Completed
+            - InProgress
+        source:
+          type: string
+          enum:
+            - parkly
+            - officely
+        disabled:
+          type: boolean
+        ev:
+          type: boolean
+        big:
+          type: boolean
+        _links:
+          type: object
+          required:
+            - self
+          properties:
+            self:
+              $ref: '#/components/schemas/Link'
+            update:
               $ref: '#/components/schemas/Link'
             cancel:
               $ref: '#/components/schemas/Link'
@@ -887,7 +1045,6 @@ paths:
     patch:
       tags: [Auth]
       summary: "Modify personal details"
-      description: Modify personal details (Important implementation note! Should also work under /users/{userId} where the userId matches the id of the logged in user)
       security: 
         - user_auth: []
       requestBody: 
@@ -1015,7 +1172,7 @@ paths:
             type: number
         - name: nearAddress
           in: query
-          required: true
+          required: false
           schema:
             type: string
         - name: maxDistanceFromAddress
@@ -1153,6 +1310,8 @@ paths:
                           enum:
                             - startDate
                             - endDate
+                            - nearLat
+                            - nearLon
                             - nearAddress
                             - maxDistanceFromAddress
                             - filter
@@ -1276,11 +1435,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: userId
-          in: query
-          required: true
-          schema:
-            type: string
         - name: startDate
           in: query
           required: true
@@ -1302,8 +1456,8 @@ paths:
           description: Created
           headers: 
             Location:
-              example: /users/2056/bookings/5
-              description: URL to the newly created booking (for example /users/2056/bookings/5)
+              example: /bookings/5
+              description: URL to the newly created booking (for example /bookings/5)
               schema: 
                 type: string
           content: 
@@ -1339,7 +1493,6 @@ paths:
                         field:
                           type: string
                           enum:
-                            - userId
                             - startDate
                             - endDate
                         message:
@@ -1351,20 +1504,13 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office or offer was not found
-  '/users/{userId}/bookings/{bookingId}':
+  '/bookings/{bookingId}':
     get:
       tags: ['Booking an office']
       summary: "View booking status and payment information"
       security: 
         - user_auth: []
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-          examples:
-            - 2056
       - name: bookingId
         in: path
         required: true
@@ -1382,21 +1528,14 @@ paths:
         "401":
           $ref: '#/components/responses/Unauthorized'
         "404":
-          description: The given user or booking was not found
-  '/users/{userId}/bookings':
+          description: The given booking was not found
+  '/bookings':
     get:
       tags: ['Viewing and managing bookings']
-      summary: "Get an user's bookings"
+      summary: "Get a list of bookings made by this user"
       security: 
         - user_auth: []
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-          examples:
-            - 2056
       - name: pageSize
         in: query
         required: true
@@ -1485,8 +1624,6 @@ paths:
                             - The page size must not be larger than 50
         "401":
           $ref: '#/components/responses/Unauthorized'
-        "404":
-          description: The given user was not found
   '/offices/{officeId}':
     get: 
       tags: ['Viewing and managing bookings']
@@ -1566,20 +1703,13 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         "404":
           description: The given office or offer was not found
-  '/users/{userId}/bookings/{bookingId}/cancel':
+  '/bookings/{bookingId}/cancel':
     post:
       tags: ['Viewing and managing bookings']
       summary: "Cancel a booking"
       security: 
         - user_auth: []
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-          examples:
-            - 2056
       - name: bookingId
         in: path
         required: true
@@ -1618,5 +1748,593 @@ paths:
         "401":
           $ref: '#/components/responses/Unauthorized'
         "404":
-          description: The given user or booking was not found
-          
+          description: The given booking was not found
+  '/partners/parkly/parkings':
+    get:
+      tags:
+        - Parkly - Parking
+      summary: List all parking lots
+      description: Get a simplified list of parkings for map/list view. Filtered by proximity, dates, and features.
+      security: 
+        - user_auth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            examples:
+              - "2026-01-06"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            examples:
+              - "2026-01-26"
+        - name: nearLat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: nearLon
+          in: query
+          required: true
+          schema:
+            type: number
+            format: double
+        - name: maxDistanceFromAddress
+          in: query
+          required: false
+          description: In meters
+          schema:
+            type: integer
+            default: 1000
+            examples:
+              - 5000
+        - name: isEv
+          in: query
+          required: false
+          description: Require EV charging
+          schema:
+            type: boolean
+        - name: isDisabled
+          in: query
+          required: false
+          description: Require disabled spot
+          schema:
+            type: boolean
+        - name: isBig
+          in: query
+          required: false
+          description: Require big spot
+          schema:
+            type: boolean
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema:
+                type: object
+                required:
+                  - _links
+                  - results
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ParklyParkingSearchResource'
+                  _links:
+                    type: object
+                    required:
+                      - self
+                    properties:
+                      self:
+                        $ref: '#/components/schemas/Link'
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - startDate
+                                - endDate
+                                - nearLat
+                                - nearLon
+                                - maxDistanceFromAddress
+                                - isEv
+                                - isDisabled
+                                - isBig
+                              examples:
+                                - maxDistanceFromAddress
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Negative numbers are not allowed
+                        - type: object
+                          required:
+                            - type
+                            - error
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: PartnerError
+                            error:
+                              type: string
+                              description: Error type?
+                            message:
+                              type: string
+                              description: A human readable message?
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+  '/partners/parkly/parkings/{parkingId}':
+    get:
+      tags:
+        - Parkly - Parking
+      summary: Get parking details
+      description: Get full details including gallery and full address.
+      security: 
+        - user_auth: []
+      parameters:
+        - name: parkingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            examples:
+              - "2026-01-06"
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            examples:
+              - "2026-01-26"
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/ParklyParkingDetailsResource'
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - startDate
+                                - endDate
+                            message:
+                              type: string
+                              description: A human readable message
+                        - type: object
+                          required:
+                            - type
+                            - error
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: PartnerError
+                            error:
+                              type: string
+                              description: Error type?
+                            message:
+                              type: string
+                              description: A human readable message?
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+  '/partners/parkly/bookings':
+    get:
+      tags:
+        - Parkly - Bookings
+      summary: My Bookings
+      description: Returns list of bookings.
+      security: 
+        - user_auth: []
+      parameters: 
+        - name: from
+          in: query
+          required: false
+          schema: 
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema: 
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of bookings retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParklyBookingResourceWithLink'
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - from
+                                - to
+                            message:
+                              type: string
+                              description: A human readable message
+                        - type: object
+                          required:
+                            - type
+                            - error
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: PartnerError
+                            error:
+                              type: string
+                              description: Error type?
+                            message:
+                              type: string
+                              description: A human readable message?
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - Parkly - Bookings
+      security:
+        - user_auth: []
+      summary: Book a Spot
+      description: Creates a new reservation.
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                disabled:
+                  type: boolean
+                ev:
+                  type: boolean
+                big:
+                  type: boolean
+                parkingId:
+                  type: string
+                  format: uuid
+              required:
+                - endDate
+                - parkingId
+                - startDate
+      responses:
+        "201":
+          description: Created
+          headers: 
+            Location:
+              example: /partners/parkly/bookings/5
+              description: URL to the newly created booking (for example /partners/parkly/bookings/5)
+              schema: 
+                type: string
+          content: 
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  localId:
+                    type: string
+                  start:
+                    type: string
+                    format: date-time
+                  end:
+                    type: string
+                    format: date-time
+                  totalCost:
+                    type: number
+                  status:
+                    type: string
+                    enum:
+                      - Confirmed
+                      - Cancelled
+                      - Completed
+                      - InProgress
+                  disabled:
+                    type: boolean
+                  ev:
+                    type: boolean
+                  big:
+                    type: boolean
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - startDate
+                                - endDate
+                                - disabled
+                                - ev
+                                - big
+                                - parkingId
+                            message:
+                              type: string
+                              description: A human readable message
+                        - type: object
+                          required:
+                            - type
+                            - error
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: PartnerError
+                            error:
+                              type: string
+                              description: Error type?
+                            message:
+                              type: string
+                              description: A human readable message?
+        "409":
+          description: No suitable spot available for these dates
+  '/partners/parkly/bookings/{bookingId}':
+    get:
+      tags:
+        - Parkly - Bookings
+      summary: Booking Details
+      description: Get details
+      security: 
+        - user_auth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/ParklyBookingResourceWithLink'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: The booking was not found or the user is not allowed to view it
+    delete:
+      tags:
+        - Parkly - Bookings
+      security:
+        - user_auth: []
+      summary: Cancel Booking
+      description: Soft delete
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Booking cancelled successfully
+        "400":
+          description: The booking is ongoing or finished
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - type
+                        - message
+                      properties:
+                        type:
+                          type: string
+                          const: ActionNotAllowed
+                        message:
+                          type: string
+                          description: A human readable message
+                          const: The booking cannot be cancelled as it is ongoing or finished
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: The booking was not found or the user is not allowed to manage it
+    patch:
+      summary: Edit Booking
+      description: Update time/check price.
+      tags:
+        - Parkly - Bookings
+      security:
+        - user_auth: []
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required:
+                - start
+                - end
+                - confirmed
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+                confirmed:
+                  type: boolean
+      responses:
+        "200":
+          description: Booking updated (or price calculated)
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/ParklyBookingResource'
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      oneOf:
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - start
+                                - end
+                                - confirmed
+                            message:
+                              type: string
+                              description: A human readable message
+                        - type: object
+                          required:
+                            - type
+                            - error
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: PartnerError
+                            error:
+                              type: string
+                              description: Error type?
+                            message:
+                              type: string
+                              description: A human readable message?
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          description: The booking was not found or the user is not allowed to manage it
+        "409":
+          description: (NOT IN PARKLY DOCS) No suitable spot available for these dates
