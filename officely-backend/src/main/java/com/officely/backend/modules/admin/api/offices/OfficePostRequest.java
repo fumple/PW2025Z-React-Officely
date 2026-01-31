@@ -19,6 +19,10 @@ public class OfficePostRequest {
     private String description;
 
     @NotBlank
+    @Length(max = 1024)
+    private String openingHours;
+
+    @NotBlank
     @Length(max = 256)
     private String address;
 

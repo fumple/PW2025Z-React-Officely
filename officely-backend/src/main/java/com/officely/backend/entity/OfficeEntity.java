@@ -29,6 +29,10 @@ public class OfficeEntity {
     private String description;
 
     @Setter
+    @Column(columnDefinition = "TEXT", length = 1024)
+    private String openingHours;
+
+    @Setter
     @Column(nullable = false, length = 256)
     private String address;
 

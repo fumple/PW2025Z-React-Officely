@@ -18,6 +18,7 @@ public class OfficeMapper {
         dto.setId(String.valueOf(entity.getId()));
         dto.setName(entity.getName());
         dto.setDescription(entity.getDescription());
+        dto.setOpeningHours(entity.getOpeningHours());
         dto.setAddress(entity.getAddress());
 
         CoordinatesDto coordinates = new CoordinatesDto();

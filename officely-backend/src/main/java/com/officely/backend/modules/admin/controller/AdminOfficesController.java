@@ -154,7 +154,7 @@ public class AdminOfficesController {
     public ResponseEntity<Void> patchOffice(
             @PathVariable Long officeId,
             @RequestPart("office") @Valid OfficePatchRequest patchRequest,
-            @RequestPart("addedImages") List<MultipartFile> addedImages) {
+            @RequestPart(value = "addedImages", required = false) List<MultipartFile> addedImages) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if(targetOpt.isEmpty())
@@ -172,7 +172,10 @@ public class AdminOfficesController {
 
         officeMapper.update(patchRequest, target);
         try {
-            officeService.patchOffice(target, patchRequest.getImages(), addedImages);
+            officeService.patchOffice(target,
+                    patchRequest.getImages() != null ? patchRequest.getImages() : List.of(),
+                    addedImages != null ? addedImages : List.of()
+            );
         } catch (Exception e) {
             throw new ValidationException("images", e.getMessage());
         }
