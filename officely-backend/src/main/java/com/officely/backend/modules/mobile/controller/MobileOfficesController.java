@@ -22,9 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -151,7 +151,7 @@ public class MobileOfficesController {
     }
 
     @GetMapping("/{officeId}/offers")
-    public OfficeOffersResponseDto getOfficeOffers(
+    public ResponseEntity<OfficeOffersResponseDto> getOfficeOffers(
             @PathVariable long officeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -160,10 +160,13 @@ public class MobileOfficesController {
             @RequestParam(required = false) List<String> filter
     ) {
         var offers = officeService.getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter);
+        if(offers == null) {
+            return ResponseEntity.notFound().build();
+        }
         var response = new OfficeOffersResponseDto();
         response.setOffers(offers.stream().map(e -> toDto(e, startDate, endDate)).toList());
         response.add(linkTo(methodOn(MobileOfficesController.class).getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter)).withSelfRel().expand());
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{officeId}/items/{itemId}")
@@ -192,11 +195,14 @@ public class MobileOfficesController {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var userId = actor.getId();
 
-        Long bookingId = bookingService.bookOfficeUsingOffer(officeId, offerId, userId, startDate, endDate);
+        try {
+            Long bookingId = bookingService.bookOfficeUsingOffer(officeId, offerId, userId, startDate, endDate);
 
-        // In the OpenAPI, server base already includes /mobile, so Location is /bookings/{id}.
-        // In your app, full path is /mobile/bookings/{id}. We'll set it explicitly.
-        return ResponseEntity.created(URI.create("/mobile/bookings/" + bookingId))
-                .body(new CreatedResponse(bookingId.toString()));
+            // TODO: Update link to point to controller!
+            return ResponseEntity.created(linkTo(methodOn(MobileUsersController.class).getMe()).toUri())
+                    .body(new CreatedResponse(bookingId.toString()));
+        } catch(NoSuchElementException ex) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }
