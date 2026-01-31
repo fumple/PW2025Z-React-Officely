@@ -198,8 +198,7 @@ public class MobileOfficesController {
         try {
             Long bookingId = bookingService.bookOfficeUsingOffer(officeId, offerId, userId, startDate, endDate);
 
-            // TODO: Update link to point to controller!
-            return ResponseEntity.created(linkTo(methodOn(MobileUsersController.class).getMe()).toUri())
+            return ResponseEntity.created(linkTo(methodOn(MobileBookingsController.class).getBooking(bookingId)).toUri())
                     .body(new CreatedResponse(bookingId.toString()));
         } catch(NoSuchElementException ex) {
             return ResponseEntity.notFound().build();
