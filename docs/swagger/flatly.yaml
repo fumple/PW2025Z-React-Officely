@@ -3,7 +3,7 @@ servers:
   - url: https://officely-dev.noscorp.pl/flatly
 info:
   title: Officely - API documentation for Flatly
-  version: 1.0.0
+  version: 1.1.0
   description:  |
     This is a rough description of how the API works, however the names of some fields may be different, treat this as a rough guide.
     1. view available filters
