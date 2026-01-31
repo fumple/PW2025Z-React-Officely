@@ -123,9 +123,8 @@ public class AdminOfficeItemsController {
         if(item.getType() == OfficeItemEntity.Types.SHARED && request.getCapacity() == null)
             throw new ValidationException("capacity", "Capacity must be provided when type is set to SHARED");
 
-        var offer = officeOfferService.getOffer(officeId, request.getOfferId());
-        if(offer == null)
-            throw new ValidationException("offerId", "Offer not found");
+        var offer = officeOfferService.getOffer(officeId, request.getOfferId())
+                .orElseThrow(() -> new ValidationException("offerId", "Offer not found"));
         item.setOffer(offer);
 
         var created = officeItemService.createOfficeItem(item);
@@ -143,12 +142,11 @@ public class AdminOfficeItemsController {
         if(!adminPermissionService.canManageOffice(actor, target)) {
             return ResponseEntity.notFound().build();
         }
-        var item = officeItemService.getOfficeItem(officeId, itemId);
-        if(item == null)
-            return ResponseEntity.notFound().build();
+        return officeItemService.getOfficeItem(officeId, itemId)
+                .map(this::officeItemToDto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
 
-        var response = officeItemToDto(item);
-        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{itemId}")
@@ -166,19 +164,23 @@ public class AdminOfficeItemsController {
             return ResponseEntity.notFound().build();
         }
 
-        var item = officeItemService.getOfficeItem(officeId, itemId);
-        if(item == null)
+        var itemOpt = officeItemService.getOfficeItem(officeId, itemId);
+        if (itemOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
-        if(patchRequest.getOfferId() != null) {
-            var offer = officeOfferService.getOffer(officeId, patchRequest.getOfferId());
-            if(offer == null)
-                throw new ValidationException("offerId", "Offer not found");
+        }
+        var item = itemOpt.get();
+
+        if (patchRequest.getOfferId() != null) {
+            var offer = officeOfferService.getOffer(officeId, patchRequest.getOfferId())
+                    .orElseThrow(() -> new ValidationException("offerId", "Offer not found"));
             item.setOffer(offer);
         }
+
         adminOfficeItemMapper.update(patchRequest, item);
         officeItemService.patchOfficeItem(item);
 
         return ResponseEntity.noContent().build();
+
     }
 }
 
