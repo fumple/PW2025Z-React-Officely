@@ -254,6 +254,7 @@ components:
         - ownerId
         - name
         - description
+        - openingHours
         - address
         - coordinates
         - photoUrls
@@ -270,6 +271,8 @@ components:
         name:
           type: string
         description:
+          type: string
+        openingHours:
           type: string
         address:
           type: string
@@ -1530,6 +1533,7 @@ paths:
                   required: 
                     - name
                     - description
+                    - openingHours
                     - address
                     - contactEmail
                     - contactPhone
@@ -1544,6 +1548,10 @@ paths:
                       type: string
                       minLength: 1
                       maxLength: 4096
+                    openingHours:
+                      type: string
+                      minLength: 1
+                      maxLength: 1024
                     address:
                       type: string
                       minLength: 1
@@ -1620,7 +1628,12 @@ paths:
                               enum:
                                 - name
                                 - description
+                                - openingHours
                                 - address
+                                - contactEmail
+                                - contactPhone
+                                - paymentAccountNumber
+                                - paymentReceiverName
                                 - images
                             message:
                               type: string
@@ -1693,6 +1706,10 @@ paths:
                       type: string
                       minLength: 1
                       maxLength: 4096
+                    openingHours:
+                      type: string
+                      minLength: 1
+                      maxLength: 1024
                     address:
                       type: string
                       minLength: 1
@@ -1765,9 +1782,12 @@ paths:
                               enum:
                                 - name
                                 - description
+                                - openingHours
                                 - address
                                 - contactEmail
                                 - contactPhone
+                                - paymentAccountNumber
+                                - paymentReceiverName
                                 - published
                                 - images
                                 - addedImages

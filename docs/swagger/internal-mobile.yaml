@@ -74,6 +74,7 @@ components:
         - id
         - name
         - description
+        - openingHours
         - address
         - coordinates
         - photoUrls
@@ -86,6 +87,8 @@ components:
         name:
           type: string
         description:
+          type: string
+        openingHours:
           type: string
         address:
           type: string

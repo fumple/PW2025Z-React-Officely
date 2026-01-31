@@ -17,6 +17,9 @@ public class OfficePatchRequest {
     @Length(max = 4096)
     private String description;
 
+    @Length(max = 1024)
+    private String openingHours;
+
     @Length(max = 256)
     private String address;
 
