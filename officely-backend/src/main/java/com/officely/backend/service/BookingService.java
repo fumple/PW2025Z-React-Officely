@@ -1,11 +1,9 @@
 package com.officely.backend.service;
 
 import com.officely.backend.api.throwables.ActionNotAllowedException;
+import com.officely.backend.api.throwables.ConflictException;
 import com.officely.backend.entity.*;
-import com.officely.backend.repository.BookingRepository;
-import com.officely.backend.repository.OfficeOfferRepository;
-import com.officely.backend.repository.PaymentRepository;
-import com.officely.backend.repository.UserRepository;
+import com.officely.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -29,6 +27,7 @@ public class BookingService {
     private final UserRepository userRepository;
     private final OfficeOfferRepository officeOfferRepository;
     private final PaymentRepository paymentRepository;
+    private final OfficeItemRepository officeItemRepository;
 
     public Long bookOfficeUsingOffer(
             long officeId,
@@ -49,13 +48,25 @@ public class BookingService {
         UserEntity userEntity = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
         OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
                 .orElseThrow(() -> new NoSuchElementException("The given office or offer was not found"));
+        if(!officeOfferEntity.isAvailable()) {
+            throw new ConflictException("The picked offer is currently unavailable");
+        }
+
         OfficeEntity officeEntity = officeOfferEntity.getOffice();
+        if(!officeEntity.isPublished()) {
+            throw new ConflictException("The picked office is currently unavailable for booking");
+        }
 
         BookingStatus status = BookingStatus.active;
         Instant creationDate = Instant.now();
         Integer totalPrice = (int) (officeOfferEntity.getPricePerDay() * days);
 
-        BookingEntity bookingEntity = new BookingEntity(userEntity, officeEntity, officeOfferEntity, null, // TODO: FIND AVAILABLE ITEM!
+        var availableItem = officeItemRepository.findAvailableItem(offerId, startDate, endDate);
+        if(availableItem.isEmpty()) {
+            throw new ConflictException("No item is available for the specified period");
+        }
+
+        BookingEntity bookingEntity = new BookingEntity(userEntity, officeEntity, officeOfferEntity, availableItem.get(),
                 status, startDate, endDate, creationDate, totalPrice);
 
         Long bookingId = bookingRepository.save(bookingEntity).getId();
