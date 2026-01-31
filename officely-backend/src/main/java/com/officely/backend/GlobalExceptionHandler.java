@@ -2,6 +2,7 @@ package com.officely.backend;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.officely.backend.api.errors.*;
+import com.officely.backend.api.throwables.ActionNotAllowedException;
 import com.officely.backend.api.throwables.AuthException;
 import com.officely.backend.api.throwables.ConflictException;
 import com.officely.backend.api.throwables.ValidationException;
@@ -9,8 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +31,24 @@ public class GlobalExceptionHandler {
             v.setMessage(e.getDefaultMessage());
             return v;
         }).collect(Collectors.toUnmodifiableList()));
+        return ResponseEntity.badRequest().body(response);
+    }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeErrors(MethodArgumentTypeMismatchException ex) {
+        var response = new ErrorResponse();
+        var v = new ValidationError();
+        v.setField(ex.getParameter().getParameterName());
+        v.setMessage("This paramater was not correctly formatted and couldn't be parsed as "+ex.getParameter().getParameterType().getSimpleName());
+        response.setErrors(List.of(v));
+        return ResponseEntity.badRequest().body(response);
+    }
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParamError(MissingServletRequestParameterException ex) {
+        var response = new ErrorResponse();
+        var v = new ValidationError();
+        v.setField(ex.getParameterName());
+        v.setMessage("This paramater is required");
+        response.setErrors(List.of(v));
         return ResponseEntity.badRequest().body(response);
     }
 
@@ -55,6 +76,14 @@ public class GlobalExceptionHandler {
         error.setMessage(ex.getMessage());
         response.setErrors(List.of(error));
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+    @ExceptionHandler(ActionNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleConflictError(ActionNotAllowedException ex) {
+        var response = new ErrorResponse();
+        var error = new ActionNotAllowedError();
+        error.setMessage(ex.getMessage());
+        response.setErrors(List.of(error));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

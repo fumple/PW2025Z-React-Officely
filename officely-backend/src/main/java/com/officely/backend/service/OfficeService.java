@@ -2,6 +2,7 @@ package com.officely.backend.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -82,18 +84,18 @@ public class OfficeService {
         boolean hasAddress = nearAddress != null && !nearAddress.isBlank();
 
         if((nearLat == null) != (nearLon == null)){
-            throw new IllegalArgumentException("nearLat and nearLon must be provided together");
+            throw new ValidationException("nearLat", "nearLat and nearLon must be provided together");
         }
 
         if (startDate == null || endDate == null || endDate.isBefore(startDate) || startDate.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Invalid booking period"); 
+            throw new ValidationException("startDate", "Invalid booking period");
         }
 
         if (pageSize <= 0 || pageSize > 50){ pageSize = 50; }
         Integer pageIndex = checkPageIndex(pageToken);
 
         if (!hasCoords && !hasAddress) {
-            throw new IllegalArgumentException("Provide nearLat/nearLon or nearAddress when using distance");
+            throw new ValidationException("", "You must provide either nearLat/nearLon or nearAddress");
         }
         if (maxDistanceFromAddress == null) {
             maxDistanceFromAddress = DEFAULT_RADIUS_METERS;
@@ -118,7 +120,7 @@ public class OfficeService {
     ) {
         int days = Math.toIntExact(ChronoUnit.DAYS.between(startDate, endDate) + 1);
         if (days < 1) {
-            throw new IllegalArgumentException("The booking period must last at least 1 day");
+            throw new ValidationException("startDate", "The booking period must last at least 1 day");
         }
 
         Specification<OfficeEntity> spec = Specification.allOf();
@@ -129,16 +131,14 @@ public class OfficeService {
             originLat = nearLat;
             originLon = nearLon;
         }else {
-            if (nearAddress == null || nearAddress.isBlank()) {
-                throw new IllegalArgumentException("Provide nearLat/nearLon or nearAddress when using distance");
-            }
             Geocoding.GeoPoint origin = geocoding.geocode(nearAddress);
             if (origin == null) {
-                throw new IllegalArgumentException("Unable to geocode nearAddress");
+                throw new ValidationException("nearAddress", "Unable to geocode nearAddress");
             }
             originLat = origin.getLat();
             originLon = origin.getLng();
         }
+        spec = spec.and((root, _, cb) -> cb.isTrue(root.get("published")));
         spec = spec.and(withinBoundingBox(originLat, originLon, maxDistanceFromAddress));
 
         List<OfficeEntity> entities = officeRepository.findAll(spec, Sort.by(Sort.Direction.ASC, "id"));
@@ -149,7 +149,7 @@ public class OfficeService {
             .map(o -> new OfficeWithDistanceOptPrice(
                 o,
                 distances.getOrDefault(o.getId(), Double.POSITIVE_INFINITY),
-                getOfficeOffers(o.getId(), startDate, endDate, minPrice, maxPrice, filter).stream().mapToInt(e -> e.totalPrice).min()
+                Objects.requireNonNull(getOfficeOffers(o.getId(), startDate, endDate, minPrice, maxPrice, filter)).stream().mapToInt(e -> e.totalPrice).min()
             ))
                 .filter(e -> e.minPrice.isPresent())
                 .map(o -> new OfficeWithDistance(
@@ -211,14 +211,21 @@ public class OfficeService {
         private OfficeOfferEntity entity;
         private int totalPrice;
     }
-    public List<OfficeOffer> getOfficeOffers(long officeId, LocalDate startDate, LocalDate endDate, Integer minPrice, Integer maxPrice, List<String> filter){
+    public @Nullable List<OfficeOffer> getOfficeOffers(long officeId, LocalDate startDate, LocalDate endDate, Integer minPrice, Integer maxPrice, List<String> filter){
+        var office = officeRepository.findById(officeId);
+        if(office.isEmpty()) {
+            return null;
+        }
         if (startDate == null || endDate == null || endDate.isBefore(startDate) || startDate.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Invalid booking period");
+            throw new ValidationException("startDate", "Invalid booking period");
         }
 
         int days = Math.toIntExact(ChronoUnit.DAYS.between(startDate, endDate) + 1);
         if (days < 1) {
-            throw new IllegalArgumentException("The booking period must last at least 1 day");
+            throw new ValidationException("startDate", "The booking period must last at least 1 day");
+        }
+        if(!office.get().isPublished()) {
+            return List.of();
         }
 
         Map<String, String> filterMap = parseFilter(filter);
@@ -343,7 +350,7 @@ public class OfficeService {
                 var indexStr = photo.substring("current[".length(), photo.length()-1);
                 var index = Integer.parseInt(indexStr);
                 if(index >= currentPhotos.size())
-                    throw new RuntimeException("Invalid index of photo");
+                    throw new ValidationException("images", "Invalid index of photo");
                 var current = currentPhotos.get(index);
 
                 var entity = new OfficePhotoEntity();
@@ -355,7 +362,7 @@ public class OfficeService {
                 var indexStr = photo.substring("added[".length(), photo.length()-1);
                 var index = Integer.parseInt(indexStr);
                 if(index >= addedPhotos.size())
-                    throw new RuntimeException("Invalid index of photo");
+                    throw new ValidationException("images", "Invalid index of photo");
                 var current = addedPhotos.get(index);
                 var filename = storageService.store(current);
                 var entity = new OfficePhotoEntity();
