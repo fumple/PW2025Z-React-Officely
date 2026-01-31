@@ -1,5 +1,6 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.CreatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeEntity;
@@ -105,7 +106,7 @@ public class AdminOfficesController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> createOffice(
+    public ResponseEntity<CreatedResponse> createOffice(
             @RequestPart("office") @Valid OfficePostRequest request,
             @RequestPart("images") List<MultipartFile> images) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -125,7 +126,8 @@ public class AdminOfficesController {
             return entity;
         }).toList());
         var created = officeService.createOffice(office);
-        return ResponseEntity.created(linkTo(methodOn(AdminOfficesController.class).getOffice(created.getId())).toUri()).build();
+        return ResponseEntity.created(linkTo(methodOn(AdminOfficesController.class).getOffice(created.getId())).toUri())
+                .body(new CreatedResponse(created.getId().toString()));
     }
 
     @GetMapping("/{officeId}")
