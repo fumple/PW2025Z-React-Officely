@@ -20,6 +20,7 @@ public class OfficeDto extends RepresentationModel<OfficeDto> {
     public String ownerId;
     public String name;
     public String description;
+    public String openingHours;
     public String address;
     public Coordinates coordinates;
     public List<String> photoUrls;
