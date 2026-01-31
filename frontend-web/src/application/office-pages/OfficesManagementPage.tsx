@@ -49,23 +49,14 @@ export const OfficesManagementPage = () => {
     items: [],
   });
 
-  // Cursor tokens: token for a given page index
   const [pageTokens, setPageTokens] = useState<Record<number, string | null>>({
     0: null,
   });
 
   const [hasNextPage, setHasNextPage] = useState(false);
 
-  // Server-side search from DataGrid quick filter
   const search = (filterModel.quickFilterValues ?? []).join(" ").trim();
-  const [debouncedSearch, setDebouncedSearch] = useState(search);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  // Fetch offices whenever page/pageSize/sort/search changes
   useEffect(() => {
     let alive = true;
 
@@ -82,7 +73,7 @@ export const OfficesManagementPage = () => {
       const res = await officesApi.listOffices({
         pageSize: paginationModel.pageSize,
         pageToken: tokenForPage ?? undefined,
-        search: debouncedSearch || undefined,
+        search: search || undefined,
         sortField: sortField || undefined,
         sortDirection:
           (sortDirection as "asc" | "desc" | undefined) || undefined,
@@ -122,13 +113,7 @@ export const OfficesManagementPage = () => {
     return () => {
       alive = false;
     };
-  }, [
-    paginationModel.page,
-    paginationModel.pageSize,
-    sortModel,
-    debouncedSearch,
-    pageTokens,
-  ]);
+  }, [paginationModel.page, paginationModel.pageSize, sortModel, search]);
 
   const handleSortModelChange = (m: GridSortModel) => {
     setSortModel(m);
