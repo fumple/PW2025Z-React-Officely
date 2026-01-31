@@ -3,7 +3,7 @@ servers:
   - url: https://officely-dev.noscorp.pl/mobile
 info:
   title: Officely - Internal Mobile API
-  version: 0.0.1
+  version: 1.1.0
 components:
   responses:
     Unauthorized:
