@@ -168,7 +168,6 @@ components:
         - totalPrice
         - freeCancellationHours
         - paymentHours
-        - paymentHoursType
         - properties
         - _links
       properties: 
@@ -204,7 +203,6 @@ components:
         - name
         - freeCancellationHours
         - paymentHours
-        - paymentHoursType
         - properties
         - _links
       properties: 
@@ -488,7 +486,7 @@ paths:
             type: number
         - name: nearAddress
           in: query
-          required: true
+          required: false
           schema:
             type: string
         - name: maxDistanceFromAddress
@@ -626,6 +624,8 @@ paths:
                           enum:
                             - startDate
                             - endDate
+                            - nearLat
+                            - nearLon
                             - nearAddress
                             - maxDistanceFromAddress
                             - filter
