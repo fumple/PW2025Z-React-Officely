@@ -1,1 +1,3 @@
 node_modules
+/upload-dir/*
+!/upload-dir/README.md
