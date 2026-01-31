@@ -11,7 +11,8 @@ import java.util.List;
 public class OfficeDto extends RepresentationModel<OfficeDto> {
     private String id;
     private String name;
-    private String description;
+    public String description;
+    public String openingHours;
     private String address;
 
     private List<String> photoUrls;
