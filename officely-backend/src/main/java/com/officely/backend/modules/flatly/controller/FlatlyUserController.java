@@ -70,7 +70,7 @@ public class FlatlyUserController {
     }
 
     @PatchMapping("/{userId}")
-    public ResponseEntity<Void> patchUser(@PathVariable long userId, @RequestBody PatchUserRequestDto request){
+    public ResponseEntity<Void> patchUser(@PathVariable long userId, @RequestBody @Valid PatchUserRequestDto request){
         var userOpt = userService.findById(userId);
         if(userOpt.isEmpty()) {
             return ResponseEntity.notFound().build();

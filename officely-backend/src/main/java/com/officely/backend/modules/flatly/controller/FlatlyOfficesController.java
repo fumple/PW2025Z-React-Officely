@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -123,7 +124,7 @@ public class FlatlyOfficesController {
     }
 
     @GetMapping("/{officeId}/offers")
-    public OfficeOffersResponseDto getOfficeOffers(
+    public ResponseEntity<OfficeOffersResponseDto> getOfficeOffers(
             @PathVariable long officeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -132,10 +133,13 @@ public class FlatlyOfficesController {
             @RequestParam(required = false) List<String> filter
     ) {
         var offers = officeService.getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter);
+        if(offers == null) {
+            return ResponseEntity.notFound().build();
+        }
         var response = new OfficeOffersResponseDto();
         response.setOffers(offers.stream().map(e -> toDto(e, startDate, endDate)).toList());
         response.add(linkTo(methodOn(FlatlyOfficesController.class).getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter)).withSelfRel().expand());
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{officeId}/offers/{offerId}/book")
@@ -149,10 +153,14 @@ public class FlatlyOfficesController {
         if(userId == null) {
             throw new RuntimeException("Shouldn't be possible");
         }
-        Long bookingId = bookingService.bookOfficeUsingOffer(officeId, offerId, userId, startDate, endDate);
+        try {
+            Long bookingId = bookingService.bookOfficeUsingOffer(officeId, offerId, userId, startDate, endDate);
 
-        return ResponseEntity.created(linkTo(methodOn(FlatlyUserController.class).getUsersBookingInfo(userId, bookingId)).toUri())
-                .body(new CreatedResponse(bookingId.toString()));
+            return ResponseEntity.created(linkTo(methodOn(FlatlyUserController.class).getUsersBookingInfo(userId, bookingId)).toUri())
+                    .body(new CreatedResponse(bookingId.toString()));
+        } catch(NoSuchElementException ex) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{officeId}/items/{itemId}")

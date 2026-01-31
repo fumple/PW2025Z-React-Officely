@@ -2,6 +2,7 @@ package com.officely.backend.service;
 
 import com.officely.backend.api.throwables.ActionNotAllowedException;
 import com.officely.backend.api.throwables.ConflictException;
+import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.*;
 import com.officely.backend.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -36,13 +37,13 @@ public class BookingService {
             LocalDate startDate,
             LocalDate endDate
     ) {
-        if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Invalid booking period");
+        if (startDate == null || endDate == null || endDate.isBefore(startDate) || startDate.isBefore(LocalDate.now())) {
+            throw new ValidationException("startDate", "Invalid booking period");
         }
 
-        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
         if (days < 1) {
-            throw new IllegalArgumentException("The booking period must last at least 1 day");
+            throw new ValidationException("startDate", "The booking period must last at least 1 day");
         }
 
         UserEntity userEntity = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
