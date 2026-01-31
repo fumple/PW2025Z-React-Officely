@@ -17,6 +17,7 @@ jobs:
       uses: actions/setup-java@v5
       with:
         java-version: 25
+        distribution: temurin
     - name: Build with Maven
       run: mvn -Dmaven.test.skip=true -B package --file pom.xml
       working-directory: officely-backend
