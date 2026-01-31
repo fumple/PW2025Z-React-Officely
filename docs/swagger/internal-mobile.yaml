@@ -1,5 +1,6 @@
 openapi: 3.1.0
 servers: 
+  - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/mobile
   - url: https://officely-dev.noscorp.pl/mobile
 info:
   title: Officely - Internal Mobile API

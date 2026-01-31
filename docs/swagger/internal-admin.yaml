@@ -3,6 +3,7 @@ info:
   title: Officely - Internal Admin API
   version: 1.2.0
 servers: 
+  - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/admin
   - url: https://officely-dev.noscorp.pl/admin
   - url: http://localhost:8080/admin
 components: 
