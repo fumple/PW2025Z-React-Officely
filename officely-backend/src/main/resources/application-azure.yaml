@@ -18,3 +18,5 @@ mail:
 
 parkly:
   base-url: ${officely.parkly.baseurl}
+storage:
+  location: ${officely.storage.location}
