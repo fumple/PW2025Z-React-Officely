@@ -35,9 +35,6 @@ cors:
 flatly:
   token: abc
 
-parkly:
-  base-url: "http://<PARKLY_HOST>:<PORT>"
-
 mail:
   from: "Officely <system@officely.noscorp.pl>"
   host: "mail.noscorp.pl"
