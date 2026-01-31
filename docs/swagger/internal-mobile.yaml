@@ -53,15 +53,6 @@ components:
               type: integer
             max:
               type: integer
-        - type: object
-          properties: 
-            type:
-              type: string
-              const: "integer"
-            min:
-              type: integer
-            max:
-              type: integer
     FilterSection:
       type: object
       properties: 
@@ -1141,6 +1132,7 @@ paths:
       tags:
         - Finding an office
       summary: Search for offices
+      description: Either nearLat and nearLon or nearAddress must be provided
       security: 
         - user_auth: []
       parameters:
@@ -1183,6 +1175,18 @@ paths:
             description: In meters
             examples:
               - 5000
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
         - name: filter
           in: query
           schema: 
@@ -1190,7 +1194,6 @@ paths:
             items:
               type: string
               examples:
-                - "builtin.price.min:40"
                 - "desk.type.standing:true"
         - name: sort
           in: query
@@ -1354,6 +1357,18 @@ paths:
             format: date
             examples:
               - "2026-01-26"
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
         - name: filter
           in: query
           schema: 
@@ -1361,7 +1376,6 @@ paths:
             items:
               type: string
               examples:
-                - "builtin.price.min:40"
                 - "desk.type.standing:true"
       responses: 
         "200":
