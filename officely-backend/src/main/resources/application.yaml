@@ -40,3 +40,6 @@ mail:
   host: "mail.noscorp.pl"
   domain-whitelist:
     - noscorp.pl
+
+parkly:
+  base-url: http://localhost:8080/placeholder
