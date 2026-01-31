@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 
-import java.util.List;
 import java.util.Map;
 
 @Setter
@@ -14,6 +13,5 @@ public class OfficeOfferWithoutPriceDto extends RepresentationModel<OfficeOfferW
     private String name;
     private Integer freeCancellationHours;
     private Integer paymentHours;
-    private List<String> photoUrls;
     private Map<String, String> properties;
 }

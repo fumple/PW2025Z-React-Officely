@@ -3,7 +3,9 @@ package com.officely.backend;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.officely.backend.api.errors.*;
 import com.officely.backend.api.throwables.AuthException;
+import com.officely.backend.api.throwables.ConflictException;
 import com.officely.backend.api.throwables.ValidationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -45,6 +47,14 @@ public class GlobalExceptionHandler {
         error.setField(ex.getField());
         response.setErrors(List.of(error));
         return ResponseEntity.badRequest().body(response);
+    }
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflictError(ConflictException ex) {
+        var response = new ErrorResponse();
+        var error = new ConflictError();
+        error.setMessage(ex.getMessage());
+        response.setErrors(List.of(error));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

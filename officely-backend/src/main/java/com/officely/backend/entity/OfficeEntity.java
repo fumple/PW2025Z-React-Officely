@@ -75,4 +75,8 @@ public class OfficeEntity {
     @Setter
     @Column(nullable = false, length = 64)
     private String paymentReceiverName;
+
+    @Setter
+    @Column(nullable = false)
+    private boolean published = false;
 }
