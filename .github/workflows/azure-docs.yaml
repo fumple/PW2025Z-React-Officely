@@ -27,6 +27,7 @@ jobs:
     name: Build and Deploy
     steps:
       - uses: actions/checkout@v6
+      - working-directory: docs/swagger
         run: |
           mkdir flatly
           cp flatly.html flatly/index.html
