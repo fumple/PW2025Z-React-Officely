@@ -1,4 +1,4 @@
-openapi: 3.1.0 # TODO: DODATKI! ale jak nie zabraknie czasu
+openapi: 3.1.0
 servers: 
   - url: https://officely-dev.noscorp.pl/flatly
 info:
