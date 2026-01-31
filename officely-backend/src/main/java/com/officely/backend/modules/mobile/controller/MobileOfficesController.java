@@ -48,7 +48,8 @@ public class MobileOfficesController {
         var dto = OfficeOfferMapper.toDto(offer.getEntity(), offer.getTotalPrice());
         dto.add(linkTo(methodOn(MobileOfficesController.class)
                 .bookOfficeUsingOffer(offer.getEntity().getOffice().getId(), offer.getEntity().getId(), startDate, endDate))
-                .withRel("accept"));
+                .withRel("accept")
+                .expand());
         return dto;
     }
 
@@ -64,9 +65,9 @@ public class MobileOfficesController {
         return dto;
     }
 
-    private OfficeSearchResultDto toDto(OfficeService.OfficeWithDistance entity, LocalDate startDate, LocalDate endDate, List<String> filter) {
+    private OfficeSearchResultDto toDto(OfficeService.OfficeWithDistance entity, LocalDate startDate, LocalDate endDate, Integer minPrice, Integer maxPrice, List<String> filter) {
         var dto = OfficeMapper.toDto(entity);
-        dto.add(linkTo(methodOn(MobileOfficesController.class).getOfficeOffers(entity.getOffice().getId(), startDate, endDate, filter)).withRel("offers"));
+        dto.add(linkTo(methodOn(MobileOfficesController.class).getOfficeOffers(entity.getOffice().getId(), startDate, endDate, minPrice, maxPrice, filter)).withRel("offers").expand());
         return dto;
     }
 
@@ -78,6 +79,8 @@ public class MobileOfficesController {
             @RequestParam(required = false) Double nearLon,
             @RequestParam String nearAddress,
             @RequestParam(required = false) Integer maxDistanceFromAddress,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) List<String> filter,
             @RequestParam(required = false, defaultValue = "distance") String sort,
             @RequestParam int pageSize,
@@ -95,7 +98,7 @@ public class MobileOfficesController {
 
         var search = officeService.searchOffices(
                 startDate, endDate, nearLat, nearLon, nearAddress,
-                maxDistanceFromAddress, filter, sort, pageSize, pageTokenInt
+                maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, pageTokenInt
         );
 
         var response = new OfficeSearchResponseDto();
@@ -107,31 +110,31 @@ public class MobileOfficesController {
         response.setPagination(pagination);
 
         response.setQuery(new OfficeSearchResponseDto.Query(search.getMinPrice(), search.getMaxPrice()));
-        response.setResults(search.getOffices().stream().map(e -> toDto(e, startDate, endDate, filter)).toList());
+        response.setResults(search.getOffices().stream().map(e -> toDto(e, startDate, endDate, minPrice, maxPrice, filter)).toList());
 
         response.add(
                 linkTo(methodOn(MobileOfficesController.class)
-                        .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, String.valueOf(pagination.getCurrentPage())))
+                        .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, String.valueOf(pagination.getCurrentPage())))
                         .withSelfRel().expand(),
                 linkTo(methodOn(MobileOfficesController.class)
-                        .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, "0"))
+                        .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, "0"))
                         .withRel("first").expand(),
                 linkTo(methodOn(MobileOfficesController.class)
-                        .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, String.valueOf(pagination.getLastPage())))
+                        .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, String.valueOf(pagination.getLastPage())))
                         .withRel("last").expand()
         );
 
         if (pagination.getCurrentPage() != pagination.getLastPage()) {
             response.add(
                     linkTo(methodOn(MobileOfficesController.class)
-                            .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, String.valueOf(pagination.getCurrentPage() + 1)))
+                            .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, String.valueOf(pagination.getCurrentPage() + 1)))
                             .withRel("next").expand()
             );
         }
         if (pagination.getCurrentPage() > 0) {
             response.add(
                     linkTo(methodOn(MobileOfficesController.class)
-                            .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, String.valueOf(pagination.getCurrentPage() - 1)))
+                            .searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, String.valueOf(pagination.getCurrentPage() - 1)))
                             .withRel("prev").expand()
             );
         }
@@ -152,12 +155,14 @@ public class MobileOfficesController {
             @PathVariable long officeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) List<String> filter
     ) {
-        var offers = officeService.getOfficeOffers(officeId, startDate, endDate, filter);
+        var offers = officeService.getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter);
         var response = new OfficeOffersResponseDto();
         response.setOffers(offers.stream().map(e -> toDto(e, startDate, endDate)).toList());
-        response.add(linkTo(methodOn(MobileOfficesController.class).getOfficeOffers(officeId, startDate, endDate, filter)).withSelfRel());
+        response.add(linkTo(methodOn(MobileOfficesController.class).getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter)).withSelfRel().expand());
         return response;
     }
 

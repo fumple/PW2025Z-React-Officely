@@ -44,7 +44,8 @@ public class FlatlyOfficesController {
         var dto = OfficeOfferMapper.toDto(offer.getEntity(), offer.getTotalPrice());
         dto.add(linkTo(methodOn(FlatlyOfficesController.class)
                 .bookOfficeUsingOffer(offer.getEntity().getOffice().getId(), offer.getEntity().getId(), null, startDate, endDate))
-                .withRel("accept"));
+                .withRel("accept")
+                .expand());
         return dto;
     }
     private OfficeItemDto toDto(OfficeItemEntity entity) {
@@ -57,9 +58,9 @@ public class FlatlyOfficesController {
         dto.add(linkTo(methodOn(FlatlyOfficesController.class).getOfficeOfferDetails(entity.getOffice().getId(), entity.getId())).withSelfRel());
         return dto;
     }
-    private OfficeSearchResultDto toDto(OfficeService.OfficeWithDistance entity, LocalDate startDate, LocalDate endDate, List<String> filter) {
+    private OfficeSearchResultDto toDto(OfficeService.OfficeWithDistance entity, LocalDate startDate, LocalDate endDate, Integer minPrice, Integer maxPrice, List<String> filter) {
         var dto = OfficeMapper.toDto(entity);
-        dto.add(linkTo(methodOn(FlatlyOfficesController.class).getOfficeOffers(entity.getOffice().getId(), startDate, endDate, filter)).withRel("offers"));
+        dto.add(linkTo(methodOn(FlatlyOfficesController.class).getOfficeOffers(entity.getOffice().getId(), startDate, endDate, minPrice, maxPrice, filter)).withRel("offers").expand());
         return dto;
     }
 
@@ -71,12 +72,14 @@ public class FlatlyOfficesController {
             @RequestParam(required=false) Double nearLon,
             @RequestParam String nearAddress,
             @RequestParam(required=false) Integer maxDistanceFromAddress,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) List<String> filter,
             @RequestParam(required = false, defaultValue = "distance") String sort,
             @RequestParam int pageSize,
             @RequestParam(required = false) Integer pageToken
     ){
-        var search = officeService.searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pageToken);
+        var search = officeService.searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, pageToken);
 
         var response = new OfficeSearchResponseDto();
         var pagination = new PaginationDto();
@@ -85,25 +88,25 @@ public class FlatlyOfficesController {
         pagination.setPageSize(search.getPageSize());
         response.setPagination(pagination);
         response.setQuery(new OfficeSearchResponseDto.Query(search.getMinPrice(), search.getMaxPrice()));
-        response.setResults(search.getOffices().stream().map(e -> toDto(e, startDate, endDate, filter)).toList());
+        response.setResults(search.getOffices().stream().map(e -> toDto(e, startDate, endDate, minPrice, maxPrice, filter)).toList());
 
         response.add(
-                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()))
+                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, pagination.getCurrentPage()))
                         .withSelfRel().expand(),
-                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, 0))
+                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, 0))
                         .withRel("first").expand(),
-                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getLastPage()))
+                linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, pagination.getLastPage()))
                         .withRel("last").expand()
         );
         if(pagination.getCurrentPage() != pagination.getLastPage()) {
             response.add(
-                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()+1))
+                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, pagination.getCurrentPage()+1))
                             .withRel("next").expand()
             );
         }
         if(pagination.getCurrentPage() > 0) {
             response.add(
-                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, filter, sort, pageSize, pagination.getCurrentPage()-1))
+                    linkTo(methodOn(FlatlyOfficesController.class).searchOffices(startDate, endDate, nearLat, nearLon, nearAddress, maxDistanceFromAddress, minPrice, maxPrice, filter, sort, pageSize, pagination.getCurrentPage()-1))
                             .withRel("prev").expand()
             );
         }
@@ -124,12 +127,14 @@ public class FlatlyOfficesController {
             @PathVariable long officeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) List<String> filter
     ) {
-        var offers = officeService.getOfficeOffers(officeId, startDate, endDate, filter);
+        var offers = officeService.getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter);
         var response = new OfficeOffersResponseDto();
         response.setOffers(offers.stream().map(e -> toDto(e, startDate, endDate)).toList());
-        response.add(linkTo(methodOn(FlatlyOfficesController.class).getOfficeOffers(officeId, startDate, endDate, filter)).withSelfRel());
+        response.add(linkTo(methodOn(FlatlyOfficesController.class).getOfficeOffers(officeId, startDate, endDate, minPrice, maxPrice, filter)).withSelfRel().expand());
         return response;
     }
 

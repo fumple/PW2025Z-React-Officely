@@ -1,10 +1,7 @@
 package com.officely.backend.modules.flatly.api.offices.mapper;
 
-import com.officely.backend.modules.flatly.api.offices.dto.OfficeOfferWithoutPriceDto;
 import com.officely.backend.entity.OfficeOfferEntity;
-
-import java.util.List;
-import java.util.Map;
+import com.officely.backend.modules.flatly.api.offices.dto.OfficeOfferWithoutPriceDto;
 
 public final class OfficeOfferWithoutPriceMapper {
 
@@ -14,11 +11,10 @@ public final class OfficeOfferWithoutPriceMapper {
         String offerId = entity.getId().toString();
 
         dto.setId(offerId);
-        dto.setName(entity.getName());
+        dto.setName(entity.getPublicName() != null ? entity.getPublicName() : entity.getName());
         dto.setFreeCancellationHours(entity.getFreeCancellationHours());
         dto.setPaymentHours(entity.getPaymentHours());
-        dto.setPhotoUrls(List.of());
-        dto.setProperties(Map.of());
+        dto.setProperties(entity.getProperties());
         return dto;
     }
 }
