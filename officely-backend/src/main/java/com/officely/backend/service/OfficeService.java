@@ -34,6 +34,7 @@ public class OfficeService {
     private final OfficeOfferRepository officeOfferRepository;
     private final OfficePhotoRepository officePhotoRepository;
     private final StorageService storageService;
+    @SuppressWarnings("FieldCanBeLocal")
     private final int DEFAULT_RADIUS_METERS = 50000;
     private final ObjectMapper objectMapper;
 
@@ -43,6 +44,14 @@ public class OfficeService {
         private final OfficeEntity office;
         private final double distanceMeters;
         private final int minPrice;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class OfficeWithDistanceOptPrice {
+        private final OfficeEntity office;
+        private final double distanceMeters;
+        private final OptionalInt minPrice;
     }
 
     @Getter
@@ -112,7 +121,6 @@ public class OfficeService {
             throw new IllegalArgumentException("The booking period must last at least 1 day");
         }
 
-        Map<String, String> filterMap = parseFilter(filter);
         Specification<OfficeEntity> spec = Specification.allOf();
 
         double originLat;
@@ -137,15 +145,18 @@ public class OfficeService {
 
         Map<Long, Double> distances = computeDistances(entities, originLat, originLon);
 
-        Map<Long, Integer> prices = fetchMinTotalPrices(days, minPrice, maxPrice);
-
         List<OfficeWithDistance> owd = entities.stream()
-            .filter(o -> prices.containsKey(o.getId())) 
-            .map(o -> new OfficeWithDistance(
+            .map(o -> new OfficeWithDistanceOptPrice(
                 o,
                 distances.getOrDefault(o.getId(), Double.POSITIVE_INFINITY),
-                prices.get(o.getId())
+                getOfficeOffers(o.getId(), startDate, endDate, minPrice, maxPrice, filter).stream().mapToInt(e -> e.totalPrice).min()
             ))
+                .filter(e -> e.minPrice.isPresent())
+                .map(o -> new OfficeWithDistance(
+                        o.office,
+                        o.distanceMeters,
+                        o.minPrice.getAsInt()
+                ))
             .toList();
 
         owd = applyDistanceFilter(owd, maxDistanceFromAddress);
@@ -188,25 +199,6 @@ public class OfficeService {
         int max = owd.stream().mapToInt(OfficeWithDistance::getMinPrice).max().orElse(0);
 
         return new OfficeSearchPage(resultsForPage, pageIndex, lastPage, pageSize, min, max);
-    }
-
-    private Map<Long, Integer> fetchMinTotalPrices(long days, Integer minPrice, Integer maxPrice) {
-        Map<Long, Integer> result = new HashMap<>();
-
-        int page = 0;
-        int batchSize = 500;
-
-        while (true) {
-            Page<OfficeOfferRepository.OfficeMinPrice> p = officeOfferRepository.findOfficeMinPricesAsc(days, minPrice, maxPrice, PageRequest.of(page, batchSize));
-
-            for (OfficeOfferRepository.OfficeMinPrice row : p.getContent()) {
-                result.put(row.getOfficeId(), row.getMinPrice().intValue());
-            }
-
-            if (!p.hasNext()) break;
-            page++;
-        }
-        return result;
     }
 
     public Optional<OfficeEntity> getOfficeById(long id) {
@@ -278,7 +270,7 @@ public class OfficeService {
         double minLon = lon - dLon;
         double maxLon = lon + dLon;
 
-        return (root, q, cb) -> cb.and(
+        return (root, _, cb) -> cb.and(
                 cb.between(root.get("latitude"), minLat, maxLat),
                 cb.between(root.get("longitude"), minLon, maxLon)
         );
@@ -341,6 +333,7 @@ public class OfficeService {
         updated.setLongitude(origin.getLng());
         return officeRepository.save(updated);
     }
+    @SuppressWarnings("UnusedReturnValue")
     @Transactional
     public OfficeEntity patchOffice(OfficeEntity updated, List<String> photos, List<MultipartFile> addedPhotos) {
         var currentPhotos = updated.getPhotos();
