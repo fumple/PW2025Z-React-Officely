@@ -30,7 +30,7 @@ SELECT * FROM office_items i WHERE
     i.offer_id = :offerId AND
     (
         (
-            i.type = 0 AND
+            i.type = 1 AND
             NOT EXISTS (
                 SELECT 1 FROM bookings b WHERE
                     b.item_id = i.id AND
@@ -40,7 +40,7 @@ SELECT * FROM office_items i WHERE
                 )
             ) OR
         (
-            i.type = 1 AND
+            i.type = 0 AND
             NOT EXISTS (
                 WITH RECURSIVE range_values AS (
                     -- 1. Set the starting point
