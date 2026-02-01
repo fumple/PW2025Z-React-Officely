@@ -24,6 +24,9 @@ type OfficeRow = {
   id: string;
   name: string;
   address: string;
+  published: boolean;
+  contactEmail: string;
+  photosCount: number;
 };
 
 function getPageTokenFromHref(href?: string): string | null {
@@ -87,13 +90,15 @@ export const OfficesManagementPage = () => {
             id: o.id,
             name: o.name,
             address: o.address,
+            published: o.published,
+            contactEmail: o.contactEmail,
+            photosCount: o.photoUrls?.length ?? 0,
           })),
         );
 
         const nextToken = getPageTokenFromHref(res.data._links.next?.href);
         setHasNextPage(!!nextToken);
 
-        // Store token for the next page index (avoid needless state updates)
         setPageTokens((prev) => {
           const nextPageIndex = paginationModel.page + 1;
           if (prev[nextPageIndex] === nextToken) return prev;
@@ -128,17 +133,12 @@ export const OfficesManagementPage = () => {
   };
 
   const handlePaginationModelChange = (m: GridPaginationModel) => {
-    // pageSize changed -> reset cursor paging
     if (m.pageSize !== paginationModel.pageSize) {
       setPaginationModel({ page: 0, pageSize: m.pageSize });
       setPageTokens({ 0: null });
       return;
     }
-
-    // Block going forward if backend says there is no next page
     if (m.page > paginationModel.page && !hasNextPage) return;
-
-    // Block going to pages we don't have a token for yet (cursor-based)
     const token = pageTokens[m.page];
     if (m.page > 0 && token === undefined) return;
 
@@ -148,7 +148,22 @@ export const OfficesManagementPage = () => {
   const columns = useMemo<GridColDef<OfficeRow>[]>(
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
-      { field: "address", headerName: "Address", flex: 1, minWidth: 160 },
+      { field: "address", headerName: "Address", flex: 1, minWidth: 200 },
+      { field: "contactEmail", headerName: "Contact", flex: 1, minWidth: 180 },
+      {
+        field: "published",
+        headerName: "Status",
+        minWidth: 120,
+        valueGetter: (_, row) => (row.published ? "Published" : "Unpublished"),
+        sortComparator: (a, b) => String(a).localeCompare(String(b)),
+      },
+      {
+        field: "photosCount",
+        headerName: "Photos",
+        minWidth: 90,
+        align: "right",
+        headerAlign: "right",
+      },
       {
         field: "actions",
         headerName: "",

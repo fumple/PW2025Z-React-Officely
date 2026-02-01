@@ -14,6 +14,7 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { DataGrid } from "@mui/x-data-grid/DataGrid";
 import type { GridColDef } from "@mui/x-data-grid/models/colDef";
@@ -34,9 +35,11 @@ type ItemRow = {
 type OfferRow = {
   id: string;
   name: string;
-  price: string;
-  availableFrom: string;
-  availableTo: string;
+  publicName: string;
+  pricePerDay: string;
+  paymentHours: string;
+  freeCancellationHours: string;
+  available: string;
 };
 
 type MemberRow = {
@@ -114,9 +117,12 @@ export const OfficeDetailsPage = () => {
           offersRes.data.results.map((o) => ({
             id: o.id,
             name: o.name,
-            price: `${o.price} ${o.currency}`,
-            availableFrom: o.availableFrom,
-            availableTo: o.availableTo ?? "-",
+            publicName: o.publicName ?? "-",
+            pricePerDay: `${o.pricePerDay} ${o.pricePerDayCurrency}`,
+            paymentHours: String(o.paymentHours),
+            freeCancellationHours: String(o.freeCancellationHours),
+            available:
+              o.available === undefined ? "-" : o.available ? "Yes" : "No",
           })),
         );
       } else {
@@ -197,19 +203,31 @@ export const OfficeDetailsPage = () => {
   const offersColumns = useMemo<GridColDef<OfferRow>[]>(
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
-      { field: "price", headerName: "Price", flex: 1, minWidth: 120 },
       {
-        field: "availableFrom",
-        headerName: "Available from",
+        field: "publicName",
+        headerName: "Public name",
         flex: 1,
-        minWidth: 180,
+        minWidth: 160,
       },
       {
-        field: "availableTo",
-        headerName: "Available to",
+        field: "pricePerDay",
+        headerName: "Price / day",
         flex: 1,
-        minWidth: 180,
+        minWidth: 140,
       },
+      {
+        field: "paymentHours",
+        headerName: "Payment (h)",
+        flex: 1,
+        minWidth: 130,
+      },
+      {
+        field: "freeCancellationHours",
+        headerName: "Free cancel (h)",
+        flex: 1,
+        minWidth: 150,
+      },
+      { field: "available", headerName: "Available", flex: 1, minWidth: 120 },
       {
         field: "details",
         headerName: "",
@@ -223,7 +241,7 @@ export const OfficeDetailsPage = () => {
           <Button
             variant="text"
             color="primary"
-            onClick={() => navigate(`./pricing-table/${params.row.id}`)}
+            onClick={() => navigate(`./offer/${params.row.id}`)}
           >
             Details
           </Button>
@@ -242,7 +260,7 @@ export const OfficeDetailsPage = () => {
           <Button
             variant="text"
             color="primary"
-            onClick={() => navigate(`./pricing-table/${params.row.id}/edit`)}
+            onClick={() => navigate(`./offer/${params.row.id}/edit`)}
           >
             Edit
           </Button>
@@ -381,36 +399,44 @@ export const OfficeDetailsPage = () => {
               <Button
                 variant="text"
                 color="error"
-                startIcon={<VisibilityOffIcon fontSize="small" />}
+                startIcon={
+                  office?.published ? (
+                    <VisibilityOffIcon fontSize="small" />
+                  ) : (
+                    <VisibilityIcon fontSize="small" />
+                  )
+                }
                 sx={{ textTransform: "none" }}
                 disabled={loading || !office || publishing}
                 onClick={async () => {
-                  if (!officeId) return;
+                  if (!officeId || !office) return;
 
                   setPublishing(true);
                   setApiError(null);
 
+                  const nextPublished = !office.published;
+
                   const res = await officesApi.setOfficePublished({
                     officeId,
-                    published: false,
+                    published: nextPublished,
                   });
-
-                  setPublishing(false);
 
                   if (!res.ok) {
                     setApiError(
                       res.error?.errors?.[0]?.message ??
-                        "Failed to unpublish office.",
+                        `Failed to ${nextPublished ? "publish" : "unpublish"} office.`,
                     );
+                    setPublishing(false);
                     return;
                   }
 
-                  // refresh office so UI shows updated state (if your OfficeResource exposes it)
                   const officeRes = await officesApi.getOffice(officeId);
                   if (officeRes.ok) setOffice(officeRes.data);
+
+                  setPublishing(false);
                 }}
               >
-                Unpublish
+                {office?.published ? "Unpublish" : "Publish"}
               </Button>
             </Box>
 
@@ -513,7 +539,7 @@ export const OfficeDetailsPage = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon fontSize="small" />}
-          onClick={() => navigate("./pricing-table/new")}
+          onClick={() => navigate("./offer/new")}
           disabled={loading || !office}
         >
           Add
