@@ -9,7 +9,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
-import OutlinedInput from "@mui/material/OutlinedInput";
 
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -21,6 +20,8 @@ import type { GridColDef } from "@mui/x-data-grid/models/colDef";
 
 import { OfficeLocationDisplay } from "./OfficeLocationDisplay";
 import * as officesApi from "../../api/officesApi";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
@@ -47,6 +48,9 @@ type OfferRow = {
 type MemberRow = {
   id: string;
   userId: string;
+  email: string;
+  fullName: string;
+  role: string;
 };
 
 function getRowsPerPageOptions(totalCount: number): number[] {
@@ -59,9 +63,6 @@ export const OfficeDetailsPage = () => {
   const navigate = useNavigate();
   const { officeId } = useParams<{ officeId: string }>();
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -71,7 +72,55 @@ export const OfficeDetailsPage = () => {
   const [offersRows, setOffersRows] = useState<OfferRow[]>([]);
   const [membersRows, setMembersRows] = useState<MemberRow[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [memberEmail, setMemberEmail] = useState("");
+  const [addingMember, setAddingMember] = useState(false);
+  const [addMemberError, setAddMemberError] = useState<string | null>(null);
 
+  const loadMembersDetailed = async (isAlive: () => boolean) => {
+    if (!officeId) return;
+
+    const membersRes = await officesApi.listOfficeMembers(officeId);
+    if (!isAlive()) return;
+
+    if (!membersRes.ok) {
+      setMembersRows([]);
+      return;
+    }
+
+    const members = membersRes.data.results;
+
+    const userResults = await Promise.allSettled(
+      members.map((m) => officesApi.getUser(m.userId)),
+    );
+
+    if (!isAlive()) return;
+
+    const rows: MemberRow[] = members.map((m, idx) => {
+      const ur = userResults[idx];
+
+      if (ur.status === "fulfilled" && ur.value.ok) {
+        const u = ur.value.data;
+        return {
+          id: m.id,
+          userId: m.userId,
+          email: u.email,
+          fullName: `${u.firstName} ${u.lastName}`.trim(),
+          role: u.type,
+        };
+      }
+
+      return {
+        id: m.id,
+        userId: m.userId,
+        email: "-",
+        fullName: `User ${m.userId}`,
+        role: "",
+      };
+    });
+
+    setMembersRows(rows);
+  };
   useEffect(() => {
     if (!officeId) return;
 
@@ -81,11 +130,10 @@ export const OfficeDetailsPage = () => {
       setLoading(true);
       setApiError(null);
 
-      const [officeRes, itemsRes, offersRes, membersRes] = await Promise.all([
+      const [officeRes, itemsRes, offersRes] = await Promise.all([
         officesApi.getOffice(officeId),
         officesApi.listOfficeItems({ officeId, pageSize: 50 }),
         officesApi.listOfficeOffers({ officeId, pageSize: 50 }),
-        officesApi.listOfficeMembers(officeId),
       ]);
 
       if (!alive) return;
@@ -133,16 +181,7 @@ export const OfficeDetailsPage = () => {
         setOffersRows([]);
       }
 
-      if (membersRes.ok) {
-        setMembersRows(
-          membersRes.data.results.map((m) => ({
-            id: m.id,
-            userId: m.userId,
-          })),
-        );
-      } else {
-        setMembersRows([]);
-      }
+      await loadMembersDetailed(() => true);
 
       setLoading(false);
     })();
@@ -151,6 +190,10 @@ export const OfficeDetailsPage = () => {
       alive = false;
     };
   }, [officeId]);
+
+  const reloadMembers = async () => {
+    await loadMembersDetailed(() => true);
+  };
 
   const itemsPageSizeOptions = getRowsPerPageOptions(itemsRows.length);
   const offersPageSizeOptions = getRowsPerPageOptions(offersRows.length);
@@ -278,7 +321,23 @@ export const OfficeDetailsPage = () => {
 
   const membersColumns = useMemo<GridColDef<MemberRow>[]>(
     () => [
-      { field: "userId", headerName: "User ID", flex: 1, minWidth: 220 },
+      {
+        field: "fullName",
+        headerName: "Employee",
+        flex: 1,
+        minWidth: 200,
+      },
+      {
+        field: "email",
+        headerName: "Email",
+        flex: 1,
+        minWidth: 240,
+      },
+      {
+        field: "role",
+        headerName: "Role",
+        width: 140,
+      },
       {
         field: "details",
         headerName: "",
@@ -590,7 +649,11 @@ export const OfficeDetailsPage = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon fontSize="small" />}
-          onClick={() => setAddOpen(true)}
+          onClick={() => {
+            setAddMemberError(null);
+            setMemberEmail("");
+            setAddOpen(true);
+          }}
           disabled={loading || !office}
         >
           Add
@@ -618,60 +681,124 @@ export const OfficeDetailsPage = () => {
         />
       </Paper>
 
-      {/* Delete dialog (API does not support delete in spec, keep as info-only for now) */}
-      <Dialog
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Office deletion</DialogTitle>
-        <DialogContent>
-          <Typography sx={{ fontSize: "13px", color: "#444" }}>
-            Deleting an office is not supported by the current API
-            specification.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ px: "16px", pb: "12px" }}>
-          <Button variant="text" onClick={() => setDeleteOpen(false)}>
-            Close
-          </Button>
-        </DialogActions>
-      </Dialog>
-
       {/* Add Employee Dialog (wiring next) */}
       <Dialog
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={() => {
+          if (addingMember) return;
+          setAddOpen(false);
+        }}
         maxWidth="sm"
         fullWidth
       >
         <DialogTitle>Add employee access</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: "13px", color: "#444", mb: "10px" }}>
-            Enter employee email (wiring API next: POST /offices/{officeId}
-            /members).
+            Enter the employee's email. The employee must already have an
+            account in the app.
           </Typography>
+
+          {addMemberError ? (
+            <Typography color="error" sx={{ mb: "10px" }}>
+              {addMemberError}
+            </Typography>
+          ) : null}
+
           <Box>
             <Typography
               sx={{ fontSize: "12px", color: "text.secondary", mb: "4px" }}
             >
               Employee email
             </Typography>
-            <OutlinedInput fullWidth />
+
+            <OutlinedInput
+              fullWidth
+              value={memberEmail}
+              onChange={(e) => setMemberEmail(e.target.value)}
+              placeholder="name.surname@company.com"
+              autoFocus
+              disabled={addingMember}
+              onKeyDown={async (e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+
+                const email = memberEmail.trim();
+                if (!officeId || !email) return;
+
+                setAddingMember(true);
+                setAddMemberError(null);
+
+                const res = await officesApi.createOfficeMember({
+                  officeId,
+                  email,
+                });
+
+                if (!res.ok) {
+                  setAddMemberError(
+                    res.error?.errors?.[0]?.message ??
+                      "Failed to add employee access.",
+                  );
+                  setAddingMember(false);
+                  return;
+                }
+
+                await reloadMembers();
+                setAddOpen(false);
+                setMemberEmail("");
+                setAddingMember(false);
+              }}
+            />
           </Box>
         </DialogContent>
+
         <DialogActions sx={{ px: "16px", pb: "12px" }}>
           <Button
             variant="contained"
             startIcon={<AddIcon fontSize="small" />}
-            onClick={() => setAddOpen(false)}
+            disabled={addingMember || !memberEmail.trim()}
+            onClick={async () => {
+              const email = memberEmail.trim();
+              if (!officeId || !email) return;
+
+              setAddingMember(true);
+              setAddMemberError(null);
+
+              const res = await officesApi.createOfficeMember({
+                officeId,
+                email,
+              });
+
+              if (!res.ok) {
+                setAddMemberError(
+                  res.error?.errors?.[0]?.message ??
+                    "Failed to add employee access.",
+                );
+                setAddingMember(false);
+                return;
+              }
+
+              await reloadMembers();
+
+              setAddOpen(false);
+              setMemberEmail("");
+              setAddingMember(false);
+            }}
           >
-            Add
+            {addingMember ? (
+              <Box
+                sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}
+              >
+                <CircularProgress size={16} /> Adding...
+              </Box>
+            ) : (
+              "Add"
+            )}
           </Button>
+
           <Button
             variant="text"
             color="error"
+            disabled={addingMember}
             onClick={() => setAddOpen(false)}
           >
             Cancel

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 
-// Fix default marker icons in many bundlers:
 import marker2x from "leaflet/dist/images/marker-icon-2x.png";
 import marker from "leaflet/dist/images/marker-icon.png";
 import shadow from "leaflet/dist/images/marker-shadow.png";
@@ -26,11 +25,35 @@ L.Icon.Default.mergeOptions({
   shadowUrl: shadow,
 });
 
+type NominatimAddress = {
+  house_number?: string;
+  road?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  suburb?: string;
+  hamlet?: string;
+};
+
 type Suggestion = {
   display_name: string;
   lat: string;
   lon: string;
+  address?: NominatimAddress;
 };
+
+function formatAddress(addr: NominatimAddress | undefined, fallback: string) {
+  const city =
+    addr?.city ?? addr?.town ?? addr?.village ?? addr?.suburb ?? addr?.hamlet;
+
+  const line1 = [addr?.road, addr?.house_number]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const out = [line1, city].filter(Boolean).join(", ").trim();
+  return out || fallback;
+}
 
 function SetView({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
@@ -52,7 +75,6 @@ export function OfficeLocationPicker(props: {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
 
-  // debounce
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -62,7 +84,6 @@ export function OfficeLocationPicker(props: {
   const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   const search = (q: string) => {
-    // Nominatim policy: identify your app (User-Agent is browser controlled; add "email" or "accept-language" where possible)
     const url =
       "https://nominatim.openstreetmap.org/search?" +
       new URLSearchParams({
@@ -89,13 +110,18 @@ export function OfficeLocationPicker(props: {
         lat: String(latNum),
         lon: String(lngNum),
         format: "json",
+        adressdetails: "1",
       }).toString();
 
     fetch(url, { headers: { Accept: "application/json" } })
       .then((r) => r.json())
       .then((data) => {
-        const display = (data?.display_name as string) ?? "";
-        onChange({ address: display, lat: latNum, lng: lngNum });
+        const fallback = (data?.display_name as string) ?? "";
+        const formatted = formatAddress(
+          data?.address as NominatimAddress | undefined,
+          fallback,
+        );
+        onChange({ address: formatted, lat: latNum, lng: lngNum });
       })
       .catch(() => onChange({ address: "", lat: latNum, lng: lngNum }));
   };
@@ -118,7 +144,8 @@ export function OfficeLocationPicker(props: {
   const pickSuggestion = (s: Suggestion) => {
     const latNum = Number(s.lat);
     const lngNum = Number(s.lon);
-    onChange({ address: s.display_name, lat: latNum, lng: lngNum });
+    const formatted = formatAddress(s.address, s.display_name);
+    onChange({ address: formatted, lat: latNum, lng: lngNum });
     setOpen(false);
     setSuggestions([]);
   };
@@ -178,7 +205,7 @@ export function OfficeLocationPicker(props: {
                   "&:hover": { backgroundColor: "#f5f5f5" },
                 }}
               >
-                {s.display_name}
+                {formatAddress(s.address, s.display_name)}
               </Button>
             ))}
           </Box>
