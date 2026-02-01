@@ -21,7 +21,7 @@ public class OfficeOfferService {
     private final FiltersService filtersService;
 
     public Optional<OfficeOfferEntity> getOffer(Long officeId, Long offerId) {
-        return officeOfferRepository.findByIdAndOfficeId(officeId, offerId);
+        return officeOfferRepository.findByIdAndOfficeId(offerId, officeId);
     }
 
     public Page<OfficeOfferEntity> getOffers(Long officeId, PageRequest pageRequest) {
