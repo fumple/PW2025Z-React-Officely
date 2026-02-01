@@ -118,7 +118,7 @@ export const OfficesManagementPage = () => {
     return () => {
       alive = false;
     };
-  }, [paginationModel.page, paginationModel.pageSize, sortModel, search]);
+  }, [paginationModel.page, paginationModel.pageSize, sortModel, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSortModelChange = (m: GridSortModel) => {
     setSortModel(m);
