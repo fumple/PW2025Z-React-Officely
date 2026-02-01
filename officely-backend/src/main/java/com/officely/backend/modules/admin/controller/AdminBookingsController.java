@@ -2,6 +2,7 @@ package com.officely.backend.modules.admin.controller;
 
 import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
+import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.bookings.AdminBookingMapper;
@@ -9,6 +10,7 @@ import com.officely.backend.modules.admin.api.bookings.BookingCancelRequest;
 import com.officely.backend.modules.admin.api.bookings.BookingDto;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.BookingService;
+import com.officely.backend.service.OfficeService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -30,6 +32,7 @@ public class AdminBookingsController {
     private final BookingService bookingService;
     private final AdminPermissionService adminPermissionService;
     private final AdminBookingMapper bookingMapper;
+    private final OfficeService officeService;
 
     private BookingDto bookingToDto(BookingEntity booking) {
         var e = bookingMapper.bookingToBookingDto(booking);
@@ -54,8 +57,10 @@ public class AdminBookingsController {
 
     @GetMapping
     public ResponseEntity<PaginatedResponse<BookingDto>> getBookings(@RequestParam @Valid @Min(1) @Max(50) int pageSize, @RequestParam(required = false) Integer pageToken,
-                                                                     @RequestParam(required = false) String search,
+                                                                     @RequestParam(required = false) Long officeId,
                                                                      @RequestParam(required = false) String sortField, @RequestParam(required = false) String sortDirection) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
         var currentPage = pageToken == null ? 0 : pageToken;
         var pageRequest = PageRequest.of(currentPage, pageSize);
 
@@ -63,7 +68,17 @@ public class AdminBookingsController {
             pageRequest = pageRequest.withSort(sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
         }
 
-        var bookings = search != null ? bookingService.getBookings(pageRequest, search) : bookingService.getBookings(pageRequest);
+        if(officeId != null) {
+            var targetOpt = officeService.getOfficeById(officeId);
+            if(targetOpt.isEmpty())
+                throw new ValidationException("officeId", "The provided office was not found or you can't access it");
+
+            var target = targetOpt.get();
+            if(!adminPermissionService.canManageOffice(actor, target)) {
+                throw new ValidationException("officeId", "The provided office was not found or you can't access it");
+            }
+        }
+        var bookings = officeId != null ? bookingService.getBookings(officeId, pageRequest) : bookingService.getBookings(actor, pageRequest);
         var response = new PaginatedResponse<BookingDto>();
         response.setResults(bookings.get()
                 .map(this::bookingToDto).toList());
@@ -75,22 +90,22 @@ public class AdminBookingsController {
         response.setPagination(pagination);
 
         response.add(
-                linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, currentPage, search, sortField, sortDirection))
+                linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, currentPage, officeId, sortField, sortDirection))
                         .withSelfRel().expand(),
-                linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, 0, search, sortField, sortDirection))
+                linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, 0, officeId, sortField, sortDirection))
                         .withRel("first").expand(),
-                linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, pagination.getLastPage(), search, sortField, sortDirection))
+                linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, pagination.getLastPage(), officeId, sortField, sortDirection))
                         .withRel("last").expand()
         );
         if(currentPage != pagination.getLastPage()) {
             response.add(
-                    linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, currentPage+1, search, sortField, sortDirection))
+                    linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, currentPage+1, officeId, sortField, sortDirection))
                             .withRel("next").expand()
             );
         }
         if(currentPage > 0) {
             response.add(
-                    linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, currentPage-1, search, sortField, sortDirection))
+                    linkTo(methodOn(AdminBookingsController.class).getBookings(pageSize, currentPage-1, officeId, sortField, sortDirection))
                             .withRel("prev").expand()
             );
         }
