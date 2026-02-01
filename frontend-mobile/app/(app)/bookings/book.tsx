@@ -1,0 +1,399 @@
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
+import {
+    ActivityIndicator,
+    Button,
+    Divider,
+    HelperText,
+    IconButton,
+    Text,
+} from "react-native-paper";
+
+import { apiFetch } from "@/src/api/client";
+
+type Offer = {
+  id: string;
+  name: string;
+  totalPrice: number;
+  freeCancellationHours: number;
+  paymentHours: number;
+  properties: Record<string, string>;
+  _links: {
+    accept: { href: string };
+  };
+};
+
+type OffersResponse = {
+  offers: Offer[];
+};
+
+type Office = {
+  id: string;
+  name: string;
+  description: string;
+  openingHours: string;
+  address: string;
+  coordinates: { lat: number; lon: number };
+  photoUrls: string[];
+  contactEmail: string;
+  contactPhone: string;
+};
+
+type BookingResource = {
+  id: string;
+  officeId: string;
+  itemId: string;
+  offerId: string;
+  status: string;
+  creationDate: string;
+  startDate: string;
+  endDate: string;
+  totalPrice: number;
+  paymentInfo: {
+    status: string;
+    accountNumber: string;
+    receiverName: string;
+    transferTitle: string;
+    dueDate: string;
+  };
+};
+
+type CreateBookingResponse = { id: string };
+
+const moneyPLN = (value: number) => {
+  return `${value} PLN`;
+};
+
+const appendQuery = (url: string, query: string) => {
+  return url.includes("?") ? `${url}&${query}` : `${url}?${query}`;
+};
+
+const InfoRow = ({ label, value }: { label: string; value?: string }) => {
+  if (!value) return null;
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+};
+
+const BookingScreen = () => {
+  const params = useLocalSearchParams<{
+    officeId: string;
+    startDate: string;
+    endDate: string;
+    acceptHref: string;
+  }>();
+
+  const officeId = params.officeId;
+  const startDate = params.startDate;
+  const endDate = params.endDate;
+  const acceptHref = params.acceptHref;
+
+  const [loading, setLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [office, setOffice] = useState<Office | null>(null);
+  const [offer, setOffer] = useState<Offer | null>(null);
+
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [booking, setBooking] = useState<BookingResource | null>(null);
+
+  const isBooked = !!booking || !!createdBookingId;
+
+  const dateLabel = useMemo(() => {
+    return `${startDate} → ${endDate}`;
+  }, [startDate, endDate]);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const officeData = (await apiFetch(`/offices/${officeId}`, {
+        method: "GET",
+      })) as Office;
+      setOffice(officeData);
+
+      const q = `startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      const offersUrl = `/offices/${officeId}/offers?${q}`;
+
+      const offersData = (await apiFetch(offersUrl, {
+        method: "GET",
+      })) as OffersResponse;
+
+      const match =
+        offersData.offers.find((o) => o._links.accept.href === acceptHref) ??
+        null;
+
+      setOffer(match);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load booking details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, [officeId, startDate, endDate, acceptHref]);
+
+  const onBook = async () => {
+    setBookingLoading(true);
+    setError(null);
+
+    try {
+      const q = `startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
+      const bookUrl = appendQuery(acceptHref, q);
+
+      const created = (await apiFetch(bookUrl, {
+        method: "POST",
+      })) as CreateBookingResponse;
+
+      setCreatedBookingId(created.id);
+
+      const bookingData = (await apiFetch(`/bookings/${created.id}`, {
+        method: "GET",
+      })) as BookingResource;
+
+      setBooking(bookingData);
+    } catch (e: any) {
+      setError(e?.message ?? "Booking failed");
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator />
+        <Text style={{ marginTop: 10, opacity: 0.7 }}>Loading…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.topRow}>
+          <IconButton
+            icon="arrow-left"
+            size={22}
+            onPress={() => router.back()}
+            style={styles.iconBtn}
+          />
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            Booking
+          </Text>
+          <View style={{ width: 42 }} />
+        </View>
+
+        {error ? (
+          <HelperText type="error" style={{ marginHorizontal: 16 }}>
+            {error}
+          </HelperText>
+        ) : null}
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Booking details</Text>
+
+          <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
+
+          <InfoRow label="Office" value={office?.name} />
+          <InfoRow label="Dates" value={dateLabel} />
+          <InfoRow label="Offer" value={offer?.name} />
+          <InfoRow
+            label="Total price"
+            value={offer ? moneyPLN(offer.totalPrice) : "(loading…)"}
+          />
+
+          {offer ? (
+            <View style={{ marginTop: 10 }}>
+              <Text style={styles.subTitle}>Rules</Text>
+              <InfoRow
+                label="Free cancellation"
+                value={`${offer.freeCancellationHours}h before start`}
+              />
+              <InfoRow
+                label="Payment time"
+                value={`${offer.paymentHours}h after booking`}
+              />
+            </View>
+          ) : null}
+        </View>
+
+        {booking ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Payment</Text>
+            <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
+            <InfoRow label="Booking ID" value={booking.id} />
+            <InfoRow label="Status" value={booking.paymentInfo.status} />
+            <InfoRow label="Amount" value={moneyPLN(booking.totalPrice)} />
+            <InfoRow label="Due date" value={booking.paymentInfo.dueDate} />
+
+            <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
+
+            <InfoRow
+              label="Receiver"
+              value={booking.paymentInfo.receiverName}
+            />
+            <InfoRow
+              label="Account"
+              value={booking.paymentInfo.accountNumber}
+            />
+            <InfoRow
+              label="Transfer title"
+              value={booking.paymentInfo.transferTitle}
+            />
+
+            <View style={styles.parkingBox}>
+              <Text style={styles.parkingTitle}>Want to book a parking?</Text>
+              <Text style={styles.parkingText}>
+                Book a nearby parking spot for the same dates.
+              </Text>
+
+              <Button
+                mode="contained"
+                buttonColor="#0F4366"
+                onPress={() =>
+                  router.push({
+                    pathname: "../parkly/parkings",
+                    params: {
+                      bookingId: booking.id,
+                    },
+                  })
+                }
+                style={{ marginTop: 10, borderRadius: 12 }}
+                contentStyle={{ paddingVertical: 6 }}
+              >
+                Find parking
+              </Button>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={{ height: 110 }} />
+      </ScrollView>
+
+      <View style={styles.bottomBar}>
+        <Text style={styles.bottomPrice} numberOfLines={1}>
+          {offer ? moneyPLN(offer.totalPrice) : "—"}
+        </Text>
+
+        <Button
+          mode="contained"
+          buttonColor="#0F4366"
+          onPress={onBook}
+          loading={bookingLoading}
+          disabled={bookingLoading || isBooked || !offer}
+          style={styles.bookBtn}
+          contentStyle={styles.bookBtnContent}
+        >
+          {isBooked ? "Booked" : "Book"}
+        </Button>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "white" },
+  scroll: { padding: 16, paddingBottom: 140 },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingTop: 4,
+    marginBottom: 10,
+  },
+  iconBtn: {
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
+    borderRadius: 999,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  card: {
+    backgroundColor: "#E9E8E2",
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+
+  cardTitle: { fontSize: 16, fontWeight: "900" },
+  cardHint: { marginTop: 2, fontSize: 12, opacity: 0.75 },
+
+  subTitle: { marginTop: 4, fontWeight: "900", fontSize: 13, opacity: 0.9 },
+
+  infoRow: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.65)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+  },
+  infoLabel: { fontSize: 11, opacity: 0.7, fontWeight: "800" },
+  infoValue: { marginTop: 2, fontSize: 14, fontWeight: "900" },
+
+  bottomBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.08)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  bottomPrice: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#C42E2E",
+    minWidth: 120,
+  },
+
+  bookBtn: { borderRadius: 12, flex: 1 },
+  bookBtnContent: { paddingVertical: 6 },
+
+  parkingBox: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(15,67,102,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(15,67,102,0.18)",
+  },
+  parkingTitle: { fontSize: 14, fontWeight: "900", color: "#0F4366" },
+  parkingText: { marginTop: 4, fontSize: 12, opacity: 0.8 },
+});
+export default BookingScreen;

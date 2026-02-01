@@ -1,18 +1,29 @@
 import { Tabs, router } from "expo-router";
-import { Appbar } from "react-native-paper";
 import { Image } from "react-native";
+import { Appbar, Icon } from "react-native-paper";
 
 const ICON_HOME = require("../assets/tabBarLogo.png");
 
-function AppTopBar({ title }: { title: string }) {
+const AppTopBar = ({ title }: { title: string }) => {
   return (
     <Appbar.Header
       style={{ backgroundColor: "#0F4366", height: 40, paddingBottom: 10 }}
     >
+      <Image
+        source={ICON_HOME}
+        style={{
+          width: 26,
+          height: 26,
+          marginLeft: 12,
+          marginRight: 8,
+        }}
+        resizeMode="contain"
+      />
+
       <Appbar.Content
         title="Officely"
         titleStyle={{ color: "white", fontWeight: "600" }}
-        style={{ alignItems: "flex-start", marginLeft: -25 }}
+        style={{ alignItems: "flex-start" }}
       />
 
       <Appbar.Action
@@ -22,9 +33,9 @@ function AppTopBar({ title }: { title: string }) {
       />
     </Appbar.Header>
   );
-}
+};
 
-export default function AppLayout() {
+const AppLayout = () => {
   return (
     <Tabs
       screenOptions={{
@@ -32,7 +43,7 @@ export default function AppLayout() {
 
         tabBarStyle: {
           backgroundColor: "#0F4366",
-          height: 80,
+          height: 60,
           paddingBottom: 20,
           paddingTop: 8,
         },
@@ -42,48 +53,34 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen
-        name="search"
+        name="search/index"
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Appbar.Action
-              icon="magnify"
-              color={color}
-              size={size}
-              onPress={() => {}}
-            />
+            <Icon source="magnify" color={color} size={size} />
           ),
         }}
       />
-
       <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <Image
-              source={ICON_HOME}
-              style={{
-                width: 26,
-                height: 26,
-              }}
-              resizeMode="contain"
-            />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="profile"
+        name="bookings/index"
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Appbar.Action
-              icon="account"
-              color={color}
-              size={size}
-              onPress={() => {}}
-            />
+            <Icon source="calendar" color={color} size={size} />
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile/index"
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon source="account-circle" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen name="profile/edit" options={{ href: null }} />
+      <Tabs.Screen name="search/results" options={{ href: null }} />
+      <Tabs.Screen name="search/book" options={{ href: null }} />
+      <Tabs.Screen name="search/booking-details" options={{ href: null }} />
     </Tabs>
   );
-}
+};
+export default AppLayout;

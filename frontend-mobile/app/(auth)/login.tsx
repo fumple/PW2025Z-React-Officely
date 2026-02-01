@@ -2,14 +2,14 @@ import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
-import { AuthScreenShell } from "./AuthScreenShell";
-import { useAuthStore } from "../../src/auth/authStore";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
+import { useAuthStore } from "@/src/auth/authStore";
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
-export default function LoginScreen() {
+const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [secure, setSecure] = useState(true);
@@ -52,7 +52,7 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       router.replace("/(app)/search");
     } catch (e: any) {
-      setApiError("Incorrect eml or password.");
+      setApiError("Incorrect email or password.");
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ export default function LoginScreen() {
       </View>
     </AuthScreenShell>
   );
-}
+};
 
 const styles = StyleSheet.create({
   form: { gap: 12 },
@@ -160,3 +160,4 @@ const styles = StyleSheet.create({
   primaryBtnContent: { paddingVertical: 6 },
   bottom: { marginTop: 12, alignItems: "center" },
 });
+export default LoginScreen;

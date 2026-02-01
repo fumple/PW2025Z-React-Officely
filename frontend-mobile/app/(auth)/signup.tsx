@@ -11,13 +11,15 @@ import {
   Divider,
   HelperText,
 } from "react-native-paper";
-import { AuthScreenShell } from "./AuthScreenShell";
-import { apiFetch } from "../../src/api/client";
-import { useAuthStore } from "../../src/auth/authStore";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
+import { apiFetch } from "@/src/api/client";
+import { useAuthStore } from "@/src/auth/authStore";
 import { DatePickerModal } from "react-native-paper-dates";
 
 const MAX_PHONE_DIGITS = 15;
 const MIN_PASSWORD_LEN = 8;
+
+//TODO: Add check if a user with this email is already signed up
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -57,7 +59,7 @@ const isValidPhone = (value: string) => {
   return digits.length > 0 && digits.length <= MAX_PHONE_DIGITS;
 };
 
-export default function SignUpScreen() {
+const SignUpScreen = () => {
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -106,7 +108,7 @@ export default function SignUpScreen() {
         touched.password && !password
           ? "Password is required"
           : touched.password && password.length < MIN_PASSWORD_LEN
-            ? `Password must be at least ${MIN_PASSWORD_LEN} characters`
+            ? `Password must have at least ${MIN_PASSWORD_LEN} characters`
             : null,
 
       password2:
@@ -182,7 +184,7 @@ export default function SignUpScreen() {
           email: trimmedEmail,
           password,
           dateOfBirth: formatDate(dateOfBirth),
-          nationality,
+          nationality: nationality.toUpperCase(),
           phoneNumber,
         }),
       });
@@ -426,7 +428,7 @@ export default function SignUpScreen() {
       </View>
     </AuthScreenShell>
   );
-}
+};
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: 18 },
@@ -506,3 +508,4 @@ const NATIONALITIES = [
   { code: "au", label: "Australia (AU)" },
   { code: "nz", label: "New Zealand (NZ)" },
 ];
+export default SignUpScreen;

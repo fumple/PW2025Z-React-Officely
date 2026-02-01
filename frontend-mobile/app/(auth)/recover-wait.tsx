@@ -1,15 +1,15 @@
+import { apiFetch } from "@/src/api/client";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
-import { AuthScreenShell } from "./AuthScreenShell";
-import { apiFetch } from "@/src/api/client";
-import { router, useLocalSearchParams } from "expo-router";
 
 const CODE_LENGTH = 6;
 const RESEND_SECONDS = 30;
 
-export default function RecoverWaitScreen() {
-  const { email } = useLocalSearchParams<{ email: string }>();
+const RecoverWaitScreen = () => {
+  const { email } = useLocalSearchParams<{ email?: string | string[] }>();
 
   const [code, setCode] = useState("");
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
@@ -117,19 +117,18 @@ export default function RecoverWaitScreen() {
       </View>
     </AuthScreenShell>
   );
-}
+};
 
 const styles = StyleSheet.create({
   form: { gap: 12 },
-  field: { marginBottom: 4 },
+  field: {},
   helper: {
     marginTop: 2,
-    marginBottom: -4,
+    marginBottom: -6,
   },
   resend: {
     alignItems: "center",
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 2,
   },
   resendLink: {
     fontWeight: "700",
@@ -139,3 +138,4 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: 2, borderRadius: 6 },
   primaryBtnContent: { paddingVertical: 6 },
 });
+export default RecoverWaitScreen;
