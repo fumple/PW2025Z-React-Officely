@@ -7,7 +7,6 @@ import lombok.Setter;
 @Setter
 public class ParklyBookingResourceDto {
     private String id;
-    private String userId;
     private String spotId;
 
     private String parkingName;

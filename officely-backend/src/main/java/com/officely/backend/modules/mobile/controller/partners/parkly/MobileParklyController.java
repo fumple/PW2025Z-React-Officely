@@ -1,33 +1,19 @@
 package com.officely.backend.modules.mobile.controller.partners.parkly;
 
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyParkingDto;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyParkingDetailsDto;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyParkingSearchResponseDto;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyBookingDto;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyBookingPostResponseDto;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyBookingResourceDto;
-
-import com.officely.backend.modules.parkly.api.ParkingResponse;
-import com.officely.backend.modules.parkly.api.ParkingDetailsResponse;
-import com.officely.backend.modules.parkly.api.BookingResponse;
-import com.officely.backend.modules.parkly.api.CreateBookingResponse;
-
-import java.util.List;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyBookingPatchRequest;
-import com.officely.backend.modules.mobile.api.partners.parkly.ParklyBookingPostRequest;
+import com.officely.backend.modules.mobile.api.partners.parkly.*;
 import com.officely.backend.modules.parkly.ParklyClient;
-import com.officely.backend.modules.parkly.api.CreateBookingRequest;
-import com.officely.backend.modules.parkly.api.EditBookingRequest;
+import com.officely.backend.modules.parkly.api.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/mobile/partners/parkly")
@@ -85,7 +71,6 @@ public class MobileParklyController {
     private ParklyBookingDto mapBookingWithLinks(BookingResponse b) {
         var dto = new ParklyBookingDto();
         dto.setId(b.getId());
-        dto.setUserId(b.getUserId());
         dto.setSpotId(b.getSpotId());
         dto.setParkingName(b.getParkingName());
         dto.setStreet(b.getStreet());
@@ -121,6 +106,7 @@ public class MobileParklyController {
 
     private ParklyBookingPostResponseDto mapCreateBookingResponse(CreateBookingResponse r) {
         var dto = new ParklyBookingPostResponseDto();
+        dto.setId(r.getId());
         dto.setLocalId(r.getLocalId());
         dto.setStart(r.getStart());
         dto.setEnd(r.getEnd());
@@ -135,7 +121,6 @@ public class MobileParklyController {
     private ParklyBookingResourceDto mapBookingResource(BookingResponse b) {
         var dto = new ParklyBookingResourceDto();
         dto.setId(b.getId());
-        dto.setUserId(b.getUserId());
         dto.setSpotId(b.getSpotId());
         dto.setParkingName(b.getParkingName());
         dto.setStreet(b.getStreet());
@@ -212,7 +197,7 @@ public class MobileParklyController {
             @RequestParam(required = false) String to
     ) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        var resp = parklyClient.getMyBookings(actor.getId().toString(), actor.getEmail(), from, to);
+        var resp = parklyClient.getMyBookings(actor.getEmail(), from, to);
 
         if (!resp.getStatusCode().is2xxSuccessful()) {
             return resp;
@@ -233,23 +218,21 @@ public class MobileParklyController {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         var partnerReq = new CreateBookingRequest();
-        partnerReq.setSource("officely");
-        partnerReq.setEmail(actor.getEmail());
+        partnerReq.setName(actor.getFirstName());
+        partnerReq.setSurname(actor.getLastName());
+        partnerReq.setPhoneNumber(actor.getPhoneNumber());
 
         // internal -> partner mapping
         partnerReq.setParkingId(req.getParkingId());
         partnerReq.setStart(req.getStartDate());
         partnerReq.setEnd(req.getEndDate());
 
-        // flags (support both naming variants on partner side if you added them)
+        // flags
         partnerReq.setDisabled(req.getDisabled());
         partnerReq.setEv(req.getEv());
         partnerReq.setBig(req.getBig());
-        partnerReq.setIs_disabled(req.getDisabled());
-        partnerReq.setIs_ev(req.getEv());
-        partnerReq.setIs_big(req.getBig());
 
-        var resp = parklyClient.createBooking(actor.getId().toString(), partnerReq);
+        var resp = parklyClient.createBooking(actor.getEmail(), partnerReq);
 
         if (!resp.getStatusCode().is2xxSuccessful()) {
             return resp;
@@ -262,7 +245,7 @@ public class MobileParklyController {
     @GetMapping("/bookings/{id}")
     public ResponseEntity<?> getBooking(@PathVariable String id) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        var resp = parklyClient.getBookingById(actor.getId().toString(), actor.getEmail(), id);
+        var resp = parklyClient.getBookingById(actor.getEmail(), id);
 
         if (!resp.getStatusCode().is2xxSuccessful()) {
             return resp;
@@ -277,14 +260,12 @@ public class MobileParklyController {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         var partnerReq = new EditBookingRequest();
-        partnerReq.setEmail(actor.getEmail());
         partnerReq.setStart(req.getStart());
         partnerReq.setEnd(req.getEnd());
 
         partnerReq.setConfirmed(req.getConfirmed());
-        partnerReq.setIs_confirmed(req.getConfirmed());
 
-        var resp = parklyClient.editBooking(actor.getId().toString(), id, partnerReq);
+        var resp = parklyClient.editBooking(actor.getEmail(), id, partnerReq);
 
         if (!resp.getStatusCode().is2xxSuccessful()) {
             return resp;
@@ -297,7 +278,7 @@ public class MobileParklyController {
     @DeleteMapping("/bookings/{id}")
     public ResponseEntity<?> cancelBooking(@PathVariable String id) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        var resp = parklyClient.cancelBooking(actor.getId().toString(), actor.getEmail(), id);
+        var resp = parklyClient.cancelBooking(actor.getEmail(), id);
         if (!resp.getStatusCode().is2xxSuccessful()) return resp;
         return ResponseEntity.noContent().build();
     }
