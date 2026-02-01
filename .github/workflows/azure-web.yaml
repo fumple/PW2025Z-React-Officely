@@ -80,6 +80,8 @@ jobs:
             ${{ runner.os }}-
       - name: Build frontend-web
         working-directory: frontend-web
+        env:
+          VITE_API_BASE_URL: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/admin
         run: |
           npm ci
           npm run build
