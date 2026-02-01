@@ -342,37 +342,44 @@ public class OfficeService {
     }
     @SuppressWarnings("UnusedReturnValue")
     @Transactional
-    public OfficeEntity patchOffice(OfficeEntity updated, List<String> photos, List<MultipartFile> addedPhotos) {
-        var currentPhotos = updated.getPhotos();
-        var finalPhotos = new ArrayList<OfficePhotoEntity>();
-        for(var photo: photos) {
-            if(photo.matches("^current\\[[0-9]+]$")) {
-                var indexStr = photo.substring("current[".length(), photo.length()-1);
-                var index = Integer.parseInt(indexStr);
-                if(index >= currentPhotos.size())
-                    throw new ValidationException("images", "Invalid index of photo");
-                var current = currentPhotos.get(index);
+    public OfficeEntity patchOffice(OfficeEntity updated, @Nullable List<String> photos, List<MultipartFile> addedPhotos) {
+        if(photos != null) {
+            var currentPhotos = updated.getPhotos();
+            officePhotoRepository.deleteAll(currentPhotos);
 
-                var entity = new OfficePhotoEntity();
-                entity.setFilename(current.getFilename());
-                entity.setOffice(updated);
-                officePhotoRepository.save(entity);
-                finalPhotos.add(entity);
-            } else if(photo.matches("^added\\[[0-9]+]$")) {
-                var indexStr = photo.substring("added[".length(), photo.length()-1);
-                var index = Integer.parseInt(indexStr);
-                if(index >= addedPhotos.size())
-                    throw new ValidationException("images", "Invalid index of photo");
-                var current = addedPhotos.get(index);
-                var filename = storageService.store(current);
-                var entity = new OfficePhotoEntity();
-                entity.setFilename(filename);
-                entity.setOffice(updated);
-                officePhotoRepository.save(entity);
-                finalPhotos.add(entity);
+            var finalPhotos = new ArrayList<OfficePhotoEntity>();
+            for (var photo : photos) {
+                if (photo.matches("^current\\[[0-9]+]$")) {
+                    var indexStr = photo.substring("current[".length(), photo.length() - 1);
+                    var index = Integer.parseInt(indexStr);
+                    if (index >= currentPhotos.size())
+                        throw new ValidationException("images", "Invalid index of photo");
+                    var current = currentPhotos.get(index);
+
+                    var entity = new OfficePhotoEntity();
+                    entity.setFilename(current.getFilename());
+                    entity.setOffice(updated);
+                    officePhotoRepository.save(entity);
+                    finalPhotos.add(entity);
+                } else if (photo.matches("^added\\[[0-9]+]$")) {
+                    var indexStr = photo.substring("added[".length(), photo.length() - 1);
+                    var index = Integer.parseInt(indexStr);
+                    if (index >= addedPhotos.size())
+                        throw new ValidationException("images", "Invalid index of photo");
+                    var current = addedPhotos.get(index);
+                    var filename = storageService.store(current);
+                    var entity = new OfficePhotoEntity();
+                    entity.setFilename(filename);
+                    entity.setOffice(updated);
+                    officePhotoRepository.save(entity);
+                    finalPhotos.add(entity);
+                }
             }
+            if (finalPhotos.isEmpty()) {
+                throw new ValidationException("images", "An office must have at least 1 image");
+            }
+            updated.setPhotos(finalPhotos);
         }
-        updated.setPhotos(finalPhotos);
         return patchOffice(updated);
     }
 }
