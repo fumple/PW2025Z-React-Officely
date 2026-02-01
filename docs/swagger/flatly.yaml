@@ -4,7 +4,7 @@ servers:
   - url: https://officely-dev.noscorp.pl/flatly
 info:
   title: Officely - API documentation for Flatly
-  version: 1.2.0
+  version: 1.2.1
   description:  |
     This is a rough description of how the API works, however the names of some fields may be different, treat this as a rough guide.
     1. view available filters
@@ -57,6 +57,9 @@ components:
       examples: [25]
     FilterElement:
       type: object
+      required:
+        - key
+        - label
       properties: 
         key:
           type: string
@@ -64,6 +67,9 @@ components:
           type: string
       oneOf: 
         - type: object
+          required:
+            - type
+            - flags
           properties: 
             type:
               type: string
@@ -72,17 +78,20 @@ components:
               type: array
               items:
                 type: object
+                required:
+                  - key
+                  - label
                 properties:
                   key:
                     type: string
                   label:
                     type: string
-            min:
-              type: integer
-            max:
-              type: integer
     FilterSection:
       type: object
+      required:
+        - key
+        - label
+        - elements
       properties: 
         key:
           type: string

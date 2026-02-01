@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Officely - Internal Admin API
-  version: 1.2.0
+  version: 1.2.1
 servers: 
   - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/admin
   - url: https://officely-dev.noscorp.pl/admin
@@ -28,6 +28,9 @@ components:
       examples: [25]
     FilterElement:
       type: object
+      required:
+        - key
+        - label
       properties: 
         key:
           type: string
@@ -35,6 +38,9 @@ components:
           type: string
       oneOf: 
         - type: object
+          required:
+            - type
+            - flags
           properties: 
             type:
               type: string
@@ -43,26 +49,20 @@ components:
               type: array
               items:
                 type: object
+                required:
+                  - key
+                  - label
                 properties:
                   key:
                     type: string
                   label:
                     type: string
-            min:
-              type: integer
-            max:
-              type: integer
-        - type: object
-          properties: 
-            type:
-              type: string
-              const: "integer"
-            min:
-              type: integer
-            max:
-              type: integer
     FilterSection:
       type: object
+      required:
+        - key
+        - label
+        - elements
       properties: 
         key:
           type: string
