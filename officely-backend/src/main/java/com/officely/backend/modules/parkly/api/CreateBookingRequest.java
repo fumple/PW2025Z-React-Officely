@@ -8,17 +8,19 @@ import lombok.Setter;
 public class CreateBookingRequest {
     private String start;
     private String end;
-    private String source; // "officely"
+    private String source; // "OFFICELY"
     private String email;
+    private String name;
+    private String surname;
+    private String phoneNumber;
 
     @JsonProperty("parking_id")
     private String parkingId;
 
+    @JsonProperty("is_disabled")
     private Boolean disabled;
+    @JsonProperty("is_ev")
     private Boolean ev;
+    @JsonProperty("is_big")
     private Boolean big;
-
-    private Boolean is_ev;
-    private Boolean is_disabled;
-    private Boolean is_big;
 }

@@ -25,7 +25,6 @@ public class ParklyBookingDto extends RepresentationModel<ParklyBookingDto> {
 
     private String source; // "officely"
 
-    private String userId;
     private String spotId;
     private String localId;
 }
