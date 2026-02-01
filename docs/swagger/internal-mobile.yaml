@@ -4,7 +4,7 @@ servers:
   - url: https://officely-dev.noscorp.pl/mobile
 info:
   title: Officely - Internal Mobile API
-  version: 1.2.0
+  version: 1.2.1
 components:
   responses:
     Unauthorized:
@@ -30,6 +30,9 @@ components:
       examples: [25]
     FilterElement:
       type: object
+      required:
+        - key
+        - label
       properties: 
         key:
           type: string
@@ -37,6 +40,9 @@ components:
           type: string
       oneOf: 
         - type: object
+          required:
+            - type
+            - flags
           properties: 
             type:
               type: string
@@ -45,17 +51,20 @@ components:
               type: array
               items:
                 type: object
+                required:
+                  - key
+                  - label
                 properties:
                   key:
                     type: string
                   label:
                     type: string
-            min:
-              type: integer
-            max:
-              type: integer
     FilterSection:
       type: object
+      required:
+        - key
+        - label
+        - elements
       properties: 
         key:
           type: string
