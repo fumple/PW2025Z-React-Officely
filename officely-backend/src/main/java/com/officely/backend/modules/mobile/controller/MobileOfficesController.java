@@ -77,7 +77,7 @@ public class MobileOfficesController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Double nearLat,
             @RequestParam(required = false) Double nearLon,
-            @RequestParam String nearAddress,
+            @RequestParam(required = false) String nearAddress,
             @RequestParam(required = false) Integer maxDistanceFromAddress,
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
