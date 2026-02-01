@@ -26,5 +26,5 @@ public class UserPatchRequest {
     @Pattern(regexp = "^\\+[1-9]\\d{1,14}$")
     private String phoneNumber;
 
-    private boolean blocked;
+    private Boolean blocked;
 }
