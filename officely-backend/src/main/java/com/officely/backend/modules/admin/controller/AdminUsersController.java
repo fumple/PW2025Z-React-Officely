@@ -141,11 +141,11 @@ public class AdminUsersController {
             }
         }
 
-        if(targetUser.isBlocked() != patchRequest.isBlocked() && !canBlock) {
+        if(patchRequest.getBlocked() != null && targetUser.isBlocked() != patchRequest.getBlocked() && !canBlock) {
             throw new ValidationException("isBlocked", "You do not have permission to block/unblock this user");
         }
-        if(canBlock && targetUser.isBlocked() != patchRequest.isBlocked()) {
-            targetUser.setBlocked(patchRequest.isBlocked());
+        if(patchRequest.getBlocked() != null && canBlock && targetUser.isBlocked() != patchRequest.getBlocked()) {
+            targetUser.setBlocked(patchRequest.getBlocked());
         }
         if(canUpdate) {
             if(patchRequest.getPassword() != null) {

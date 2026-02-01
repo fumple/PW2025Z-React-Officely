@@ -1,6 +1,7 @@
 package com.officely.backend.service;
 
 import com.officely.backend.entity.OfficeItemEntity;
+import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.repository.OfficeItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,7 @@ public class OfficeItemService {
         return officeItemRepository.save(entity);
     }
 
-    public void moveItemsToNewOffer(long sourceId, long targetId) {
-        officeItemRepository.updateOfferId(sourceId, targetId);
+    public void moveItemsToNewOffer(OfficeOfferEntity source, OfficeOfferEntity target) {
+        officeItemRepository.updateOfferId(source, target);
     }
 }
