@@ -20,11 +20,11 @@ public interface OfficeRepository extends JpaRepository<OfficeEntity, Long>, Jpa
     @Query("select distinct o from OfficeEntity o" +
             " left join OfficeMemberEntity m ON m.office.id = o.id" +
             " where (o.owner.id = :userId OR m.user.id = :userId) AND " +
-            " o.name ilike %:name% OR o.address ilike %:address% OR o.id = :id")
+            " (o.name ilike %:name% OR o.address ilike %:address% OR o.id = :id)")
     Page<OfficeEntity> getByUserIdAndIdOrNameSearchOrAddressSearch(long userId, long id, String name, String address, Pageable pageable);
     @Query("select distinct o from OfficeEntity o" +
             " left join OfficeMemberEntity m ON m.office.id = o.id" +
             " where (o.owner.id = :userId OR m.user.id = :userId) AND " +
-            " o.name ilike %:name% OR o.address ilike %:address%")
+            " (o.name ilike %:name% OR o.address ilike %:address%)")
     Page<OfficeEntity> getByUserIdAndNameSearchOrAddressSearch(long userId, String name, String address, Pageable pageable);
 }
