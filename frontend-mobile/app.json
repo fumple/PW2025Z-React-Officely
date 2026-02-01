@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "frontend-mobile",
-    "slug": "frontend-mobile",
+    "slug": "officely-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "74e12f73-279e-4a37-9649-2bb8bd05fbad"
+      }
+    },
+    "owner": "officelypl"
   }
 }
