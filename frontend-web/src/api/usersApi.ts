@@ -16,3 +16,21 @@ export type UserResource = {
 export async function getMe() {
   return apiFetch<UserResource>(`/users/@me`, { method: "GET", auth: true });
 }
+
+export type UpdateMeInput = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  nationality?: string;
+  phoneNumber?: string;
+  password?: string;
+  currentPassword?: string;
+};
+
+export async function updateMe(input: UpdateMeInput) {
+  return apiFetch<void>(`/users/@me`, {
+    method: "PATCH",
+    auth: true,
+    body: JSON.stringify(input),
+  });
+}
