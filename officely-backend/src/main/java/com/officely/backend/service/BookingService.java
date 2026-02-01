@@ -181,12 +181,14 @@ public class BookingService {
         return pageToken;
     }
 
-    public Page<BookingEntity> getBookings(PageRequest pageRequest) {
-        return bookingRepository.findAll(pageRequest);
+    public Page<BookingEntity> getBookings(UserEntity actor, PageRequest pageRequest) {
+        if(actor.isAdmin()) {
+            return bookingRepository.findAll(pageRequest);
+        }
+        return bookingRepository.getByAdminUserId(actor.getId(), pageRequest);
     }
-    public Page<BookingEntity> getBookings(PageRequest pageRequest, String search) {
-        // TODO: Implement
-        return bookingRepository.findAll(pageRequest);
+    public Page<BookingEntity> getBookings(long officeId, PageRequest pageRequest) {
+        return bookingRepository.getByOfficeId(officeId, pageRequest);
     }
     public Optional<BookingEntity> getBookingById(long id) {
         return bookingRepository.findById(id);
