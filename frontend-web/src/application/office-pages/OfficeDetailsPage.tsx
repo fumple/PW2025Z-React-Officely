@@ -28,6 +28,8 @@ type ItemRow = {
   id: string;
   name: string;
   type: "SHARED" | "INDIVIDUAL";
+  floor: string;
+  room: string;
   offerId: string;
   capacity: string;
 };
@@ -104,8 +106,10 @@ export const OfficeDetailsPage = () => {
             id: it.id,
             name: it.name,
             type: it.type,
+            floor: it.floor,
+            room: it.room,
             offerId: it.offerId,
-            capacity: it.type === "SHARED" ? String(it.capacity ?? "") : "-", // INDIVIDUAL has no capacity
+            capacity: it.type === "SHARED" ? String(it.capacity ?? "") : "1", // INDIVIDUAL has no capacity
           })),
         );
       } else {
@@ -156,8 +160,10 @@ export const OfficeDetailsPage = () => {
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 140 },
       { field: "type", headerName: "Type", flex: 1, minWidth: 120 },
-      { field: "offerId", headerName: "Offer ID", flex: 1, minWidth: 160 },
       { field: "capacity", headerName: "Capacity", flex: 1, minWidth: 120 },
+      { field: "floor", headerName: "Floor", flex: 1, minWidth: 120 },
+      { field: "room", headerName: "Room", flex: 1, minWidth: 120 },
+      { field: "offerId", headerName: "Offer ID", flex: 1, minWidth: 160 },
       {
         field: "details",
         headerName: "",

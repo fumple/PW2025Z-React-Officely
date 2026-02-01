@@ -132,6 +132,8 @@ export type OfficeItemResource = {
   officeId: string;
   offerId: string;
   name: string;
+  room: string;
+  floor: string;
   type: "SHARED" | "INDIVIDUAL";
   capacity?: number;
   _links: { self: Link };
@@ -393,3 +395,73 @@ export const updateOfficeOffer = async ({
     },
   );
 };
+
+export type CreateOfficeItemInput = {
+  name: string;
+  type: "SHARED" | "INDIVIDUAL";
+
+  offerId: string;
+  floor: string;
+  room: string;
+
+  available?: boolean;
+
+  // required by backend when type=SHARED
+  capacity?: number;
+};
+
+export async function createOfficeItem(params: {
+  officeId: string;
+  input: CreateOfficeItemInput;
+}) {
+  return apiFetch<{ id: string }>(
+    `/offices/${encodeURIComponent(params.officeId)}/items`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(params.input),
+    },
+  );
+}
+
+export async function getOfficeItem(params: {
+  officeId: string;
+  itemId: string;
+}) {
+  return apiFetch<OfficeItemResource>(
+    `/offices/${encodeURIComponent(params.officeId)}/items/${encodeURIComponent(
+      params.itemId,
+    )}`,
+    { method: "GET", auth: true },
+  );
+}
+
+export type UpdateOfficeItemInput = {
+  name?: string;
+  type?: "SHARED" | "INDIVIDUAL";
+
+  offerId?: string;
+  floor?: string;
+  room?: string;
+
+  available?: boolean;
+
+  capacity?: number;
+};
+
+export async function updateOfficeItem(params: {
+  officeId: string;
+  itemId: string;
+  input: UpdateOfficeItemInput;
+}) {
+  return apiFetch<void>(
+    `/offices/${encodeURIComponent(params.officeId)}/items/${encodeURIComponent(
+      params.itemId,
+    )}`,
+    {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(params.input),
+    },
+  );
+}
