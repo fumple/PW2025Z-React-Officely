@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import Box from "@mui/material/Box";
@@ -8,77 +8,41 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
+import Paper from "@mui/material/Paper";
+import OutlinedInput from "@mui/material/OutlinedInput";
 
 import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 
 import { DataGrid } from "@mui/x-data-grid/DataGrid";
 import type { GridColDef } from "@mui/x-data-grid/models/colDef";
-import test1PhotoUrl from "../../assets/test-photo.jpg";
-import test2PhotoUrl from "../../assets/test-photo-2.jpg";
+
 import { OfficeLocationDisplay } from "./OfficeLocationDisplay";
-import Paper from "@mui/material/Paper";
-import OutlinedInput from "@mui/material/OutlinedInput";
+import * as officesApi from "../../api/officesApi";
 
 const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
 type ItemRow = {
   id: string;
   name: string;
-  floor: string;
-  room: string;
-  currentCapacity: string;
-  totalCapacity: string;
+  type: "SHARED" | "INDIVIDUAL";
+  offerId: string;
+  capacity: string;
 };
 
-type PricingRow = {
+type OfferRow = {
   id: string;
   name: string;
   price: string;
-  usedBy: string;
-  timeForPayment: string;
-  timeForCancellation: string;
+  availableFrom: string;
+  availableTo: string;
 };
 
-type EmployeeRow = {
+type MemberRow = {
   id: string;
-  email: string;
-  name: string;
-  surname: string;
-  nationality: string;
-  dateOfBirth: string;
-  phoneNumber: string;
+  userId: string;
 };
-
-const allItems: ItemRow[] = Array.from({ length: 60 }).map((_, i) => ({
-  id: String(i + 1),
-  name: String("A" + (i + 1)),
-  floor: "Text line",
-  room: "Text line",
-  currentCapacity: "Text line",
-  totalCapacity: "Text line",
-}));
-
-const allPricings: PricingRow[] = Array.from({ length: 80 }).map((_, i) => ({
-  id: String(i + 1),
-  name: "Text line",
-  price: "Text line",
-  usedBy: "Text line",
-  timeForPayment: "Text line",
-  timeForCancellation: "Text line",
-}));
-
-const allEmployees: EmployeeRow[] = Array.from({ length: 15 }).map((_, i) => ({
-  id: String(i + 1),
-  email: "Text Line",
-  name: "Text line",
-  surname: "Text line",
-  nationality: "Text line",
-  dateOfBirth: "Text line",
-  phoneNumber: "Text line",
-}));
 
 function getRowsPerPageOptions(totalCount: number): number[] {
   if (totalCount === 0) return [10];
@@ -89,45 +53,105 @@ function getRowsPerPageOptions(totalCount: number): number[] {
 export const OfficeDetailsPage = () => {
   const navigate = useNavigate();
   const { officeId } = useParams<{ officeId: string }>();
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
-  const location = {
-    address: "",
-    lat: 52.2297,
-    lng: 21.0122,
-  };
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const officeName = "Lorem Ipsum Office";
-  const officeDescription = "The perfect office for everyone!";
-  const officeAddress = "al. Jerozolimskie 179, 02-222 Warszawa";
-  const officeCountry = "Poland";
+  const [office, setOffice] = useState<officesApi.OfficeResource | null>(null);
 
-  const itemsRows = allItems;
-  const pricingRows = allPricings;
-  const employeeRows = allEmployees;
+  const [itemsRows, setItemsRows] = useState<ItemRow[]>([]);
+  const [offersRows, setOffersRows] = useState<OfferRow[]>([]);
+  const [membersRows, setMembersRows] = useState<MemberRow[]>([]);
+  const [publishing, setPublishing] = useState(false);
+
+  useEffect(() => {
+    if (!officeId) return;
+
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      setApiError(null);
+
+      const [officeRes, itemsRes, offersRes, membersRes] = await Promise.all([
+        officesApi.getOffice(officeId),
+        officesApi.listOfficeItems({ officeId, pageSize: 50 }),
+        officesApi.listOfficeOffers({ officeId, pageSize: 50 }),
+        officesApi.listOfficeMembers(officeId),
+      ]);
+
+      if (!alive) return;
+
+      if (!officeRes.ok) {
+        setApiError(
+          officeRes.error?.errors?.[0]?.message ?? "Failed to load office.",
+        );
+        setLoading(false);
+        return;
+      }
+
+      setOffice(officeRes.data);
+
+      if (itemsRes.ok) {
+        setItemsRows(
+          itemsRes.data.results.map((it) => ({
+            id: it.id,
+            name: it.name,
+            type: it.type,
+            offerId: it.offerId,
+            capacity: it.type === "SHARED" ? String(it.capacity ?? "") : "-", // INDIVIDUAL has no capacity
+          })),
+        );
+      } else {
+        setItemsRows([]);
+      }
+
+      if (offersRes.ok) {
+        setOffersRows(
+          offersRes.data.results.map((o) => ({
+            id: o.id,
+            name: o.name,
+            price: `${o.price} ${o.currency}`,
+            availableFrom: o.availableFrom,
+            availableTo: o.availableTo ?? "-",
+          })),
+        );
+      } else {
+        setOffersRows([]);
+      }
+
+      if (membersRes.ok) {
+        setMembersRows(
+          membersRes.data.results.map((m) => ({
+            id: m.id,
+            userId: m.userId,
+          })),
+        );
+      } else {
+        setMembersRows([]);
+      }
+
+      setLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [officeId]);
 
   const itemsPageSizeOptions = getRowsPerPageOptions(itemsRows.length);
-  const pricingPageSizeOptions = getRowsPerPageOptions(pricingRows.length);
-  const employeePageSizeOptions = getRowsPerPageOptions(employeeRows.length);
+  const offersPageSizeOptions = getRowsPerPageOptions(offersRows.length);
+  const membersPageSizeOptions = getRowsPerPageOptions(membersRows.length);
 
   const itemsColumns = useMemo<GridColDef<ItemRow>[]>(
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 140 },
-      { field: "floor", headerName: "Floor", flex: 1, minWidth: 120 },
-      { field: "room", headerName: "Room", flex: 1, minWidth: 120 },
-      {
-        field: "currentCapacity",
-        headerName: "Current capacity",
-        flex: 1,
-        minWidth: 160,
-      },
-      {
-        field: "totalCapacity",
-        headerName: "Total capacity",
-        flex: 1,
-        minWidth: 160,
-      },
+      { field: "type", headerName: "Type", flex: 1, minWidth: 120 },
+      { field: "offerId", headerName: "Offer ID", flex: 1, minWidth: 160 },
+      { field: "capacity", headerName: "Capacity", flex: 1, minWidth: 120 },
       {
         field: "details",
         headerName: "",
@@ -141,7 +165,7 @@ export const OfficeDetailsPage = () => {
           <Button
             variant="text"
             color="primary"
-            onClick={() => navigate(`./item/${params.row.name}`)}
+            onClick={() => navigate(`./item/${params.row.id}`)}
           >
             Details
           </Button>
@@ -160,7 +184,7 @@ export const OfficeDetailsPage = () => {
           <Button
             variant="text"
             color="primary"
-            onClick={() => navigate(`./item/${params.row.name}/edit`)}
+            onClick={() => navigate(`./item/${params.row.id}/edit`)}
           >
             Edit
           </Button>
@@ -170,22 +194,21 @@ export const OfficeDetailsPage = () => {
     [navigate],
   );
 
-  const pricingColumns = useMemo<GridColDef<PricingRow>[]>(
+  const offersColumns = useMemo<GridColDef<OfferRow>[]>(
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
       { field: "price", headerName: "Price", flex: 1, minWidth: 120 },
-      { field: "usedBy", headerName: "Used by", flex: 1, minWidth: 140 },
       {
-        field: "timeForPayment",
-        headerName: "Time for payment",
+        field: "availableFrom",
+        headerName: "Available from",
         flex: 1,
         minWidth: 180,
       },
       {
-        field: "timeForCancellation",
-        headerName: "Time for cancellation",
+        field: "availableTo",
+        headerName: "Available to",
         flex: 1,
-        minWidth: 200,
+        minWidth: 180,
       },
       {
         field: "details",
@@ -229,30 +252,9 @@ export const OfficeDetailsPage = () => {
     [navigate],
   );
 
-  const employeeColumns = useMemo<GridColDef<EmployeeRow>[]>(
+  const membersColumns = useMemo<GridColDef<MemberRow>[]>(
     () => [
-      { field: "id", headerName: "ID", flex: 1, minWidth: 10 },
-      { field: "email", headerName: "Email", flex: 1, minWidth: 140 },
-      { field: "name", headerName: "Name", flex: 1, minWidth: 120 },
-      { field: "surname", headerName: "Surname", flex: 1, minWidth: 160 },
-      {
-        field: "nationality",
-        headerName: "Nationality",
-        flex: 1,
-        minWidth: 120,
-      },
-      {
-        field: "dateOfBirth",
-        headerName: "Date of Birth",
-        flex: 1,
-        minWidth: 120,
-      },
-      {
-        field: "phoneNumber",
-        headerName: "Phone Number",
-        flex: 1,
-        minWidth: 120,
-      },
+      { field: "userId", headerName: "User ID", flex: 1, minWidth: 220 },
       {
         field: "details",
         headerName: "",
@@ -266,7 +268,7 @@ export const OfficeDetailsPage = () => {
           <Button
             variant="text"
             color="primary"
-            onClick={() => navigate(`./employee/${params.row.id}`)}
+            onClick={() => navigate(`./employee/${params.row.userId}`)}
           >
             Details
           </Button>
@@ -280,6 +282,12 @@ export const OfficeDetailsPage = () => {
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
+      {apiError ? (
+        <Typography color="error" sx={{ mb: "10px" }}>
+          {apiError}
+        </Typography>
+      ) : null}
+
       {/* Top section */}
       <Box
         sx={{
@@ -298,7 +306,7 @@ export const OfficeDetailsPage = () => {
             mb: "18px",
           }}
         >
-          {/* Left: title + description + actions */}
+          {/* Left */}
           <Box
             sx={{
               display: "flex",
@@ -312,26 +320,53 @@ export const OfficeDetailsPage = () => {
               component="h1"
               sx={{ m: 0, fontSize: "22px", fontWeight: 600, color: "#111" }}
             >
-              {officeName}
+              {loading ? "Loading..." : (office?.name ?? "-")}
             </Typography>
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <Typography sx={{ fontSize: "13px", color: "#444" }}>
-                {officeDescription}
-              </Typography>
-              <Typography sx={{ fontSize: "13px", color: "#444" }}>
-                Address: {officeAddress}
-              </Typography>
-              <Typography sx={{ fontSize: "13px", color: "#444" }}>
-                Country: {officeCountry}
-              </Typography>
-            </Box>
+            {office ? (
+              <Box
+                sx={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    color: "#444",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {office.description}
+                </Typography>
+                <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                  Opening hours:
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    color: "#444",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {office.openingHours}
+                </Typography>
+                <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                  Address: {office.address}
+                </Typography>
+                <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                  Contact: {office.contactEmail} · {office.contactPhone}
+                </Typography>
+                <Typography sx={{ fontSize: "13px", color: "#444" }}>
+                  Payment: {office.paymentReceiverName} ·{" "}
+                  {office.paymentAccountNumber}
+                </Typography>
+              </Box>
+            ) : null}
 
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               <Button
                 variant="contained"
                 startIcon={<EditIcon fontSize="small" />}
                 onClick={() => navigate("./edit")}
+                disabled={loading || !office}
               >
                 Edit
               </Button>
@@ -348,23 +383,41 @@ export const OfficeDetailsPage = () => {
                 color="error"
                 startIcon={<VisibilityOffIcon fontSize="small" />}
                 sx={{ textTransform: "none" }}
+                disabled={loading || !office || publishing}
+                onClick={async () => {
+                  if (!officeId) return;
+
+                  setPublishing(true);
+                  setApiError(null);
+
+                  const res = await officesApi.setOfficePublished({
+                    officeId,
+                    published: false,
+                  });
+
+                  setPublishing(false);
+
+                  if (!res.ok) {
+                    setApiError(
+                      res.error?.errors?.[0]?.message ??
+                        "Failed to unpublish office.",
+                    );
+                    return;
+                  }
+
+                  // refresh office so UI shows updated state (if your OfficeResource exposes it)
+                  const officeRes = await officesApi.getOffice(officeId);
+                  if (officeRes.ok) setOffice(officeRes.data);
+                }}
               >
                 Unpublish
               </Button>
-
-              <Button
-                variant="text"
-                color="error"
-                startIcon={<DeleteOutlineIcon fontSize="small" />}
-                sx={{ textTransform: "none" }}
-                onClick={() => setDeleteOpen(true)}
-              >
-                Delete
-              </Button>
             </Box>
+
+            {/* Gallery */}
             <Box sx={{ mb: "18px" }}>
-              <Box sx={{ display: "flex", gap: "10px" }}>
-                {[test1PhotoUrl, test2PhotoUrl].map((src, idx) => (
+              <Box sx={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                {(office?.photoUrls ?? []).map((src, idx) => (
                   <Box
                     key={idx}
                     component="img"
@@ -375,24 +428,31 @@ export const OfficeDetailsPage = () => {
                       border: "1px solid #eee",
                       objectFit: "cover",
                       backgroundColor: "#fff",
+                      borderRadius: "10px",
                     }}
                   />
                 ))}
+                {!loading && office && (office.photoUrls?.length ?? 0) === 0 ? (
+                  <Typography sx={{ fontSize: "13px", color: "#666" }}>
+                    No photos.
+                  </Typography>
+                ) : null}
               </Box>
             </Box>
           </Box>
 
-          {/* Right: map in the top-right corner */}
+          {/* Right: map */}
           <Box sx={{ width: 400, flexShrink: 0 }}>
             <OfficeLocationDisplay
-              address={location.address}
-              lat={location.lat}
-              lng={location.lng}
+              address={office?.address ?? ""}
+              lat={office?.coordinates?.lat ?? 52.2297}
+              lng={office?.coordinates?.lon ?? 21.0122} // API uses lon
             />
           </Box>
         </Box>
       </Box>
 
+      {/* Items */}
       <Box
         sx={{
           display: "flex",
@@ -409,17 +469,18 @@ export const OfficeDetailsPage = () => {
           variant="contained"
           startIcon={<AddIcon fontSize="small" />}
           onClick={() => navigate("./item/new")}
+          disabled={loading || !office}
         >
           Add
         </Button>
       </Box>
 
-      {/* Items table (final table style) */}
       <Paper variant="card">
         <DataGrid
           rows={itemsRows}
           columns={itemsColumns}
           disableRowSelectionOnClick
+          loading={loading}
           pageSizeOptions={itemsPageSizeOptions}
           initialState={{
             pagination: { paginationModel: { page: 0, pageSize: 10 } },
@@ -435,7 +496,7 @@ export const OfficeDetailsPage = () => {
         />
       </Paper>
 
-      {/* Pricing tables header */}
+      {/* Offers */}
       <Box
         sx={{
           display: "flex",
@@ -445,32 +506,27 @@ export const OfficeDetailsPage = () => {
           mt: "20px",
         }}
       >
-        <Typography
-          sx={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "#111",
-          }}
-        >
-          Pricing tables
+        <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#111" }}>
+          Offers
         </Typography>
 
         <Button
           variant="contained"
           startIcon={<AddIcon fontSize="small" />}
           onClick={() => navigate("./pricing-table/new")}
+          disabled={loading || !office}
         >
           Add
         </Button>
       </Box>
 
-      {/* Pricing table (final table style) */}
       <Paper variant="card">
         <DataGrid
-          rows={pricingRows}
-          columns={pricingColumns}
+          rows={offersRows}
+          columns={offersColumns}
           disableRowSelectionOnClick
-          pageSizeOptions={pricingPageSizeOptions}
+          loading={loading}
+          pageSizeOptions={offersPageSizeOptions}
           initialState={{
             pagination: { paginationModel: { page: 0, pageSize: 10 } },
           }}
@@ -485,7 +541,7 @@ export const OfficeDetailsPage = () => {
         />
       </Paper>
 
-      {/* Employees that are granted access*/}
+      {/* Members */}
       <Box
         sx={{
           display: "flex",
@@ -503,6 +559,7 @@ export const OfficeDetailsPage = () => {
           variant="contained"
           startIcon={<AddIcon fontSize="small" />}
           onClick={() => setAddOpen(true)}
+          disabled={loading || !office}
         >
           Add
         </Button>
@@ -510,10 +567,11 @@ export const OfficeDetailsPage = () => {
 
       <Paper variant="card">
         <DataGrid
-          rows={employeeRows}
-          columns={employeeColumns}
+          rows={membersRows}
+          columns={membersColumns}
           disableRowSelectionOnClick
-          pageSizeOptions={employeePageSizeOptions}
+          loading={loading}
+          pageSizeOptions={membersPageSizeOptions}
           initialState={{
             pagination: { paginationModel: { page: 0, pageSize: 10 } },
           }}
@@ -528,7 +586,7 @@ export const OfficeDetailsPage = () => {
         />
       </Paper>
 
-      {/* Delete dialog */}
+      {/* Delete dialog (API does not support delete in spec, keep as info-only for now) */}
       <Dialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
@@ -537,59 +595,19 @@ export const OfficeDetailsPage = () => {
       >
         <DialogTitle>Office deletion</DialogTitle>
         <DialogContent>
-          <Typography sx={{ fontSize: "13px", color: "#444", mb: "10px" }}>
-            To delete an office the following requirements must be met:
-          </Typography>
-
-          <Box
-            component="ul"
-            sx={{
-              mt: 0,
-              mb: "12px",
-              pl: "18px",
-              color: "#444",
-              fontSize: "13px",
-            }}
-          >
-            <li>
-              There may not be any upcoming or active reservations on the office
-            </li>
-          </Box>
-
-          <Typography sx={{ fontSize: "13px", color: "#444", mb: "12px" }}>
-            Unpublishing the office is preferred to deleting, since it prevents
-            new reservations from being made and hides the office in search
-            results, while still allowing users to view details of this office
-            in their reservations.
-          </Typography>
-
           <Typography sx={{ fontSize: "13px", color: "#444" }}>
-            Are you sure you want to delete the office?
+            Deleting an office is not supported by the current API
+            specification.
           </Typography>
         </DialogContent>
-
         <DialogActions sx={{ px: "16px", pb: "12px" }}>
-          <Button
-            variant="contained"
-            startIcon={<DeleteOutlineIcon fontSize="small" />}
-            onClick={() => {
-              setDeleteOpen(false);
-            }}
-          >
-            Yes
-          </Button>
-
-          <Button
-            variant="text"
-            color="error"
-            onClick={() => setDeleteOpen(false)}
-          >
-            No
+          <Button variant="text" onClick={() => setDeleteOpen(false)}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Add Employee Dialog */}
+      {/* Add Employee Dialog (wiring next) */}
       <Dialog
         open={addOpen}
         onClose={() => setAddOpen(false)}
@@ -599,25 +617,9 @@ export const OfficeDetailsPage = () => {
         <DialogTitle>Add employee access</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: "13px", color: "#444", mb: "10px" }}>
-            To grant access to an employee the following requirements must be
-            met:
+            Enter employee email (wiring API next: POST /offices/{officeId}
+            /members).
           </Typography>
-
-          <Box
-            component="ul"
-            sx={{
-              mt: 0,
-              mb: "12px",
-              pl: "18px",
-              color: "#444",
-              fontSize: "13px",
-            }}
-          >
-            <li>
-              The employee has to have an account on the Officely admin website
-            </li>
-          </Box>
-
           <Box>
             <Typography
               sx={{ fontSize: "12px", color: "text.secondary", mb: "4px" }}
@@ -627,18 +629,14 @@ export const OfficeDetailsPage = () => {
             <OutlinedInput fullWidth />
           </Box>
         </DialogContent>
-
         <DialogActions sx={{ px: "16px", pb: "12px" }}>
           <Button
             variant="contained"
             startIcon={<AddIcon fontSize="small" />}
-            onClick={() => {
-              setAddOpen(false);
-            }}
+            onClick={() => setAddOpen(false)}
           >
             Add
           </Button>
-
           <Button
             variant="text"
             color="error"
