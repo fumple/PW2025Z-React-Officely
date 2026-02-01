@@ -36,7 +36,7 @@ public class OfficePatchRequest {
 
     @Length(max = 64)
     private String paymentReceiverName;
-    private boolean published;
+    private Boolean published;
 
     @Size(min = 1, max = 10)
     private List<String> images;
