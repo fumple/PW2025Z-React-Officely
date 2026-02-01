@@ -6,6 +6,7 @@ import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
+import com.officely.backend.entity.UserEntity;
 import com.officely.backend.repository.OfficeOfferRepository;
 import com.officely.backend.repository.OfficePhotoRepository;
 import com.officely.backend.repository.OfficeRepository;
@@ -314,15 +315,24 @@ public class OfficeService {
                 .toList();
     }
 
-    public Page<OfficeEntity> getOffices(PageRequest pageRequest) {
-        return officeRepository.findAll(pageRequest);
+    public Page<OfficeEntity> getOffices(UserEntity actor, PageRequest pageRequest) {
+        if(actor.isAdmin()) {
+            return officeRepository.findAll(pageRequest);
+        }
+        return officeRepository.getByUserId(actor.getId(), pageRequest);
     }
-    public Page<OfficeEntity> getOffices(PageRequest pageRequest, String search) {
+    public Page<OfficeEntity> getOffices(UserEntity actor, PageRequest pageRequest, String search) {
         try {
             var id = Long.parseLong(search);
-            return officeRepository.getByIdOrNameContainingIgnoreCaseOrAddressContainingIgnoreCase(id, search, search, pageRequest);
+            if(actor.isAdmin()) {
+                return officeRepository.getByIdOrNameContainingIgnoreCaseOrAddressContainingIgnoreCase(id, search, search, pageRequest);
+            }
+            return officeRepository.getByUserIdAndIdOrNameSearchOrAddressSearch(actor.getId(), id, search, search, pageRequest);
         } catch (Exception ex) {
-            return officeRepository.getByNameContainingIgnoreCaseOrAddressContainingIgnoreCase(search, search, pageRequest);
+            if(actor.isAdmin()) {
+                return officeRepository.getByNameContainingIgnoreCaseOrAddressContainingIgnoreCase(search, search, pageRequest);
+            }
+            return officeRepository.getByUserIdAndNameSearchOrAddressSearch(actor.getId(), search, search, pageRequest);
         }
     }
 

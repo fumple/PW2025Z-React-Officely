@@ -73,7 +73,7 @@ public class AdminOfficesController {
             pageRequest = pageRequest.withSort(sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
         }
 
-        var offices = search != null ? officeService.getOffices(pageRequest, search) : officeService.getOffices(pageRequest);
+        var offices = search != null ? officeService.getOffices(actor, pageRequest, search) : officeService.getOffices(actor, pageRequest);
         var response = new PaginatedResponse<OfficeDto>();
         response.setResults(offices.get().map(e -> toDto(actor, e)).toList());
 
