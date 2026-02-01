@@ -26,8 +26,8 @@ spring:
     use-hal-as-default-json-media-type: true
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 250MB
+      max-file-size: 30MB
+      max-request-size: 330MB
 
 cors:
   origins: '*'
