@@ -143,7 +143,7 @@ export type OfficeMemberResource = {
   id: string;
   officeId: string;
   userId: string;
-  _links: { self: Link; delete?: Link };
+  _links: { self: Link };
 };
 
 function getPageTokenFromHref(href?: string): string | null {
@@ -464,4 +464,52 @@ export async function updateOfficeItem(params: {
       body: JSON.stringify(params.input),
     },
   );
+}
+
+export async function createOfficeMember(params: {
+  officeId: string;
+  email: string;
+}) {
+  return apiFetch<{ id: string }>(
+    `/offices/${encodeURIComponent(params.officeId)}/members`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ email: params.email }),
+    },
+  );
+}
+
+export async function deleteOfficeMember(params: {
+  officeId: string;
+  memberId: string;
+}) {
+  return apiFetch<void>(
+    `/offices/${encodeURIComponent(params.officeId)}/members/${encodeURIComponent(
+      params.memberId,
+    )}`,
+    {
+      method: "DELETE",
+      auth: true,
+    },
+  );
+}
+export type UserResource = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  dateOfBirth: string;
+  nationality: string;
+  phoneNumber: string;
+  type: "admin" | "local_customer" | "flatly_customer";
+  admin: boolean;
+  blocked: boolean;
+};
+
+export async function getUser(userId: string) {
+  return apiFetch<UserResource>(`/users/${encodeURIComponent(userId)}`, {
+    method: "GET",
+    auth: true,
+  });
 }
