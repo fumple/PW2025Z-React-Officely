@@ -1,5 +1,6 @@
 package com.officely.backend.modules.parkly.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
@@ -17,7 +18,10 @@ public class ParkingDetailsResponse {
     private Double longitude;
     private Double priceForPeriod;
     private List<String> imageUrls;
+    @JsonProperty("is_disabled")
     private Boolean disabled;
+    @JsonProperty("is_ev")
     private Boolean ev;
+    @JsonProperty("is_big")
     private Boolean big;
 }
