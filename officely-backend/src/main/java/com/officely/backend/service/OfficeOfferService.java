@@ -41,10 +41,20 @@ public class OfficeOfferService {
         filtersService.validateProperties(entity.getProperties());
         var saved = officeOfferRepository.save(entity);
         if(sourceId != null) {
-            officeOfferRepository.findByIdAndOfficeId(sourceId, entity.getOffice().getId())
+            var source = officeOfferRepository.findByIdAndOfficeId(sourceId, entity.getOffice().getId())
                     .orElseThrow(() -> new ValidationException("sourceId", "The given source offer was not found"));
-            officeItemService.moveItemsToNewOffer(sourceId, saved.getId());
+            saved.setAvailable(source.isAvailable());
+            officeOfferRepository.save(saved);
+            source.setAvailable(false);
+            officeOfferRepository.save(source);
+            officeItemService.moveItemsToNewOffer(source, saved);
         }
         return saved;
+    }
+
+    @Transactional
+    public OfficeOfferEntity setOfferAvailable(OfficeOfferEntity entity, boolean available) {
+        entity.setAvailable(available);
+        return officeOfferRepository.save(entity);
     }
 }

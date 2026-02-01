@@ -15,7 +15,7 @@ public class OfficeItemPatchRequest {
     @Length(max = 16)
     private String room;
     private Long offerId;
-    private boolean available;
+    private Boolean available;
     @Min(1)
     private Integer capacity;
 }
