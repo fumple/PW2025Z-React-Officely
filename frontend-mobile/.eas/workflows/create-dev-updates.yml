@@ -3,6 +3,8 @@ name: Publish dev update
 on:
   push:
     branches: ["*"]
+    paths:
+      - "frontend-mobile/**"
 
 jobs:
   publish_dev_update:
@@ -10,4 +12,4 @@ jobs:
     type: update
     environment: development
     params:
-      branch: ${{ github.ref_name || 'test' }}
+      branch: ${{ github.ref_name || 'test' }}-dev
