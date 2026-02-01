@@ -9,7 +9,7 @@ jobs:
     name: Fingerprint
     type: fingerprint
     environment: production
-  
+
   get_android_build:
     name: Check for existing android build
     needs: [fingerprint]
@@ -17,7 +17,7 @@ jobs:
     params:
       fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
       profile: production
-  
+
   build_android:
     name: Build Android
     needs: [get_android_build]
@@ -26,7 +26,7 @@ jobs:
     params:
       platform: android
       profile: production
-  
+
   submit_android_build:
     name: Submit Android Build
     needs: [build_android]
