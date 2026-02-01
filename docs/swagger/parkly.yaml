@@ -10,13 +10,24 @@ info:
     name: Apache 2.0
     url: http://springdoc.org
 servers:
-  - url: http://localhost:8080
+  - url: https://parklyreact.azurewebsites.net
     description: Generated server url
 tags:
+  - name: Authentication
+    description: Endpoints for user registration and login
+  - name: User
+    description: User details
+  - name: Admin Analytics
+    description: Statistics and system-wide booking management
   - name: Parking
     description: Operations related to Parking Lots
-  - name: Bookings
-    description: Operations for reserving parking spots
+  - name: Actuator
+    description: Monitor and interact
+    externalDocs:
+      description: Spring Boot Actuator Web API Documentation
+      url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
+  - name: Profile
+    description: User account management endpoints
 paths:
   /api/bookings:
     get:
@@ -28,14 +39,12 @@ paths:
       parameters:
         - name: x-user-id
           in: header
-          description: Internal User ID
           required: false
           schema:
             type: string
             format: uuid
         - name: x-user-email
           in: header
-          description: Partner User Email (Alternative to ID)
           required: false
           schema:
             type: string
@@ -60,8 +69,6 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/BookingResponse'
-      security:
-        - bearerAuth: []
     post:
       tags:
         - Bookings
@@ -106,8 +113,269 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - bearerAuth: []
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register User
+      description: Creates a new user account.
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input (e.g., missing email, weak password)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User with this email already exists
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login
+      description: Authenticates credentials and returns a token.
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Login successful
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/parkings:
+    get:
+      tags:
+        - Admin Inventory
+      summary: List all parking lots
+      description: Get a simplified list of parkings for admin view.
+      operationId: getAllParkings
+      responses:
+        '200':
+          description: List of parkings retrieved successfully
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingSummaryResponse'
+    post:
+      tags:
+        - Admin Inventory
+      operationId: createFacility
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateParkingRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResponseID'
+  /api/admin/parkings/{id}/spots:
+    get:
+      tags:
+        - Admin Inventory
+      summary: Get Spots
+      description: Returns all spots belonging to a specific facility.
+      operationId: getSpotsInLot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Spots retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpotResponse'
+        '404':
+          description: Parking facility not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Admin Inventory
+      summary: Add Spot
+      description: Adds a parking spot and returns the new spot ID.
+      operationId: addSpotToLot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSpotRequest'
+        required: true
+      responses:
+        '201':
+          description: Spot created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResponseID'
+        '404':
+          description: Parent parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/parkings/{id}/photos:
+    post:
+      tags:
+        - Admin Inventory
+      summary: Upload Photo
+      description: Uploads an image. If is_main is true, updates the parking's main image.
+      operationId: uploadPhoto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: is_main
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        '200':
+          description: Photo uploaded successfully
+        '404':
+          description: Parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/profile/password:
+    patch:
+      tags:
+        - Profile
+      summary: Change Password
+      description: Updates the user's password.
+      operationId: changePassword
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Password updated successfully
+        '400':
+          description: >-
+            Invalid input (e.g. old password incorrect, or new password too
+            weak)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/profile/email:
+    patch:
+      tags:
+        - Profile
+      summary: Change Email
+      description: Updates the user's email address.
+      operationId: changeEmail
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeEmailRequest'
+        required: true
+      responses:
+        '200':
+          description: Email updated successfully
+        '400':
+          description: Invalid email format
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already in use by another account
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/bookings/{id}:
     get:
       tags:
@@ -124,7 +392,6 @@ paths:
             format: uuid
         - name: email
           in: query
-          description: Partner Email (if ID not present)
           required: false
           schema:
             type: string
@@ -153,8 +420,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - bearerAuth: []
     delete:
       tags:
         - Bookings
@@ -182,12 +447,6 @@ paths:
       responses:
         '204':
           description: Booking cancelled successfully
-        '400':
-          description: Booking is ongoing or finished
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Access denied
           content:
@@ -200,8 +459,12 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - bearerAuth: []
+        '422':
+          description: Booking is ongoing or finished
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags:
         - Bookings
@@ -252,8 +515,142 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - bearerAuth: []
+        '409':
+          description: Spot is not available for these dates
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Booking is ongoing or finished
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/spots/{spotId}:
+    delete:
+      tags:
+        - Admin Inventory
+      summary: Delete Spot
+      description: Removes the spot inventory item.
+      operationId: deleteSpot
+      parameters:
+        - name: spotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Spot deleted
+        '409':
+          description: Cannot delete spot because it has active bookings
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Admin Inventory
+      summary: Edit Spot
+      description: Updates pricing or active status of a spot.
+      operationId: editSpot
+      parameters:
+        - name: spotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSpotRequest'
+        required: true
+      responses:
+        '200':
+          description: Spot updated
+        '404':
+          description: Spot not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/parkings/{id}:
+    patch:
+      tags:
+        - Admin Inventory
+      summary: Edit Facility
+      description: Updates facility details.
+      operationId: editFacility
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateParkingRequest'
+        required: true
+      responses:
+        '200':
+          description: Parking updated successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResponseID'
+        '400':
+          description: Invalid data
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/user/{userId}:
+    get:
+      tags:
+        - User
+      summary: Get user details
+      description: Get all information about a user (excluding password)
+      operationId: getUserDetails
+      parameters:
+        - name: userId
+          in: path
+          description: The unique UUID of the user
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User info found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid User ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/parkings:
     get:
       tags:
@@ -262,7 +659,7 @@ paths:
       description: >-
         Get a simplified list of parkings for map/list view. Filtered by
         proximity, dates, and features.
-      operationId: getAllParkings
+      operationId: getAllParkings_1
       parameters:
         - name: latitude
           in: query
@@ -288,18 +685,18 @@ paths:
             default: 1000
         - name: startDate
           in: query
-          description: Booking start date (ISO)
+          description: Booking start datetime (ISO)
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
         - name: endDate
           in: query
-          description: Booking end date (ISO)
+          description: Booking end datetime (ISO)
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
         - name: isEv
           in: query
           description: Require EV charging
@@ -330,7 +727,7 @@ paths:
         '404':
           description: No parkings found matching the criteria
           content:
-            '*/*':
+            application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/parkings/{parkingId}:
@@ -349,18 +746,18 @@ paths:
             format: uuid
         - name: startDate
           in: query
-          description: Booking start date for pricing
+          description: Booking start datetime for pricing
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
         - name: endDate
           in: query
-          description: Booking end date for pricing
+          description: Booking end datetime for pricing
           required: true
           schema:
             type: string
-            format: date
+            format: date-time
       responses:
         '200':
           description: Parking found
@@ -371,9 +768,217 @@ paths:
         '404':
           description: Parking not found
           content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/reports/revenue:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Revenue Report
+      description: Returns aggregated revenue stats for a given period.
+      operationId: getRevenueReport
+      parameters:
+        - name: start
+          in: query
+          description: Start date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: End date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Report generated successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RevenueReportResponse'
+        '400':
+          description: Invalid date range (e.g., start date is after end date)
+          content:
             '*/*':
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/bookings:
+    get:
+      tags:
+        - Admin Analytics
+      summary: All Bookings
+      description: Server-side searchable and paginated list of all bookings.
+      operationId: getAllBookings
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based index)
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: start
+          in: query
+          description: Start date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: End date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          description: Search by user email
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List retrieved successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedResponseAdminBookingResponse'
+        '400':
+          description: Invalid pagination parameters (e.g. page < 1)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /actuator:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator root web endpoint
+      operationId: links
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Link'
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Link'
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Link'
+  /actuator/health:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator web endpoint 'health'
+      operationId: health
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/env:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator web endpoint 'env'
+      operationId: environment
+      parameters:
+        - name: pattern
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/env/{toMatch}:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator web endpoint 'env-toMatch'
+      operationId: environmentEntry
+      parameters:
+        - name: toMatch
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found
+  /api/profile:
+    delete:
+      tags:
+        - Profile
+      operationId: deleteAccount
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
 components:
   schemas:
     CreateBookingRequest:
@@ -388,16 +993,22 @@ components:
         source:
           type: string
           enum:
-            - parkly
-            - officely
+            - PARKLY
+            - OFFICELY
         email:
           type: string
-        disabled:
-          type: boolean
-        ev:
-          type: boolean
-        big:
-          type: boolean
+          format: email
+          description: Partner user email. Required if source is 'OFFICELY'.
+          example: partner@officely.com
+        name:
+          type: string
+          description: Partner user name. Required if source is 'OFFICELY'.
+        surname:
+          type: string
+          description: Partner user surname. Required if source is 'OFFICELY'.
+        phoneNumber:
+          type: string
+          description: Partner user phone number. Required if source is 'OFFICELY'.
         parking_id:
           type: string
           format: uuid
@@ -415,6 +1026,9 @@ components:
     CreateBookingResponse:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         localId:
           type: string
         start:
@@ -428,21 +1042,31 @@ components:
         status:
           type: string
           enum:
-            - Confirmed
-            - Cancelled
-            - Completed
-            - InProgress
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
         source:
           type: string
           enum:
-            - parkly
-            - officely
-        disabled:
+            - PARKLY
+            - OFFICELY
+        is_ev:
           type: boolean
-        ev:
+        is_disabled:
           type: boolean
-        big:
+        is_big:
           type: boolean
+      required:
+        - end
+        - is_big
+        - is_disabled
+        - is_ev
+        - localId
+        - source
+        - start
+        - status
+        - totalCost
     ErrorResponse:
       type: object
       properties:
@@ -458,6 +1082,141 @@ components:
           type: string
         path:
           type: string
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        surname:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        phoneNumber:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - name
+        - password
+        - phoneNumber
+        - surname
+    AuthResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        token:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        admin:
+          type: boolean
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - password
+    CreateParkingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+        postalCode:
+          type: string
+          minLength: 1
+        streetName:
+          type: string
+          minLength: 1
+        streetNumber:
+          type: string
+          minLength: 1
+        lat:
+          type: number
+        lon:
+          type: number
+      required:
+        - city
+        - country
+        - lat
+        - lon
+        - name
+        - postalCode
+        - streetName
+        - streetNumber
+    ResponseID:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+    CreateSpotRequest:
+      type: object
+      properties:
+        localId:
+          type: string
+          minLength: 1
+        pricePerHour:
+          type: number
+          minimum: 0
+        pricePerDay:
+          type: number
+          minimum: 0
+        ev:
+          type: boolean
+        disabled:
+          type: boolean
+        big:
+          type: boolean
+      required:
+        - localId
+        - pricePerDay
+        - pricePerHour
+    ChangePasswordRequest:
+      type: object
+      properties:
+        oldPassword:
+          type: string
+          minLength: 1
+        newPassword:
+          type: string
+          minLength: 1
+      required:
+        - newPassword
+        - oldPassword
+    ChangeEmailRequest:
+      type: object
+      properties:
+        newEmail:
+          type: string
+          format: email
+          minLength: 1
+      required:
+        - newEmail
     EditBookingRequest:
       type: object
       properties:
@@ -469,8 +1228,6 @@ components:
           format: date-time
         email:
           type: string
-        confirmed:
-          type: boolean
         is_confirmed:
           type: boolean
       required:
@@ -480,9 +1237,6 @@ components:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
-        userId:
           type: string
           format: uuid
         spotId:
@@ -509,21 +1263,87 @@ components:
         status:
           type: string
           enum:
-            - Confirmed
-            - Cancelled
-            - Completed
-            - InProgress
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
         source:
           type: string
           enum:
-            - parkly
-            - officely
-        disabled:
+            - PARKLY
+            - OFFICELY
+        is_ev:
           type: boolean
-        ev:
+        is_disabled:
           type: boolean
-        big:
+        is_big:
           type: boolean
+      required:
+        - city
+        - end
+        - id
+        - imageUrl
+        - is_big
+        - is_disabled
+        - is_ev
+        - localId
+        - parkingName
+        - source
+        - spotId
+        - start
+        - status
+        - street
+        - totalCost
+    UpdateSpotRequest:
+      type: object
+      properties:
+        localId:
+          type: string
+        pricePerHour:
+          type: number
+        pricePerDay:
+          type: number
+        isBig:
+          type: boolean
+        isEv:
+          type: boolean
+        isDisabled:
+          type: boolean
+        isActive:
+          type: boolean
+    UpdateParkingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        mainPhotoId:
+          type: string
+          format: uuid
+    UserResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
     ParkingResponse:
       type: object
       properties:
@@ -546,6 +1366,16 @@ components:
           type: number
         mainImageUrl:
           type: string
+      required:
+        - city
+        - id
+        - latitude
+        - longitude
+        - mainImageUrl
+        - name
+        - priceForPeriod
+        - streetName
+        - streetNumber
     ParkingDetailsResponse:
       type: object
       properties:
@@ -574,9 +1404,124 @@ components:
           type: array
           items:
             type: string
-        disabled:
+        is_ev:
+          type: boolean
+        is_disabled:
+          type: boolean
+        is_big:
+          type: boolean
+      required:
+        - city
+        - country
+        - id
+        - is_big
+        - is_disabled
+        - is_ev
+        - latitude
+        - longitude
+        - name
+        - postalCode
+        - priceForPeriod
+        - streetName
+        - streetNumber
+    RevenueReportResponse:
+      type: object
+      properties:
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        totalRevenue:
+          type: number
+        totalBookingsCount:
+          type: integer
+          format: int32
+    ParkingSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    SpotResponse:
+      type: object
+      properties:
+        spotId:
+          type: string
+          format: uuid
+        localId:
+          type: string
+        pricePerHour:
+          type: number
+          format: double
+        pricePerDay:
+          type: number
+          format: double
+        active:
           type: boolean
         ev:
           type: boolean
+        disabled:
+          type: boolean
         big:
+          type: boolean
+    AdminBookingResponse:
+      type: object
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        userEmail:
+          type: string
+        spotId:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        source:
+          type: string
+          enum:
+            - PARKLY
+            - OFFICELY
+    PagedResponseAdminBookingResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminBookingResponse'
+        currentPage:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+        templated:
           type: boolean
