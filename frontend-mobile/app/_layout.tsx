@@ -22,7 +22,7 @@ const { LightTheme, DarkTheme } = adaptNavigationTheme({
   materialDark: MD3DarkTheme,
 });
 
-export default function RootLayout() {
+const RootLayout = () => {
   const colorScheme = useColorScheme();
 
   const paperThemeBase = colorScheme === "dark" ? MD3DarkTheme : MD3LightTheme;
@@ -47,4 +47,6 @@ export default function RootLayout() {
       </Portal.Host>
     </PaperProvider>
   );
-}
+};
+
+export default RootLayout;

@@ -1,15 +1,15 @@
+import { apiFetch } from "@/src/api/client";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
+import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { router } from "expo-router";
 import { Button, HelperText, TextInput } from "react-native-paper";
-import { AuthScreenShell } from "./AuthScreenShell";
-import { apiFetch } from "../../src/api/client";
 
 const isValidEmail = (value: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 };
 
-export default function RecoverScreen() {
+const RecoverScreen = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -92,7 +92,7 @@ export default function RecoverScreen() {
       </View>
     </AuthScreenShell>
   );
-}
+};
 
 const styles = StyleSheet.create({
   form: { gap: 12 },
@@ -104,3 +104,4 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: 2, borderRadius: 6 },
   primaryBtnContent: { paddingVertical: 6 },
 });
+export default RecoverScreen;

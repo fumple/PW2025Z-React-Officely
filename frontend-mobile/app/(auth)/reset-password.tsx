@@ -1,13 +1,13 @@
+import { apiFetch } from "@/src/api/client";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
 import { Button, HelperText, TextInput } from "react-native-paper";
-import { AuthScreenShell } from "./AuthScreenShell";
-import { apiFetch } from "@/src/api/client";
 
 const MIN_PASSWORD_LEN = 8;
 
-export default function ResetPasswordScreen() {
+const ResetPasswordScreen = () => {
   const { email, code } = useLocalSearchParams();
 
   const [password, setPassword] = useState("");
@@ -136,7 +136,7 @@ export default function ResetPasswordScreen() {
       </View>
     </AuthScreenShell>
   );
-}
+};
 
 const styles = StyleSheet.create({
   form: { gap: 12 },
@@ -146,3 +146,4 @@ const styles = StyleSheet.create({
   primaryBtn: { marginTop: 6, borderRadius: 6 },
   primaryBtnContent: { paddingVertical: 6 },
 });
+export default ResetPasswordScreen;

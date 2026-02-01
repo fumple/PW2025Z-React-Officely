@@ -3,7 +3,7 @@ import { View, Image, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { useAuthStore } from "../src/auth/authStore";
 
-export default function Index() {
+const Index = () => {
   const restore = useAuthStore((s) => s.restore);
   const me = useAuthStore((s) => s.me);
   const [ready, setReady] = useState(false);
@@ -18,7 +18,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!ready) return;
-    if (me) router.replace("/(app)");
+    if (me) router.replace("/(app)/search");
     else router.replace("/(auth)/login");
   }, [ready, me]);
 
@@ -40,4 +40,6 @@ export default function Index() {
       <ActivityIndicator size="large" />
     </View>
   );
-}
+};
+
+export default Index;

@@ -3,13 +3,13 @@ import { Image, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 import { KeyboardAvoidingView, Platform } from "react-native";
 
-export function AuthScreenShell({
+export const AuthScreenShell = ({
   title,
   children,
 }: {
   title: string;
   children: React.ReactNode;
-}) {
+}) => {
   return (
     <KeyboardAvoidingView
       style={styles.safe}
@@ -21,7 +21,7 @@ export function AuthScreenShell({
       >
         <View style={styles.header}>
           <Image
-            source={require("../assets/logo1.png")}
+            source={require("../../app/assets/logo1.png")}
             style={styles.logo}
             resizeMode="contain"
           />
@@ -33,7 +33,7 @@ export function AuthScreenShell({
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
