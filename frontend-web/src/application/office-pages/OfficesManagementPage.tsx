@@ -24,6 +24,9 @@ type OfficeRow = {
   id: string;
   name: string;
   address: string;
+  published: boolean;
+  contactEmail: string;
+  photosCount: number;
 };
 
 function getPageTokenFromHref(href?: string): string | null {
@@ -49,23 +52,14 @@ export const OfficesManagementPage = () => {
     items: [],
   });
 
-  // Cursor tokens: token for a given page index
   const [pageTokens, setPageTokens] = useState<Record<number, string | null>>({
     0: null,
   });
 
   const [hasNextPage, setHasNextPage] = useState(false);
 
-  // Server-side search from DataGrid quick filter
   const search = (filterModel.quickFilterValues ?? []).join(" ").trim();
-  const [debouncedSearch, setDebouncedSearch] = useState(search);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  // Fetch offices whenever page/pageSize/sort/search changes
   useEffect(() => {
     let alive = true;
 
@@ -82,7 +76,7 @@ export const OfficesManagementPage = () => {
       const res = await officesApi.listOffices({
         pageSize: paginationModel.pageSize,
         pageToken: tokenForPage ?? undefined,
-        search: debouncedSearch || undefined,
+        search: search || undefined,
         sortField: sortField || undefined,
         sortDirection:
           (sortDirection as "asc" | "desc" | undefined) || undefined,
@@ -96,13 +90,15 @@ export const OfficesManagementPage = () => {
             id: o.id,
             name: o.name,
             address: o.address,
+            published: o.published,
+            contactEmail: o.contactEmail,
+            photosCount: o.photoUrls?.length ?? 0,
           })),
         );
 
         const nextToken = getPageTokenFromHref(res.data._links.next?.href);
         setHasNextPage(!!nextToken);
 
-        // Store token for the next page index (avoid needless state updates)
         setPageTokens((prev) => {
           const nextPageIndex = paginationModel.page + 1;
           if (prev[nextPageIndex] === nextToken) return prev;
@@ -122,13 +118,7 @@ export const OfficesManagementPage = () => {
     return () => {
       alive = false;
     };
-  }, [
-    paginationModel.page,
-    paginationModel.pageSize,
-    sortModel,
-    debouncedSearch,
-    pageTokens,
-  ]);
+  }, [paginationModel.page, paginationModel.pageSize, sortModel, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSortModelChange = (m: GridSortModel) => {
     setSortModel(m);
@@ -143,17 +133,12 @@ export const OfficesManagementPage = () => {
   };
 
   const handlePaginationModelChange = (m: GridPaginationModel) => {
-    // pageSize changed -> reset cursor paging
     if (m.pageSize !== paginationModel.pageSize) {
       setPaginationModel({ page: 0, pageSize: m.pageSize });
       setPageTokens({ 0: null });
       return;
     }
-
-    // Block going forward if backend says there is no next page
     if (m.page > paginationModel.page && !hasNextPage) return;
-
-    // Block going to pages we don't have a token for yet (cursor-based)
     const token = pageTokens[m.page];
     if (m.page > 0 && token === undefined) return;
 
@@ -163,7 +148,22 @@ export const OfficesManagementPage = () => {
   const columns = useMemo<GridColDef<OfficeRow>[]>(
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
-      { field: "address", headerName: "Address", flex: 1, minWidth: 160 },
+      { field: "address", headerName: "Address", flex: 1, minWidth: 200 },
+      { field: "contactEmail", headerName: "Contact", flex: 1, minWidth: 180 },
+      {
+        field: "published",
+        headerName: "Status",
+        minWidth: 120,
+        valueGetter: (_, row) => (row.published ? "Published" : "Unpublished"),
+        sortComparator: (a, b) => String(a).localeCompare(String(b)),
+      },
+      {
+        field: "photosCount",
+        headerName: "Photos",
+        minWidth: 90,
+        align: "right",
+        headerAlign: "right",
+      },
       {
         field: "actions",
         headerName: "",

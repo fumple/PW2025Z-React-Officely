@@ -1,12 +1,18 @@
 import { apiFetch } from "./http";
 
-export type Me = {
+export type UserResource = {
+  type: "admin" | "local_customer" | "flatly_customer";
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
+  dateOfBirth: string;
+  nationality: string;
+  phoneNumber: string;
+  blocked: boolean;
   admin: boolean;
 };
 
-export function getMe() {
-  return apiFetch<Me>("/users/@me", { method: "GET", auth: true });
+export async function getMe() {
+  return apiFetch<UserResource>(`/users/@me`, { method: "GET", auth: true });
 }
