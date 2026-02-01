@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.ArrayList;
@@ -31,6 +32,21 @@ public class GlobalExceptionHandler {
             v.setMessage(e.getDefaultMessage());
             return v;
         }).collect(Collectors.toUnmodifiableList()));
+        return ResponseEntity.badRequest().body(response);
+    }
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationError(HandlerMethodValidationException ex) {
+        var response = new ErrorResponse();
+        response.setErrors(ex.getParameterValidationResults().stream()
+                .flatMap(e -> e
+                        .getResolvableErrors()
+                        .stream().map(err -> {
+                            var v = new ValidationError();
+                            v.setField(e.getMethodParameter().getParameterName());
+                            v.setMessage(err.getDefaultMessage());
+                            return v;
+                        })).collect(Collectors.toUnmodifiableList())
+        );
         return ResponseEntity.badRequest().body(response);
     }
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

@@ -2,6 +2,7 @@ package com.officely.backend.modules.admin.api.offices;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
@@ -36,5 +37,7 @@ public class OfficePatchRequest {
     @Length(max = 64)
     private String paymentReceiverName;
     private boolean published;
+
+    @Size(min = 1, max = 10)
     private List<String> images;
 }

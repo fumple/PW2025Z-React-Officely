@@ -8,7 +8,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -17,7 +16,7 @@ public class OfficeItemService {
     private final OfficeItemRepository officeItemRepository;
 
     public Optional<OfficeItemEntity> getOfficeItem(Long officeId, Long itemId) {
-        return officeItemRepository.findByIdAndOfficeId(officeId, itemId);
+        return officeItemRepository.findByIdAndOfficeId(itemId, officeId);
     }
 
     public Page<OfficeItemEntity> getItems(Long officeId, PageRequest pageRequest) {
