@@ -1,12 +1,12 @@
 package com.officely.backend.modules.admin.controller;
 
 import com.officely.backend.api.CreatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.offices.AdminOfficeMapper;
 import com.officely.backend.modules.admin.api.offices.OfficeDto;
 import com.officely.backend.modules.admin.api.offices.OfficePatchRequest;
@@ -18,6 +18,8 @@ import com.officely.backend.storage.StorageService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -108,7 +110,7 @@ public class AdminOfficesController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CreatedResponse> createOffice(
             @RequestPart("office") @Valid OfficePostRequest request,
-            @RequestPart("images") List<MultipartFile> images) {
+            @RequestPart("images") @Valid @Size(min = 1, max = 10) @NotNull List<MultipartFile> images) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var office = officeMapper.officePostRequestToOffice(request);
         office.setOwner(actor);
@@ -154,7 +156,7 @@ public class AdminOfficesController {
     public ResponseEntity<Void> patchOffice(
             @PathVariable Long officeId,
             @RequestPart("office") @Valid OfficePatchRequest patchRequest,
-            @RequestPart(value = "addedImages", required = false) List<MultipartFile> addedImages) {
+            @RequestPart(value = "addedImages", required = false) @Valid @Size(max = 10) List<MultipartFile> addedImages) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if(targetOpt.isEmpty())
@@ -173,7 +175,7 @@ public class AdminOfficesController {
         officeMapper.update(patchRequest, target);
         try {
             officeService.patchOffice(target,
-                    patchRequest.getImages() != null ? patchRequest.getImages() : List.of(),
+                    patchRequest.getImages(),
                     addedImages != null ? addedImages : List.of()
             );
         } catch (Exception e) {
