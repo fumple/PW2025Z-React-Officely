@@ -4,6 +4,8 @@ import com.officely.backend.api.CreatedResponse;
 import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
+import com.officely.backend.api.validation.FileSize;
+import com.officely.backend.api.validation.Image;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
 import com.officely.backend.entity.UserEntity;
@@ -110,7 +112,9 @@ public class AdminOfficesController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CreatedResponse> createOffice(
             @RequestPart("office") @Valid OfficePostRequest request,
-            @RequestPart("images") @Valid @Size(min = 1, max = 10) @NotNull List<MultipartFile> images) {
+            @RequestPart("images") @Valid @Size(min = 1, max = 10) @NotNull List<
+                    @NotNull @FileSize(max = 25) @Image MultipartFile
+            > images) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var office = officeMapper.officePostRequestToOffice(request);
         office.setOwner(actor);
@@ -156,7 +160,9 @@ public class AdminOfficesController {
     public ResponseEntity<Void> patchOffice(
             @PathVariable Long officeId,
             @RequestPart("office") @Valid OfficePatchRequest patchRequest,
-            @RequestPart(value = "addedImages", required = false) @Valid @Size(max = 10) List<MultipartFile> addedImages) {
+            @RequestPart(value = "addedImages", required = false) @Valid @Size(max = 10) List<
+                @NotNull @FileSize(max = 25) @Image MultipartFile
+            > addedImages) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if(targetOpt.isEmpty())
