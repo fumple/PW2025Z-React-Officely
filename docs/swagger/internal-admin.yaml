@@ -1578,6 +1578,7 @@ paths:
                   type: array
                   minItems: 1
                   maxItems: 10
+                  description: Each image must be at most 25MB in size. Only .png, .jpg and .webp files are accepted!
                   items:
                     type: string
                     format: binary
