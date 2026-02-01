@@ -1,0 +1,13 @@
+name: Publish dev update
+
+on:
+  push:
+    branches: ["*"]
+
+jobs:
+  publish_dev_update:
+    name: Publish dev update
+    type: update
+    environment: development
+    params:
+      branch: ${{ github.ref_name || 'test' }}
