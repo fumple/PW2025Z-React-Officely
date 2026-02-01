@@ -3,6 +3,8 @@ name: Publish dev update
 on:
   push:
     branches: ["*"]
+    paths:
+      - "frontend-mobile/**"
 
 jobs:
   publish_dev_update:
