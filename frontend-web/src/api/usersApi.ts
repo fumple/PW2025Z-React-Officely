@@ -34,3 +34,10 @@ export async function updateMe(input: UpdateMeInput) {
     body: JSON.stringify(input),
   });
 }
+
+export async function getUser(userId: string) {
+  return apiFetch<UserResource>(`/users/${encodeURIComponent(userId)}`, {
+    method: "GET",
+    auth: true,
+  });
+}
