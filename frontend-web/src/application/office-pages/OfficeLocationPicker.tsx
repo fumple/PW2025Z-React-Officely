@@ -193,7 +193,6 @@ export function OfficeLocationPicker(props: {
           overflow: "hidden",
           border: "1px solid #e6e6e6",
           bgcolor: "#fff",
-          // give Leaflet controls breathing room so they don't look clipped
           "& .leaflet-control-container .leaflet-top.leaflet-left": {
             marginLeft: "8px",
             marginTop: "8px",

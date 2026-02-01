@@ -41,12 +41,18 @@ export async function apiFetch<T>(
   | { ok: true; data: T }
   | { ok: false; status: number; error: ApiErrorResponse | null }
 > {
-  const { auth = false, headers, ...rest } = options;
+  const { auth = false, headers, body, ...rest } = options;
 
   const finalHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(headers as Record<string, string> | undefined),
   };
+
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+
+  if (!isFormData && !finalHeaders["Content-Type"]) {
+    finalHeaders["Content-Type"] = "application/json";
+  }
 
   if (auth) {
     const token = getToken();
@@ -55,6 +61,7 @@ export async function apiFetch<T>(
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...rest,
+    body,
     headers: finalHeaders,
   });
 
@@ -68,5 +75,6 @@ export async function apiFetch<T>(
     json && typeof json === "object" && "errors" in json
       ? (json as ApiErrorResponse)
       : null;
+
   return { ok: false, status: res.status, error: err };
 }

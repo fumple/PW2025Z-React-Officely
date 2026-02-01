@@ -15,37 +15,71 @@ import Typography from "@mui/material/Typography";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SaveIcon from "@mui/icons-material/Save";
-
 import { OfficeLocationPicker } from "./OfficeLocationPicker";
+import * as officesApi from "../../api/officesApi";
 
 type OfficeFormValues = {
   name: string;
   description: string;
+  openingHours: string;
   address: string;
-  lat: number;
-  lng: number;
+
+  contactEmail: string;
+  contactPhone: string;
+  paymentAccountNumber: string;
+  paymentReceiverName: string;
+
   photos: File[];
 };
 const MAX_IMAGES = 10;
+const PHONE_E164 = /^\+[1-9]\d{1,14}$/;
 const schema: yup.ObjectSchema<OfficeFormValues> = yup
   .object({
-    name: yup.string().trim().required("Name is required"),
-    description: yup.string().trim().required("Description is required"),
-    address: yup.string().trim().required("Address is required"),
-    lat: yup
-      .number()
-      .typeError("Latitude must be a number")
-      .required("Latitude is required"),
-    lng: yup
-      .number()
-      .typeError("Longitude must be a number")
-      .required("Longitude is required"),
+    name: yup.string().trim().required("Name is required").max(64),
+    description: yup
+      .string()
+      .trim()
+      .required("Description is required")
+      .max(4096),
+    openingHours: yup
+      .string()
+      .trim()
+      .required("Opening hours are required")
+      .max(1024),
+    address: yup.string().trim().required("Address is required").max(256),
+    contactEmail: yup
+      .string()
+      .trim()
+      .required("Contact email is required")
+      .email("Invalid email")
+      .max(256),
+    contactPhone: yup
+      .string()
+      .trim()
+      .required("Contact phone is required")
+      .matches(PHONE_E164, "Phone must be in E.164 format, e.g. +48123123123"),
+    paymentAccountNumber: yup
+      .string()
+      .trim()
+      .required("IBAN is required")
+      .max(34),
+    paymentReceiverName: yup
+      .string()
+      .trim()
+      .required("Payment receiver name is required")
+      .max(64),
     photos: yup
       .mixed<File[]>()
-      .test("maxFiles", `Max ${MAX_IMAGES} photos`, (value) => {
-        if (!value) return true;
-        return value.length <= MAX_IMAGES;
-      })
+      .test(
+        "minFiles",
+        "At least 1 photo is required",
+        (v) => (v?.length ?? 0) >= 1,
+      )
+      .test(
+        "maxFiles",
+        `Max ${MAX_IMAGES} photos`,
+        (v) => (v?.length ?? 0) <= MAX_IMAGES,
+      )
       .default([]),
   })
   .required();
@@ -55,6 +89,8 @@ export const OfficeCreatePage = () => {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control,
@@ -67,16 +103,19 @@ export const OfficeCreatePage = () => {
     defaultValues: {
       name: "",
       description: "",
+      openingHours: "",
       address: "",
-      lat: 52.2297,
-      lng: 21.0122,
+      contactEmail: "",
+      contactPhone: "",
+      paymentAccountNumber: "",
+      paymentReceiverName: "",
       photos: [],
     },
   });
 
   const address = useWatch({ control, name: "address" });
-  const lat = useWatch({ control, name: "lat" });
-  const lng = useWatch({ control, name: "lng" });
+  const [lat, setLat] = useState(52.2297);
+  const [lng, setLng] = useState(21.0122);
 
   const inputBgSx = {
     bgcolor: "#fff",
@@ -84,23 +123,33 @@ export const OfficeCreatePage = () => {
     "&.Mui-focused": { bgcolor: "#fff" },
   } as const;
 
-  const addPhotoToForm = (file: File) => {
-    const current = getValues("photos") ?? [];
-    if (current.length >= MAX_IMAGES) return;
+  const onSubmit = async (data: OfficeFormValues) => {
+    console.log("SUBMIT FIRED", data);
+    setSubmitting(true);
+    setSubmitError(null);
 
-    setValue("photos", [...current, file], {
-      shouldDirty: true,
-      shouldValidate: true,
+    const res = await officesApi.createOffice({
+      name: data.name,
+      description: data.description,
+      openingHours: data.openingHours,
+      address: data.address,
+      contactEmail: data.contactEmail,
+      contactPhone: data.contactPhone,
+      paymentAccountNumber: data.paymentAccountNumber,
+      paymentReceiverName: data.paymentReceiverName,
+      images: data.photos,
     });
 
-    const url = URL.createObjectURL(file);
-    setImages((prev) => [...prev, url]);
-  };
+    setSubmitting(false);
 
-  const onSubmit = (data: OfficeFormValues) => {
-    console.log({ ...data, images });
-    const officeId = "7"; // demo
-    navigate(`../offices/${officeId}`);
+    if (!res.ok) {
+      setSubmitError(
+        res.error?.errors?.[0]?.message ?? "Failed to create office.",
+      );
+      return;
+    }
+
+    navigate(`../${res.data.id}`);
   };
 
   return (
@@ -117,6 +166,12 @@ export const OfficeCreatePage = () => {
       >
         Create office
       </Typography>
+
+      {submitError ? (
+        <Typography color="error" sx={{ mb: "10px" }}>
+          {submitError}
+        </Typography>
+      ) : null}
 
       <Box
         component="form"
@@ -158,6 +213,23 @@ export const OfficeCreatePage = () => {
           )}
         />
 
+        <Controller
+          name="openingHours"
+          control={control}
+          render={({ field }) => (
+            <FormControl variant="outlined" error={!!errors.openingHours}>
+              <FormLabel htmlFor="openingHours">Opening hours</FormLabel>
+              <OutlinedInput
+                {...field}
+                id="openingHours"
+                multiline
+                minRows={2}
+              />
+              <FormHelperText>{errors.openingHours?.message}</FormHelperText>
+            </FormControl>
+          )}
+        />
+
         <Box sx={{ position: "sticky", top: "12px" }}>
           <Typography
             sx={{
@@ -179,23 +251,121 @@ export const OfficeCreatePage = () => {
                 shouldValidate: true,
                 shouldDirty: true,
               });
-              setValue("lat", next.lat, {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
-              setValue("lng", next.lng, {
-                shouldValidate: true,
-                shouldDirty: true,
-              });
+              setLat(next.lat);
+              setLng(next.lng);
             }}
           />
 
           <FormHelperText error sx={{ mt: "6px" }}>
-            {errors.address?.message ||
-              errors.lat?.message ||
-              errors.lng?.message ||
-              " "}
+            {errors.address?.message || " "}
           </FormHelperText>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+              columnGap: "12px",
+              rowGap: "10px",
+              mt: "10px",
+            }}
+          >
+            <Controller
+              name="contactEmail"
+              control={control}
+              render={({ field }) => (
+                <FormControl
+                  variant="outlined"
+                  error={!!errors.contactEmail}
+                  fullWidth
+                  sx={{ minWidth: 0 }}
+                >
+                  <FormLabel htmlFor="contactEmail" sx={{ mb: "6px" }}>
+                    Contact email
+                  </FormLabel>
+                  <OutlinedInput {...field} id="contactEmail" sx={inputBgSx} />
+                  <FormHelperText>
+                    {errors.contactEmail?.message}
+                  </FormHelperText>
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              name="contactPhone"
+              control={control}
+              render={({ field }) => (
+                <FormControl
+                  variant="outlined"
+                  error={!!errors.contactPhone}
+                  fullWidth
+                  sx={{ minWidth: 0 }}
+                >
+                  <FormLabel htmlFor="contactPhone" sx={{ mb: "6px" }}>
+                    Contact phone
+                  </FormLabel>
+                  <OutlinedInput
+                    {...field}
+                    id="contactPhone"
+                    sx={inputBgSx}
+                    placeholder="+48123123123"
+                  />
+                  <FormHelperText>
+                    {errors.contactPhone?.message}
+                  </FormHelperText>
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              name="paymentReceiverName"
+              control={control}
+              render={({ field }) => (
+                <FormControl
+                  variant="outlined"
+                  error={!!errors.paymentReceiverName}
+                  fullWidth
+                  sx={{ minWidth: 0 }}
+                >
+                  <FormLabel htmlFor="paymentReceiverName" sx={{ mb: "6px" }}>
+                    Payment receiver name
+                  </FormLabel>
+                  <OutlinedInput
+                    {...field}
+                    id="paymentReceiverName"
+                    sx={inputBgSx}
+                  />
+                  <FormHelperText>
+                    {errors.paymentReceiverName?.message}
+                  </FormHelperText>
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              name="paymentAccountNumber"
+              control={control}
+              render={({ field }) => (
+                <FormControl
+                  variant="outlined"
+                  error={!!errors.paymentAccountNumber}
+                  fullWidth
+                  sx={{ minWidth: 0 }}
+                >
+                  <FormLabel htmlFor="paymentAccountNumber" sx={{ mb: "6px" }}>
+                    Payment account number (IBAN)
+                  </FormLabel>
+                  <OutlinedInput
+                    {...field}
+                    id="paymentAccountNumber"
+                    sx={inputBgSx}
+                  />
+                  <FormHelperText>
+                    {errors.paymentAccountNumber?.message}
+                  </FormHelperText>
+                </FormControl>
+              )}
+            />
+          </Box>
 
           <Box>
             <Typography
@@ -270,10 +440,22 @@ export const OfficeCreatePage = () => {
               type="file"
               accept="image/*"
               hidden
+              multiple
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                addPhotoToForm(file);
+                const files = Array.from(e.target.files ?? []);
+                if (files.length === 0) return;
+
+                const current = getValues("photos") ?? [];
+                const remaining = MAX_IMAGES - current.length;
+                if (remaining <= 0) return;
+
+                const toAdd = files.slice(0, remaining);
+                setValue("photos", [...current, ...toAdd], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+                const newUrls = toAdd.map((f) => URL.createObjectURL(f));
+                setImages((prev) => [...prev, ...newUrls]);
                 e.target.value = "";
               }}
             />
@@ -287,6 +469,7 @@ export const OfficeCreatePage = () => {
               type="submit"
               variant="contained"
               startIcon={<SaveIcon fontSize="small" />}
+              disabled={submitting}
             >
               Save
             </Button>
