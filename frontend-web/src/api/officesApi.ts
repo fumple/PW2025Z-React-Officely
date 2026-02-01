@@ -2,16 +2,11 @@ import { apiFetch } from "./http";
 
 export type OfficeResource = {
   id: string;
-  ownerId?: string;
-
   name: string;
+  address: string;
+
   description: string;
   openingHours: string;
-
-  address: string;
-  coordinates: { lat: number; lon: number };
-
-  photoUrls: string[];
 
   contactEmail: string;
   contactPhone: string;
@@ -19,15 +14,26 @@ export type OfficeResource = {
   paymentAccountNumber: string;
   paymentReceiverName: string;
 
-  published?: boolean;
+  published: boolean;
+
+  coordinates?: { lat: number; lon: number };
+  photoUrls?: string[];
 };
 
 type Link = { href: string };
 
+type Pagination = {
+  currentPage: number;
+  lastPage: number;
+  pageSize: number;
+};
+
 type PagedResponse<T> = {
   results: T[];
+  _pagination: Pagination;
   _links: {
     next?: Link;
+    prev?: Link;
     self: Link;
     first: Link;
     last: Link;
@@ -102,21 +108,22 @@ export async function createOffice(input: CreateOfficeInput) {
   });
 }
 
-type Pagination = {
-  currentPage: number;
-  lastPage: number;
-  pageSize: number;
-};
-
 export type OfficeOfferResource = {
   id: string;
   officeId: string;
+
   name: string;
-  description: string;
-  price: number;
-  currency: "PLN";
-  availableFrom: string; // date-time
-  availableTo?: string; // date-time
+  publicName: string;
+
+  pricePerDay: number;
+  pricePerDayCurrency: "PLN";
+
+  freeCancellationHours: number;
+  paymentHours: number;
+
+  properties: Record<string, string[]>;
+  available: boolean;
+
   _links: { self: Link };
 };
 
@@ -126,7 +133,7 @@ export type OfficeItemResource = {
   offerId: string;
   name: string;
   type: "SHARED" | "INDIVIDUAL";
-  capacity?: number; // only for SHARED
+  capacity?: number;
   _links: { self: Link };
 };
 
@@ -193,7 +200,6 @@ export async function listOfficeItems(params: {
 }
 
 export async function listOfficeMembers(officeId: string) {
-  // NOTE: members response is not paged in the YAML (just results + _links)
   return apiFetch<{
     results: OfficeMemberResource[];
     _links: { self: Link; create?: Link };
@@ -252,11 +258,138 @@ export async function setOfficePublished(params: {
     }),
   );
 
-  // IMPORTANT: we intentionally DO NOT append "addedImages" here.
-
   return apiFetch<void>(`/offices/${encodeURIComponent(params.officeId)}`, {
     method: "PATCH",
     auth: true,
     body: fd,
   });
 }
+
+export type CreateOfficeOfferInput = {
+  sourceId?: string;
+  name: string;
+  publicName?: string;
+
+  pricePerDay: number;
+  pricePerDayCurrency: "PLN";
+
+  freeCancellationHours: number;
+  paymentHours: number;
+
+  properties?: Record<string, string>;
+};
+
+export async function createOfficeOffer(params: {
+  officeId: string;
+  input: CreateOfficeOfferInput;
+}) {
+  return apiFetch<{ id: string }>(
+    `/offices/${encodeURIComponent(params.officeId)}/offers`,
+    {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(params.input),
+    },
+  );
+}
+
+export async function getOfficeOffer(params: {
+  officeId: string;
+  offerId: string;
+}) {
+  return apiFetch<OfficeOfferResource>(
+    `/offices/${encodeURIComponent(params.officeId)}/offers/${encodeURIComponent(
+      params.offerId,
+    )}`,
+    { method: "GET", auth: true },
+  );
+}
+
+export async function setOfficeOfferAvailable(params: {
+  officeId: string;
+  offerId: string;
+  available: boolean;
+}) {
+  return apiFetch<void>(
+    `/offices/${encodeURIComponent(params.officeId)}/offers/${encodeURIComponent(
+      params.offerId,
+    )}`,
+    {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify({ available: params.available }),
+    },
+  );
+}
+
+export type FilterFlag = {
+  key: string;
+  label: string;
+};
+
+export type OfferFiltersResponse = {
+  filters: FilterSection[];
+};
+
+export type FilterSection = {
+  key: string;
+  label: string;
+  elements: FilterElement[];
+};
+
+export type FilterElement =
+  | {
+      key: string;
+      label: string;
+      type: "flags";
+      flags: Array<{ key: string; label: string }>;
+    }
+  | {
+      key: string;
+      label: string;
+      type: "integer";
+      min?: number;
+      max?: number;
+    };
+
+export async function getOfferFilters() {
+  return apiFetch<OfferFiltersResponse>(`/filters`, {
+    method: "GET",
+    auth: true,
+  });
+}
+
+export type UpdateOfficeOfferInput = {
+  name: string;
+  publicName?: string;
+
+  pricePerDay: number;
+  pricePerDayCurrency: string;
+
+  freeCancellationHours: number;
+  paymentHours: number;
+
+  // flat map, same as create
+  properties: Record<string, string>;
+};
+
+export const updateOfficeOffer = async ({
+  officeId,
+  offerId,
+  input,
+}: {
+  officeId: string;
+  offerId: string;
+  input: UpdateOfficeOfferInput;
+}) => {
+  return apiFetch<OfficeOfferResource>(
+    `/offices/${encodeURIComponent(officeId)}/offers/${encodeURIComponent(
+      offerId,
+    )}`,
+    {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(input),
+    },
+  );
+};

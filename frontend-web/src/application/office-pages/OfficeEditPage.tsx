@@ -18,6 +18,8 @@ import SaveIcon from "@mui/icons-material/Save";
 
 import { OfficeLocationPicker } from "./OfficeLocationPicker";
 import * as officesApi from "../../api/officesApi";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 
 type OfficeFormValues = {
   name: string;
@@ -32,6 +34,10 @@ type OfficeFormValues = {
 
   photos: File[]; // newly added only
 };
+
+type GalleryItem =
+  | { id: string; kind: "existing"; url: string; currentIndex: number }
+  | { id: string; kind: "new"; url: string; file: File };
 
 const MAX_IMAGES = 10;
 const PHONE_E164 = /^\+[1-9]\d{1,14}$/;
@@ -93,12 +99,12 @@ export const OfficeEditPage = () => {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const [images, setImages] = useState<string[]>([]); // existing urls + new preview urls
-  const [existingPhotoUrls, setExistingPhotoUrls] = useState<string[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [published, setPublished] = useState<boolean>(false);
 
   const resolver = useMemo(() => yupResolver(schema), []);
 
@@ -128,7 +134,6 @@ export const OfficeEditPage = () => {
 
   const address = useWatch({ control, name: "address" });
 
-  // local-only coords for picker movement (not sent)
   const [lat, setLat] = useState(52.2297);
   const [lng, setLng] = useState(21.0122);
 
@@ -168,12 +173,19 @@ export const OfficeEditPage = () => {
 
       setLat(o.coordinates?.lat ?? 52.2297);
       setLng(o.coordinates?.lon ?? 21.0122);
+      setPublished(!!o.published);
 
       const existing = o.photoUrls ?? [];
-      setExistingPhotoUrls(existing);
-      setImages(existing);
 
-      // IMPORTANT: if there was a stale "photos" error from an earlier render, kill it now
+      setGallery(
+        existing.map((url, i) => ({
+          id: `e-${i}`,
+          kind: "existing",
+          url,
+          currentIndex: i,
+        })),
+      );
+
       clearErrors("photos");
 
       setLoading(false);
@@ -190,14 +202,36 @@ export const OfficeEditPage = () => {
     "&.Mui-focused": { bgcolor: "#fff" },
   } as const;
 
+  const removeGalleryItem = (id: string) => {
+    setGallery((prev) => {
+      const item = prev.find((x) => x.id === id);
+
+      if (item?.kind === "new") URL.revokeObjectURL(item.url);
+
+      const next = prev.filter((x) => x.id !== id);
+      const nextNewFiles = next
+        .filter(
+          (x): x is Extract<GalleryItem, { kind: "new" }> => x.kind === "new",
+        )
+        .map((x) => x.file);
+
+      setValue("photos", nextNewFiles, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      clearErrors("photos");
+
+      return next;
+    });
+  };
+
   const onSubmit = async (data: OfficeFormValues) => {
     if (!officeId) return;
 
     setSubmitting(true);
     setSubmitError(null);
 
-    // Enforce "at least 1 total photo" ONLY if office has no existing photos
-    if (existingPhotoUrls.length === 0 && (data.photos?.length ?? 0) === 0) {
+    if (gallery.length === 0) {
       setSubmitting(false);
       setError("photos", {
         type: "manual",
@@ -206,9 +240,7 @@ export const OfficeEditPage = () => {
       return;
     }
 
-    // Also enforce total max (existing + added) at runtime
-    const total = existingPhotoUrls.length + (data.photos?.length ?? 0);
-    if (total > MAX_IMAGES) {
+    if (gallery.length > MAX_IMAGES) {
       setSubmitting(false);
       setError("photos", {
         type: "manual",
@@ -217,10 +249,17 @@ export const OfficeEditPage = () => {
       return;
     }
 
-    const imagesOrdering = [
-      ...existingPhotoUrls.map((_, i) => `current[${i}]`),
-      ...(data.photos ?? []).map((_, j) => `added[${j}]`),
-    ];
+    let addedIdx = 0;
+    const imagesOrdering = gallery.map((it) => {
+      if (it.kind === "existing") return `current[${it.currentIndex}]`;
+      return `added[${addedIdx++}]`;
+    });
+
+    const addedImages = gallery
+      .filter(
+        (it): it is Extract<GalleryItem, { kind: "new" }> => it.kind === "new",
+      )
+      .map((it) => it.file);
 
     const res = await officesApi.updateOffice({
       officeId,
@@ -233,9 +272,10 @@ export const OfficeEditPage = () => {
         contactPhone: data.contactPhone,
         paymentAccountNumber: data.paymentAccountNumber,
         paymentReceiverName: data.paymentReceiverName,
+        published,
         images: imagesOrdering,
       },
-      addedImages: data.photos ?? [],
+      addedImages,
     });
 
     setSubmitting(false);
@@ -247,7 +287,7 @@ export const OfficeEditPage = () => {
       return;
     }
 
-    navigate("..");
+    navigate(`/app/offices/${officeId}`);
   };
 
   if (!officeId) return null;
@@ -490,24 +530,50 @@ export const OfficeEditPage = () => {
             </Typography>
 
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {images.map((src, idx) => (
+              {gallery.map((it, idx) => (
                 <Box
-                  key={idx}
-                  component="img"
-                  src={src}
-                  alt={`Office photo ${idx + 1}`}
+                  key={it.id}
                   sx={{
                     width: 140,
                     height: 110,
-                    border: "1px solid #eee",
+                    position: "relative",
                     borderRadius: "10px",
-                    objectFit: "cover",
+                    overflow: "hidden",
+                    border: "1px solid #eee",
                     backgroundColor: "#fff",
                   }}
-                />
+                >
+                  <Box
+                    component="img"
+                    src={it.url}
+                    alt={`Office photo ${idx + 1}`}
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+
+                  <IconButton
+                    type="button"
+                    size="small"
+                    onClick={() => removeGalleryItem(it.id)}
+                    sx={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      zIndex: 2,
+                      bgcolor: "rgba(0,0,0,0.55)",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+                    }}
+                  >
+                    <CloseIcon sx={{ fontSize: 16, color: "#fff" }} />
+                  </IconButton>
+                </Box>
               ))}
 
-              {images.length < MAX_IMAGES && (
+              {gallery.length < MAX_IMAGES && (
                 <Box
                   role="button"
                   tabIndex={0}
@@ -555,24 +621,30 @@ export const OfficeEditPage = () => {
                 const files = Array.from(e.target.files ?? []);
                 if (files.length === 0) return;
 
-                const currentAdded = getValues("photos") ?? [];
-                const remaining =
-                  MAX_IMAGES - (existingPhotoUrls.length + currentAdded.length);
+                const remaining = MAX_IMAGES - gallery.length;
                 if (remaining <= 0) return;
 
                 const toAdd = files.slice(0, remaining);
 
-                setValue("photos", [...currentAdded, ...toAdd], {
+                const newItems: GalleryItem[] = toAdd.map((f, idx) => ({
+                  id:
+                    typeof crypto !== "undefined" && "randomUUID" in crypto
+                      ? `n-${crypto.randomUUID()}`
+                      : `n-${Date.now()}-${idx}`,
+                  kind: "new",
+                  url: URL.createObjectURL(f),
+                  file: f,
+                }));
+
+                setGallery((prev) => [...prev, ...newItems]);
+
+                const currentPhotos = getValues("photos") ?? [];
+                setValue("photos", [...currentPhotos, ...toAdd], {
                   shouldDirty: true,
                   shouldValidate: true,
                 });
 
-                const newUrls = toAdd.map((f) => URL.createObjectURL(f));
-                setImages((prev) => [...prev, ...newUrls]);
-
-                // IMPORTANT: remove any stale "At least 1 photo is required"
                 clearErrors("photos");
-
                 e.target.value = "";
               }}
             />
@@ -597,7 +669,7 @@ export const OfficeEditPage = () => {
               variant="text"
               color="error"
               startIcon={<CancelIcon fontSize="small" />}
-              onClick={() => navigate("..")}
+              onClick={() => navigate(`/app/offices/${officeId}`)}
               sx={{ textTransform: "none" }}
               disabled={submitting}
             >
