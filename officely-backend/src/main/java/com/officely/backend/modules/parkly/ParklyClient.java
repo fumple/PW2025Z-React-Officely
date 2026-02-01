@@ -3,6 +3,7 @@ package com.officely.backend.modules.parkly;
 import com.officely.backend.config.ParklyConfig;
 import com.officely.backend.modules.parkly.api.*;
 import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +19,7 @@ public class ParklyClient {
     public ParklyClient(RestTemplate restTemplate, ParklyConfig parklyConfig) {
         this.restTemplate = restTemplate;
         this.parklyConfig = parklyConfig;
+        this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
     }
 
     public ResponseEntity<?> getAllParkings(
@@ -63,7 +65,7 @@ public class ParklyClient {
         }
     }
 
-    public ResponseEntity<?> getMyBookings(String userId, String email, String from, String to) {
+    public ResponseEntity<?> getMyBookings(String email, String from, String to) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/bookings")
@@ -72,7 +74,6 @@ public class ParklyClient {
                 .build().toUriString();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("x-user-id", userId);
         headers.add("x-user-email", email);
 
         try {
@@ -85,15 +86,17 @@ public class ParklyClient {
         }
     }
 
-    public ResponseEntity<?> createBooking(String userId, CreateBookingRequest body) {
+    public ResponseEntity<?> createBooking(String email, CreateBookingRequest body) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/bookings")
                 .build().toUriString();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("x-user-id", userId);
         headers.setContentType(MediaType.APPLICATION_JSON);
+
+        body.setSource("OFFICELY");
+        body.setEmail(email);
 
         try {
             var req = new HttpEntity<>(body, headers);
@@ -103,26 +106,23 @@ public class ParklyClient {
         }
     }
 
-    public ResponseEntity<?> getBookingById(String userId, String email, String bookingId) {
+    public ResponseEntity<?> getBookingById(String email, String bookingId) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/bookings/{id}")
+                .queryParam("email", email)
                 .buildAndExpand(bookingId)
                 .toUriString();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("x-user-id", userId);
-        headers.add("x-user-email", email);
-
         try {
-            var req = RequestEntity.get(url).headers(headers).build();
+            var req = RequestEntity.get(url).build();
             return restTemplate.exchange(req, BookingResponse.class);
         } catch (HttpStatusCodeException ex) {
             return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
         }
     }
 
-    public ResponseEntity<?> cancelBooking(String userId, String email, String bookingId) {
+    public ResponseEntity<?> cancelBooking(String email, String bookingId) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/bookings/{id}")
@@ -130,7 +130,6 @@ public class ParklyClient {
                 .toUriString();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("x-user-id", userId);
         headers.add("x-user-email", email);
 
         try {
@@ -141,7 +140,7 @@ public class ParklyClient {
         }
     }
 
-    public ResponseEntity<?> editBooking(String userId, String bookingId, EditBookingRequest body) {
+    public ResponseEntity<?> editBooking(String email, String bookingId, EditBookingRequest body) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/bookings/{id}")
@@ -149,12 +148,13 @@ public class ParklyClient {
                 .toUriString();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.add("x-user-id", userId);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        body.setEmail(email);
+
         try {
-            var req = new HttpEntity<>(body, headers);
-            return restTemplate.exchange(url, HttpMethod.PATCH, req, BookingResponse.class);
+            var req = RequestEntity.patch(url).headers(headers).body(body);
+            return restTemplate.exchange(req, BookingResponse.class);
         } catch (HttpStatusCodeException ex) {
             return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
         }

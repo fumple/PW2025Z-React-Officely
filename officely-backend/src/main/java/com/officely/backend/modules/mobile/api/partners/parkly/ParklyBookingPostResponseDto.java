@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ParklyBookingPostResponseDto {
+    private String id;
     private String localId;
     private String start;
     private String end;
