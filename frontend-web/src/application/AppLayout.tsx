@@ -1,4 +1,5 @@
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
 
 import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
@@ -9,38 +10,51 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { ThemeProvider } from "@mui/material/styles";
 
-import { appTheme } from "./appTheme";
-
-import appLogoUrl from "../assets/logo.svg";
-
-import { clearToken } from "../api/http";
-import { useNavigate } from "react-router";
-import { getMe, updateMe, type UpdateMeInput } from "../api/usersApi";
-import { useEffect, useState } from "react";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
-import OutlinedInput from "@mui/material/OutlinedInput";
 import CircularProgress from "@mui/material/CircularProgress";
+import TextField from "@mui/material/TextField";
+import Divider from "@mui/material/Divider";
 
 import LogoutIcon from "@mui/icons-material/Logout";
 import EditIcon from "@mui/icons-material/Edit";
+
+import { appTheme } from "./appTheme";
+import appLogoUrl from "../assets/logo.svg";
+
+import { clearToken } from "../api/http";
+import { getMe, updateMe, type UpdateMeInput } from "../api/usersApi";
 
 const NAV_ITEMS = [
   { to: "/app/offices", label: "Offices" },
   { to: "/app/bookings", label: "Bookings" },
 ];
 
+type FieldErrors = Partial<
+  Record<
+    "firstName" | "lastName" | "email" | "nationality" | "phoneNumber",
+    string
+  >
+>;
+
+const PHONE_PL_REGEX = /^\+48\d{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NATIONALITY_REGEX = /^[A-Z]{2}$/;
+const NO_DIGITS_REGEX = /^(?!.*\d).*$/;
+
 export const AppLayout = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const navigate = useNavigate();
+
   const onLogout = () => {
     clearToken();
     navigate("/", { replace: true });
   };
+
   const [me, setMe] = useState<import("../api/usersApi").UserResource | null>(
     null,
   );
@@ -54,6 +68,8 @@ export const AppLayout = () => {
   const [email, setEmail] = useState("");
   const [nationality, setNationality] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const loadMe = async () => {
     const res = await getMe();
@@ -76,16 +92,47 @@ export const AppLayout = () => {
 
   useEffect(() => {
     let alive = true;
-
     (async () => {
       if (!alive) return;
       await loadMe();
     })();
-
     return () => {
       alive = false;
     };
   }, []);
+
+  const validateAll = (): FieldErrors => {
+    const errs: FieldErrors = {};
+
+    const fn = firstName.trim();
+    const ln = lastName.trim();
+    const em = email.trim();
+    const nat = nationality.trim();
+    const ph = phoneNumber.trim();
+
+    // Validate only if non-empty (because you also allow skipping fields)
+    if (fn && !NO_DIGITS_REGEX.test(fn))
+      errs.firstName = "First name cannot contain numbers.";
+    if (ln && !NO_DIGITS_REGEX.test(ln))
+      errs.lastName = "Last name cannot contain numbers.";
+
+    if (em && !EMAIL_REGEX.test(em))
+      errs.email = "Email must be a valid address (e.g. name@mail.com).";
+
+    if (nat && !NATIONALITY_REGEX.test(nat))
+      errs.nationality = "Nationality must be 2 letters (e.g. PL).";
+
+    if (ph && !PHONE_PL_REGEX.test(ph))
+      errs.phoneNumber =
+        "Phone must match +48 and 9 digits (e.g. +48111222333).";
+
+    return errs;
+  };
+
+  const hasErrors = useMemo(
+    () => Object.keys(fieldErrors).length > 0,
+    [fieldErrors],
+  );
 
   return (
     <ThemeProvider theme={appTheme}>
@@ -139,6 +186,7 @@ export const AppLayout = () => {
               <Typography>
                 {me ? `${me.firstName} ${me.lastName}` : "Loading..."}
               </Typography>
+
               <Box sx={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <Tooltip title="Edit profile">
                   <IconButton
@@ -146,11 +194,12 @@ export const AppLayout = () => {
                     onClick={() => {
                       if (!me) return;
                       setEditError(null);
+                      setFieldErrors({});
 
                       setFirstName(me.firstName ?? "");
                       setLastName(me.lastName ?? "");
                       setEmail(me.email ?? "");
-                      setNationality(me.nationality ?? "");
+                      setNationality((me.nationality ?? "").toUpperCase());
                       setPhoneNumber(me.phoneNumber ?? "");
 
                       setEditOpen(true);
@@ -202,55 +251,128 @@ export const AppLayout = () => {
           }}
           maxWidth="sm"
           fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: "14px",
+              overflow: "hidden",
+            },
+          }}
         >
-          <DialogTitle>Edit profile</DialogTitle>
+          <DialogTitle sx={{ pb: 1 }}>Edit profile</DialogTitle>
+          <Divider />
 
-          <DialogContent>
+          <DialogContent sx={{ pt: 2.5 }}>
             {editError ? (
-              <Typography color="error" sx={{ mb: "10px" }}>
+              <Typography color="error" sx={{ mb: 1.5, fontSize: 13 }}>
                 {editError}
               </Typography>
             ) : null}
 
-            <Box sx={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <OutlinedInput
+            {/* Nice layout: name row (2 cols), then singles */}
+            <Box
+              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
+            >
+              <TextField
+                label="First name"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="First name"
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  setFieldErrors((p) => ({ ...p, firstName: undefined }));
+                }}
+                onBlur={() => setFieldErrors(validateAll())}
                 disabled={saving}
+                size="small"
+                error={!!fieldErrors.firstName}
+                helperText={fieldErrors.firstName ?? " "}
               />
-              <OutlinedInput
+
+              <TextField
+                label="Last name"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Last name"
+                onChange={(e) => {
+                  setLastName(e.target.value);
+                  setFieldErrors((p) => ({ ...p, lastName: undefined }));
+                }}
+                onBlur={() => setFieldErrors(validateAll())}
                 disabled={saving}
+                size="small"
+                error={!!fieldErrors.lastName}
+                helperText={fieldErrors.lastName ?? " "}
               />
-              <OutlinedInput
+            </Box>
+
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 0.5 }}
+            >
+              <TextField
+                label="Email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setFieldErrors((p) => ({ ...p, email: undefined }));
+                }}
+                onBlur={() => setFieldErrors(validateAll())}
                 disabled={saving}
+                size="small"
+                error={!!fieldErrors.email}
+                helperText={fieldErrors.email ?? " "}
               />
-              <OutlinedInput
+
+              <TextField
+                label="Nationality"
                 value={nationality}
-                onChange={(e) => setNationality(e.target.value.toUpperCase())}
-                placeholder="Nationality (e.g. PL)"
+                onChange={(e) => {
+                  const v = e.target.value.toUpperCase();
+                  setNationality(v);
+                  setFieldErrors((p) => ({ ...p, nationality: undefined }));
+                }}
+                onBlur={() => setFieldErrors(validateAll())}
                 disabled={saving}
+                size="small"
+                inputProps={{ maxLength: 2 }}
+                error={!!fieldErrors.nationality}
+                helperText={
+                  fieldErrors.nationality ?? "2-letter code (e.g. PL) "
+                }
               />
-              <OutlinedInput
+
+              <TextField
+                label="Phone number"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Phone number (e.g. +48123456789)"
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  setFieldErrors((p) => ({ ...p, phoneNumber: undefined }));
+                }}
+                onBlur={() => setFieldErrors(validateAll())}
                 disabled={saving}
+                size="small"
+                placeholder="+48111222333"
+                error={!!fieldErrors.phoneNumber}
+                helperText={fieldErrors.phoneNumber ?? "Format: +48 + 9 digits"}
               />
             </Box>
           </DialogContent>
 
-          <DialogActions sx={{ px: "16px", pb: "12px" }}>
+          <Divider />
+
+          <DialogActions
+            sx={{
+              px: 2,
+              py: 1.5,
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 1,
+            }}
+          >
             <Button
               variant="contained"
-              disabled={saving}
+              disableElevation
+              disabled={saving || hasErrors}
               onClick={async () => {
+                const errs = validateAll();
+                setFieldErrors(errs);
+                if (Object.keys(errs).length > 0) return;
+
                 setSaving(true);
                 setEditError(null);
 
@@ -262,6 +384,7 @@ export const AppLayout = () => {
                   phoneNumber: phoneNumber.trim(),
                 };
 
+                // remove empty strings so backend won't overwrite with ""
                 Object.keys(payload).forEach((k) => {
                   const key = k as keyof typeof payload;
                   if (payload[key] === "") delete payload[key];
@@ -282,6 +405,7 @@ export const AppLayout = () => {
                 setEditOpen(false);
                 setSaving(false);
               }}
+              sx={{ minWidth: 110, borderRadius: "10px" }}
             >
               {saving ? (
                 <Box
@@ -299,6 +423,7 @@ export const AppLayout = () => {
               color="error"
               disabled={saving}
               onClick={() => setEditOpen(false)}
+              sx={{ borderRadius: "10px" }}
             >
               Cancel
             </Button>

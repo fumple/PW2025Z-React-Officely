@@ -54,7 +54,14 @@ const schema: yup.ObjectSchema<SignupValues> = yup
               new Date().getDate(),
             ),
       ),
-    phoneNumber: yup.string().trim().required("phone number is required"),
+    phoneNumber: yup
+      .string()
+      .trim()
+      .required("phone number is required")
+      .matches(
+        /^\+48\d{9}$/,
+        "phone number must be in the following form, example: +48111222333",
+      ),
     password: yup
       .string()
       .required("password is required")
