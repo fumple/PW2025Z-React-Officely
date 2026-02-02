@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Parkly
-  version: 0.0.1
+  version: '3'
   description: |-
     This is the unchanged documentation that we've received from Parkly.
     It is uploaded here for reference.
@@ -29,6 +29,73 @@ tags:
   - name: Profile
     description: User account management endpoints
 paths:
+  /api/cars/bookings:
+    get:
+      tags:
+        - Car Bookings
+      summary: My Car Bookings
+      description: Returns list of car bookings for the user.
+      operationId: getMyCarBookings
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of bookings retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarBookingResponse'
+    post:
+      tags:
+        - Car Bookings
+      summary: Book a Car
+      description: Creates a new reservation in the Carly system.
+      operationId: createCarBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCarBookingRequest'
+        required: true
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CreateCarBookingResponse'
+        '400':
+          description: Invalid dates or input data
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Car or Location not found in Partner system
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Partner system error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/bookings:
     get:
       tags:
@@ -269,9 +336,11 @@ paths:
     post:
       tags:
         - Admin Inventory
-      summary: Upload Photo
-      description: Uploads an image. If is_main is true, updates the parking's main image.
-      operationId: uploadPhoto
+      summary: Add Photo URL
+      description: >-
+        Adds a link to an online photo. If 'isMain' is true, this becomes the
+        thumbnail.
+      operationId: addPhoto
       parameters:
         - name: id
           in: path
@@ -279,26 +348,15 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: is_main
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
       requestBody:
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-              required:
-                - file
+              $ref: '#/components/schemas/AddPhotoRequest'
+        required: true
       responses:
         '200':
-          description: Photo uploaded successfully
+          description: Photo added successfully
         '404':
           description: Parking not found
           content:
@@ -651,6 +709,101 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/test-carly/ping-reference:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testReference
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyReferenceDataDto'
+  /api/test-carly/ping-create-booking:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testCreateBooking
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyBookResponseDto'
+  /api/test-carly/ping-cars:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testSearch
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarlyCarDto'
+  /api/test-carly/ping-car-details/{carId}:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testCarDetails
+      parameters:
+        - name: carId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyCarDto'
+  /api/test-carly/ping-cancel-booking/{bookingId}:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testCancelBooking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+  /api/test-carly/ping-booking-details/{bookingId}:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testBookingDetails
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyBookResponseDto'
   /api/parkings:
     get:
       tags:
@@ -664,14 +817,14 @@ paths:
         - name: latitude
           in: query
           description: User's current latitude
-          required: true
+          required: false
           schema:
             type: number
             format: double
         - name: longitude
           in: query
           description: User's current longitude
-          required: true
+          required: false
           schema:
             type: number
             format: double
@@ -683,6 +836,18 @@ paths:
             type: number
             format: double
             default: 1000
+        - name: name
+          in: query
+          description: Filter by parking name
+          required: false
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: Filter by parking city
+          required: false
+          schema:
+            type: string
         - name: startDate
           in: query
           description: Booking start datetime (ISO)
@@ -715,6 +880,20 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: sortByPrice
+          in: query
+          description: Sort by lowest price first
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: sortByDistance
+          in: query
+          description: Sort by closest first
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           description: List of parkings retrieved successfully
@@ -769,6 +948,225 @@ paths:
           description: Parking not found
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cars:
+    get:
+      tags:
+        - Cars
+      summary: Search Cars
+      description: Search for available cars in the Partner system (Carly).
+      operationId: searchCars
+      parameters:
+        - name: start
+          in: query
+          description: Start of rental period
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End of rental period
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: city
+          in: query
+          description: City or Location query
+          required: false
+          schema:
+            type: string
+        - name: brand
+          in: query
+          description: Filter by car brand
+          required: false
+          schema:
+            type: string
+        - name: model
+          in: query
+          description: Filter by car model
+          required: false
+          schema:
+            type: string
+        - name: color
+          in: query
+          description: Filter by car color
+          required: false
+          schema:
+            type: string
+        - name: fuelType
+          in: query
+          description: Filter by fuel type (e.g. GASOLINE, ELECTRIC)
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 10
+      responses:
+        '200':
+          description: List of cars retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarResponse'
+        '400':
+          description: Invalid date range or parameters
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Partner system error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cars/{id}:
+    get:
+      tags:
+        - Cars
+      summary: Car Details
+      description: Get full details of a specific car from Carly.
+      operationId: getCarDetails
+      parameters:
+        - name: id
+          in: path
+          description: The external ID of the car (Integer)
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Car details found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarDetailsResponse'
+        '404':
+          description: Car not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cars/reference-data:
+    get:
+      tags:
+        - Cars
+      summary: Reference Data
+      description: Get dictionaries for search filters (Locations, Brands, Colors, etc).
+      operationId: getReferenceData
+      parameters:
+        - name: include
+          in: query
+          description: >-
+            Optional list of dictionaries to include (e.g. CAR_BRANDS,
+            PICKUP_LOCATIONS)
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Data retrieved successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarReferenceDataResponse'
+  /api/cars/bookings/{id}:
+    get:
+      tags:
+        - Car Bookings
+      summary: Car Booking Details
+      description: Get details of a specific car booking.
+      operationId: getCarBookingDetails
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarBookingResponse'
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking ID not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Car Bookings
+      summary: Cancel Car Booking
+      description: Cancels the booking in Parkly and Carly systems.
+      operationId: cancelCarBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Booking cancelled successfully
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Booking cannot be cancelled (e.g. already started)
+          content:
+            '*/*':
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/admin/reports/revenue:
@@ -981,6 +1379,69 @@ paths:
           description: OK
 components:
   schemas:
+    CreateCarBookingRequest:
+      type: object
+      properties:
+        car_id:
+          type: integer
+          format: int32
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        pickup_location_id:
+          type: integer
+          format: int32
+        return_location_id:
+          type: integer
+          format: int32
+      required:
+        - car_id
+        - end_date
+        - pickup_location_id
+        - return_location_id
+        - start_date
+    CreateCarBookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        external_id:
+          type: integer
+          format: int32
+        total_cost:
+          type: number
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
     CreateBookingRequest:
       type: object
       properties:
@@ -1067,21 +1528,6 @@ components:
         - start
         - status
         - totalCost
-    ErrorResponse:
-      type: object
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-        status:
-          type: integer
-          format: int32
-        error:
-          type: string
-        message:
-          type: string
-        path:
-          type: string
     RegisterRequest:
       type: object
       properties:
@@ -1196,6 +1642,16 @@ components:
         - localId
         - pricePerDay
         - pricePerHour
+    AddPhotoRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+        main:
+          type: boolean
+      required:
+        - url
     ChangePasswordRequest:
       type: object
       properties:
@@ -1344,6 +1800,89 @@ components:
           type: string
         phoneNumber:
           type: string
+    CarlyDictionaryDto:
+      type: object
+      properties:
+        dictionaryId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+    CarlyLocationDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    CarlyReferenceDataDto:
+      type: object
+      properties:
+        pickupLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyLocationDto'
+        returnLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyLocationDto'
+        referenceData:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyDictionaryDto'
+    CarlyBookResponseDto:
+      type: object
+      properties:
+        bookingId:
+          type: integer
+          format: int32
+        status:
+          $ref: '#/components/schemas/CarlyStatusDto'
+    CarlyStatusDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+    CarlyCarDto:
+      type: object
+      properties:
+        carId:
+          type: integer
+          format: int32
+        price:
+          type: number
+        urls:
+          type: array
+          items:
+            type: string
+        carFeatures:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyFeatureDto'
+    CarlyFeatureDto:
+      type: object
+      properties:
+        dictionaryId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        value:
+          type: string
     ParkingResponse:
       type: object
       properties:
@@ -1424,6 +1963,143 @@ components:
         - priceForPeriod
         - streetName
         - streetNumber
+    CarFeatureResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - name
+        - value
+    CarResponse:
+      type: object
+      properties:
+        price:
+          type: number
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarFeatureResponse'
+        car_id:
+          type: integer
+          format: int32
+        image_urls:
+          type: array
+          items:
+            type: string
+      required:
+        - car_id
+        - features
+        - image_urls
+        - price
+    CarDetailsResponse:
+      type: object
+      properties:
+        price:
+          type: number
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarFeatureResponse'
+        car_id:
+          type: integer
+          format: int32
+        image_urls:
+          type: array
+          items:
+            type: string
+      required:
+        - car_id
+        - features
+        - image_urls
+        - price
+    CarReferenceDataResponse:
+      type: object
+      properties:
+        pickup_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationResponse'
+        return_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationResponse'
+        dictionaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/DictionaryResponse'
+      required:
+        - dictionaries
+        - pickup_locations
+        - return_locations
+    DictionaryResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+        dictionary_id:
+          type: integer
+          format: int32
+      required:
+        - dictionary_id
+        - name
+        - values
+    LocationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+        - address
+        - id
+        - latitude
+        - longitude
+    CarBookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        external_booking_id:
+          type: integer
+          format: int32
+        car_id:
+          type: integer
+          format: int32
+        car_name:
+          type: string
+        car_image_url:
+          type: string
+        total_cost:
+          type: number
     RevenueReportResponse:
       type: object
       properties:
