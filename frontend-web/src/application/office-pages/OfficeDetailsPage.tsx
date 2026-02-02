@@ -452,6 +452,11 @@ const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
     [navigate],
   );
 
+  const itemRowCount = itemsHasNextPage
+    ? -1
+    : itemsPaginationModel.page * itemsPaginationModel.pageSize +
+      itemsRows.length;
+
   const offersColumns = useMemo<GridColDef<OfferRow>[]>(
     () => [
       { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
@@ -521,6 +526,11 @@ const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
     ],
     [navigate],
   );
+
+  const offersRowCount = offersHasNextPage
+    ? -1
+    : offersPaginationModel.page * offersPaginationModel.pageSize +
+      offersRows.length;
 
   const membersColumns = useMemo<GridColDef<MemberRow>[]>(
     () => [
@@ -772,7 +782,7 @@ const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
           onFilterModelChange={handleItemsFilterModelChange}
           paginationModel={itemsPaginationModel}
           onPaginationModelChange={handleItemsPaginationModelChange}
-          rowCount={-1}
+          rowCount={itemRowCount}
           paginationMeta={{ hasNextPage: itemsHasNextPage }}
           pageSizeOptions={BASE_PAGE_SIZES}
           showToolbar
@@ -825,7 +835,7 @@ const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
           onFilterModelChange={handleOffersFilterModelChange}
           paginationModel={offersPaginationModel}
           onPaginationModelChange={handleOffersPaginationModelChange}
-          rowCount={-1}
+          rowCount={offersRowCount}
           paginationMeta={{ hasNextPage: offersHasNextPage }}
           pageSizeOptions={BASE_PAGE_SIZES}
           showToolbar
@@ -868,24 +878,24 @@ const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
       </Box>
 
       <Paper variant="card">
-        <DataGrid
-          rows={membersRows}
-          columns={membersColumns}
-          disableRowSelectionOnClick
-          loading={loading}
-          pageSizeOptions={[10, 20, 50]}
-          initialState={{
-            pagination: { paginationModel: { page: 0, pageSize: 10 } },
-          }}
-          showToolbar
-          slotProps={{
-            toolbar: {
-              showQuickFilter: true,
-              quickFilterProps: { debounceMs: 300 },
-            },
-          }}
-          disableColumnFilter
-        />
+        <Paper variant="card">
+          <DataGrid
+            rows={membersRows}
+            columns={membersColumns}
+            disableRowSelectionOnClick
+            loading={loading}
+            showToolbar
+            slotProps={{
+              toolbar: {
+                showQuickFilter: true,
+                quickFilterProps: { debounceMs: 300 },
+              },
+            }}
+            disableColumnFilter
+            autoHeight
+            hideFooterPagination
+          />
+        </Paper>
       </Paper>
 
       {/* Add Employee Dialog */}
