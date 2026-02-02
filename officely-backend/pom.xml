@@ -80,6 +80,16 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents.client5</groupId>
+			<artifactId>httpclient5</artifactId>
+			<version>5.5.2</version>
+		</dependency>
 
 	</dependencies>
 
@@ -108,6 +118,27 @@
 					<compilerArgs>
 						<arg>-Amapstruct.defaultComponentModel=spring</arg>
 					</compilerArgs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>io.github.git-commit-id</groupId>
+				<artifactId>git-commit-id-maven-plugin</artifactId>
+				<version>9.0.2</version>
+				<executions>
+					<execution>
+						<id>get-the-git-infos</id>
+						<goals>
+							<goal>revision</goal>
+						</goals>
+						<phase>initialize</phase>
+					</execution>
+				</executions>
+				<configuration>
+					<!-- Enable generation of git.properties file -->
+					<generateGitPropertiesFile>true</generateGitPropertiesFile>
+					<!-- Specify the path to write the properties file to -->
+					<generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+					<commitIdGenerationMode>full</commitIdGenerationMode>
 				</configuration>
 			</plugin>
 		</plugins>

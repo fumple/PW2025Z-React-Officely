@@ -1,6 +1,7 @@
 package com.officely.backend.service;
 
 import com.officely.backend.entity.OfficeItemEntity;
+import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.repository.OfficeItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,16 +9,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class OfficeItemService {
     private final OfficeItemRepository officeItemRepository;
 
-    public OfficeItemEntity getOfficeItem(Long officeId, Long itemId){
-        return officeItemRepository.findByIdAndOfficeId(itemId, officeId)
-                .orElseThrow(() -> new NoSuchElementException("The given office or item was not found"));
+    public Optional<OfficeItemEntity> getOfficeItem(Long officeId, Long itemId) {
+        return officeItemRepository.findByIdAndOfficeId(itemId, officeId);
     }
 
     public Page<OfficeItemEntity> getItems(Long officeId, PageRequest pageRequest) {
@@ -46,7 +46,7 @@ public class OfficeItemService {
         return officeItemRepository.save(entity);
     }
 
-    public void moveItemsToNewOffer(long sourceId, long targetId) {
-        officeItemRepository.updateOfferId(sourceId, targetId);
+    public void moveItemsToNewOffer(OfficeOfferEntity source, OfficeOfferEntity target) {
+        officeItemRepository.updateOfferId(source, target);
     }
 }

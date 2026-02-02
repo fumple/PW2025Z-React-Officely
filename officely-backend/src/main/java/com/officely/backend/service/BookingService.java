@@ -1,19 +1,16 @@
 package com.officely.backend.service;
 
 import com.officely.backend.api.throwables.ActionNotAllowedException;
+import com.officely.backend.api.throwables.ConflictException;
+import com.officely.backend.api.throwables.ValidationException;
 import com.officely.backend.entity.*;
-import com.officely.backend.modules.flatly.api.bookings.dto.BookingDto;
-import com.officely.backend.modules.flatly.api.bookings.dto.BookingsResponseDto;
-import com.officely.backend.modules.flatly.api.bookings.mapper.BookingMapper;
-import com.officely.backend.repository.BookingRepository;
-import com.officely.backend.repository.OfficeOfferRepository;
-import com.officely.backend.repository.PaymentRepository;
-import com.officely.backend.repository.UserRepository;
+import com.officely.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,37 +30,46 @@ public class BookingService {
     private final UserRepository userRepository;
     private final OfficeOfferRepository officeOfferRepository;
     private final PaymentRepository paymentRepository;
+    private final OfficeItemRepository officeItemRepository;
 
     public Long bookOfficeUsingOffer(
-            String officeId,
-            String offerId,
-            String userId,
+            long officeId,
+            long offerId,
+            long userId,
             LocalDate startDate,
             LocalDate endDate
     ) {
-        Long officeIdLong = parseId(officeId, "officeId");
-        Long offerIdLong = parseId(offerId, "offerId");
-        Long userIdLong = parseId(userId, "userId");
-
-        if (startDate == null || endDate == null || !endDate.isAfter(startDate) || startDate.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Invalid booking period");
+        if (startDate == null || endDate == null || endDate.isBefore(startDate) || startDate.isBefore(LocalDate.now())) {
+            throw new ValidationException("startDate", "Invalid booking period");
         }
 
-        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+        long days = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
         if (days < 1) {
-            throw new IllegalArgumentException("The booking period must last at least 1 day");
+            throw new ValidationException("startDate", "The booking period must last at least 1 day");
         }
 
-        UserEntity userEntity = userRepository.findById(userIdLong).orElseThrow(() -> new NoSuchElementException("User not found"));
-        OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerIdLong, officeIdLong)
+        UserEntity userEntity = userRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found"));
+        OfficeOfferEntity officeOfferEntity = officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
                 .orElseThrow(() -> new NoSuchElementException("The given office or offer was not found"));
+        if(!officeOfferEntity.isAvailable()) {
+            throw new ConflictException("The picked offer is currently unavailable");
+        }
+
         OfficeEntity officeEntity = officeOfferEntity.getOffice();
+        if(!officeEntity.isPublished()) {
+            throw new ConflictException("The picked office is currently unavailable for booking");
+        }
 
         BookingStatus status = BookingStatus.active;
         Instant creationDate = Instant.now();
         Integer totalPrice = (int) (officeOfferEntity.getPricePerDay() * days);
 
-        BookingEntity bookingEntity = new BookingEntity(userEntity, officeEntity, officeOfferEntity, null, // TODO: FIND AVAILABLE ITEM!
+        var availableItem = officeItemRepository.findAvailableItem(offerId, startDate, endDate);
+        if(availableItem.isEmpty()) {
+            throw new ConflictException("No item is available for the specified period");
+        }
+
+        BookingEntity bookingEntity = new BookingEntity(userEntity, officeEntity, officeOfferEntity, availableItem.get(),
                 status, startDate, endDate, creationDate, totalPrice);
 
         Long bookingId = bookingRepository.save(bookingEntity).getId();
@@ -82,42 +88,45 @@ public class BookingService {
         return bookingId;
     }
 
-    public BookingDto getBookingInfo(String userId, String bookingId){
-        Long userIdLong = parseId(userId, "userId");
-        Long bookingIdLong = parseId(bookingId, "bookingId");
-
-        BookingEntity booking = bookingRepository.findByIdAndUserId(bookingIdLong, userIdLong)
-                .orElseThrow(() -> new NoSuchElementException("The given user or booking was not found"));
-
-        return BookingMapper.toDto(booking);
+    public Optional<BookingEntity> getBookingInfo(long userId, long bookingId){
+        return bookingRepository.findByIdAndUserId(bookingId, userId);
     }
 
-    public BookingsResponseDto getUserBookings(String userId, Integer pageSize, String pageToken){
-        Long userIdLong = parseId(userId, "userId");
-        if (pageSize == null || pageSize <= 0 || pageSize>50){ pageSize = 50; }
-        Integer pageIndex = checkPageIndex(pageToken);
+    public enum BookingStatusFilter {
+        past,
+        active,
+        cancelled
+    }
+    public Page<BookingEntity> getUserBookings(Long userId, @Nullable BookingStatusFilter status, int pageSize, Integer pageToken){
+        if (pageSize <= 0 || pageSize>50){ pageSize = 50; }
+        int pageIndex = checkPageIndex(pageToken);
 
         PageRequest pageRequest = PageRequest.of(pageIndex, pageSize, Sort
-                .by(Sort.Direction.DESC, "startDate")
-                .and(Sort.by(Sort.Direction.DESC, "id"))
+                .by(Sort.Direction.DESC, "id")
         );
 
-        Page<BookingEntity> page = bookingRepository.findByUserIdOrderByStartDateDesc(userIdLong, pageRequest);
-
-        List<BookingDto> bookings = page.getContent().stream().map(BookingMapper::toDto).toList();
-
-        BookingsResponseDto.Pagination pagination = new BookingsResponseDto.Pagination();
-
-        pagination.setCurrentPage(pageIndex);
-        pagination.setLastPage(Math.max(page.getTotalPages() - 1, 0));
-        pagination.setPageSize(pageSize);
-
-        BookingsResponseDto.Links links = new BookingsResponseDto.Links();
-        links.setSelf("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=" + pageIndex);
-        links.setFirst("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=0");
-        links.setLast("/users/" + userIdLong + "/bookings?pageSize=" + pageSize + "&pageToken=" + pagination.getLastPage());
-
-        return new BookingsResponseDto(bookings, pagination, links);
+        if(status == null) {
+            return bookingRepository.findByUserIdOrderByStartDateDesc(userId, pageRequest);
+        } else if(status == BookingStatusFilter.cancelled) {
+            return bookingRepository.findByUserIdAndBookingStatusInOrderByStartDateDesc(
+                    userId,
+                    List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
+                    pageRequest);
+        } else if(status == BookingStatusFilter.past) {
+            return bookingRepository.findByUserIdAndBookingStatusNotInAndEndDateBeforeOrderByStartDateDesc(
+                    userId,
+                    List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
+                    LocalDate.now(),
+                    pageRequest);
+        } else if(status == BookingStatusFilter.active) {
+            return bookingRepository.findByUserIdAndBookingStatusNotInAndEndDateGreaterThanEqualOrderByStartDateAsc(
+                    userId,
+                    List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
+                    LocalDate.now(),
+                    pageRequest);
+        } else {
+            throw new ValidationException("status", "Unknown value of status!");
+        }
     }
 
     public void cancelBooking(String userId, String bookingId){
@@ -193,25 +202,20 @@ public class BookingService {
         }
     }
 
-    private Integer checkPageIndex(String pageToken){
-        int pageIndex = 0;
-        if(pageToken != null && !pageToken.isBlank()){
-            try{
-                pageIndex = Integer.parseInt(pageToken);
-                if(pageIndex < 0) { pageIndex = 0; }
-            }catch(Exception e){
-                pageIndex = 0;
-            }
-        }
-        return pageIndex;
+    private int checkPageIndex(Integer pageToken){
+        if(pageToken == null || pageToken < 0)
+            return 0;
+        return pageToken;
     }
 
-    public Page<BookingEntity> getBookings(PageRequest pageRequest) {
-        return bookingRepository.findAll(pageRequest);
+    public Page<BookingEntity> getBookings(UserEntity actor, PageRequest pageRequest) {
+        if(actor.isAdmin()) {
+            return bookingRepository.findAll(pageRequest);
+        }
+        return bookingRepository.getByAdminUserId(actor.getId(), pageRequest);
     }
-    public Page<BookingEntity> getBookings(PageRequest pageRequest, String search) {
-        // TODO: Implement
-        return bookingRepository.findAll(pageRequest);
+    public Page<BookingEntity> getBookings(long officeId, PageRequest pageRequest) {
+        return bookingRepository.getByOfficeId(officeId, pageRequest);
     }
     public Optional<BookingEntity> getBookingById(long id) {
         return bookingRepository.findById(id);
@@ -231,6 +235,7 @@ public class BookingService {
             throw new ActionNotAllowedException("Only a booking with pending payment can be marked as paid");
         }
         booking.getPaymentInfo().setStatus(PaymentStatus.received);
+        booking.getPaymentInfo().setPaidAt(Instant.now());
         paymentRepository.save(booking.getPaymentInfo());
         bookingRepository.save(booking);
     }

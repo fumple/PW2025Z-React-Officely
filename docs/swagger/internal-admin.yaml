@@ -1,7 +1,11 @@
 openapi: 3.1.0
 info:
   title: Officely - Internal Admin API
-  version: 0.0.1
+  version: 1.2.1
+servers: 
+  - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/admin
+  - url: https://officely-dev.noscorp.pl/admin
+  - url: http://localhost:8080/admin
 components: 
   securitySchemes: 
     user_auth:
@@ -9,7 +13,14 @@ components:
       type: http
       in: header
       scheme: "Bearer"
-  schemas: 
+  schemas:
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
     PageSize:
       type: integer
       minimum: 1
@@ -17,6 +28,9 @@ components:
       examples: [25]
     FilterElement:
       type: object
+      required:
+        - key
+        - label
       properties: 
         key:
           type: string
@@ -24,6 +38,9 @@ components:
           type: string
       oneOf: 
         - type: object
+          required:
+            - type
+            - flags
           properties: 
             type:
               type: string
@@ -32,26 +49,20 @@ components:
               type: array
               items:
                 type: object
+                required:
+                  - key
+                  - label
                 properties:
                   key:
                     type: string
                   label:
                     type: string
-            min:
-              type: integer
-            max:
-              type: integer
-        - type: object
-          properties: 
-            type:
-              type: string
-              const: "integer"
-            min:
-              type: integer
-            max:
-              type: integer
     FilterSection:
       type: object
+      required:
+        - key
+        - label
+        - elements
       properties: 
         key:
           type: string
@@ -76,8 +87,8 @@ components:
         - dateOfBirth
         - nationality
         - phoneNumber
-        - isBlocked
-        - isAdmin
+        - blocked
+        - admin
         - _links
       properties:
         type:
@@ -96,6 +107,7 @@ components:
           type: string
         dateOfBirth:
           type: string
+          format: date
           examples:
             - "2025-04-01"
         nationality:
@@ -106,10 +118,10 @@ components:
           type: string
           examples:
             - "+48222347211"
-        isBlocked:
+        blocked:
           type: boolean
           default: false
-        isAdmin:
+        admin:
           type: boolean
           default: false
           description: If true, then user has pretty much unrestricted access to all endpoints in the API, with the exception of /users/@me endpoints for other users
@@ -119,13 +131,13 @@ components:
             - self
           properties: 
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - /users/2056
+                - href: /users/2056
             update:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - /users/2056
+                - href: /users/2056
     BookingResource:
       type: object
       required:
@@ -165,20 +177,19 @@ components:
             - active
             - cancelledByUser
             - cancelledByStaff
-            - upcoming
-            - awaitingPayment
-            - awaitingRefund
-            - past
         creationDate:
           type: string
+          format: date-time
           examples:
             - "2026-01-01T20:40:06Z"
         startDate:
           type: string
+          format: date
           examples:
             - "2026-01-06"
         endDate:
           type: string
+          format: date
           examples:
             - "2026-01-26"
         cancellationReason:
@@ -188,11 +199,20 @@ components:
         paymentInfo:
           type: object
           required:
+            - status
             - accountNumber
             - receiverName
             - transferTitle
             - dueDate
           properties:
+            status:
+              type: string
+              enum:
+                - pendingPayment
+                - received
+                - pendingRefund
+                - refunded
+                - cancelled
             accountNumber:
               type: string
             receiverName:
@@ -201,6 +221,7 @@ components:
               type: string
             dueDate:
               type: string
+              format: date
               examples:
                 - "2026-01-04T20:40:06Z"
         _links:
@@ -212,21 +233,21 @@ components:
             - offer
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             user:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
             item:
-              type: string
+              $ref: '#/components/schemas/Link'
             offer:
-              type: string
+              $ref: '#/components/schemas/Link'
             cancel:
-              type: string
+              $ref: '#/components/schemas/Link'
             markPaid:
-              type: string
+              $ref: '#/components/schemas/Link'
             markRefunded:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeResource:
       type: object
       required: 
@@ -234,6 +255,7 @@ components:
         - ownerId
         - name
         - description
+        - openingHours
         - address
         - coordinates
         - photoUrls
@@ -251,6 +273,8 @@ components:
           type: string
         description:
           type: string
+        openingHours:
+          type: string
         address:
           type: string
         coordinates:
@@ -260,9 +284,9 @@ components:
             - lon
           properties:
             lat:
-              type: string
+              type: number
             lon:
-              type: string
+              type: number
         photoUrls:
           type: array
           items:
@@ -284,15 +308,19 @@ components:
             - self
             - update
             - offers
+            - items
+            - members
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             update:
-              type: string
+              $ref: '#/components/schemas/Link'
             offers:
-              type: string
+              $ref: '#/components/schemas/Link'
             items:
-              type: string
+              $ref: '#/components/schemas/Link'
+            members:
+              $ref: '#/components/schemas/Link'
     OfficeOfferResource:
       type: object
       required: 
@@ -303,7 +331,6 @@ components:
         - pricePerDayCurrency
         - freeCancellationHours
         - paymentHours
-        - photoUrls
         - properties
         - _links
       properties: 
@@ -324,10 +351,6 @@ components:
         paymentHours:
           type: integer
           description: The payment must be made x hours after the booking was made
-        photoUrls:
-          type: array
-          items:
-            type: string
         properties:
           type: object
           additionalProperties: 
@@ -343,9 +366,9 @@ components:
             - office
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeItemResource:
       type: object
       required: 
@@ -373,8 +396,8 @@ components:
         type:
           type: string
           enum:
-            - shared
-            - individual
+            - SHARED
+            - INDIVIDUAL
         capacity:
           type: integer
           minimum: 1
@@ -384,13 +407,40 @@ components:
           required:
             - self
             - office
+            - offer
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
             offer:
-              type: string
+              $ref: '#/components/schemas/Link'
+    OfficeMemberResource:
+      type: object
+      required: 
+        - id
+        - officeId
+        - userId
+        - _links
+      properties: 
+        id:
+          type: string
+        officeId:
+          type: string
+        userId:
+          type: string
+        _links:
+          type: object
+          required:
+            - self
+            - office
+          properties:
+            self:
+              $ref: '#/components/schemas/Link'
+            office:
+              $ref: '#/components/schemas/Link'
+            delete:
+              $ref: '#/components/schemas/Link'
 paths:
   '/filters':
     get:
@@ -411,11 +461,9 @@ paths:
                     type: object
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                         examples:
-                          - '/filters'
-        "401":
-          $ref: '#/components/responses/Unauthorized'
+                          - href: '/filters'
   '/login':
     post:
       tags: [ Auth ]
@@ -437,8 +485,13 @@ paths:
                     - admin
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 password:
                   type: string
+                  minLength: 1
+                  maxLength: 64
       responses: 
         "200":
           description: "Success"
@@ -513,22 +566,40 @@ paths:
                     - admin
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - Bob
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - React
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
+                  examples:
+                    - bob.react@example.com
                 password:
                   type: string
+                  minLength: 8
+                  maxLength: 64
                 dateOfBirth:
                   type: string
+                  format: date
                   examples:
                     - "2025-04-01"
                 nationality:
                   type: string
+                  pattern: "^[A-Z]{2}$"
                   examples:
-                    - pl
+                    - PL
                 phoneNumber:
                   type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
                   examples:
                     - "+48222347211"
       responses: 
@@ -604,6 +675,9 @@ paths:
               properties:
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
               required:
                 - email
       responses:
@@ -651,6 +725,84 @@ paths:
                               const: InvalidBodyError
         "429":
           description: "Too many requests"
+  '/checkResetCode':
+    post:
+      tags: [Auth]
+      summary: "Check reset code"
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              properties:
+                email:
+                  type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
+                code:
+                  type: string
+                  minLength: 1
+                  maxLength: 6
+              required:
+                - email
+                - code
+      responses:
+        "200":
+          description: "Checked successfully, result in content"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - valid
+                properties:
+                  valid:
+                    type: boolean
+        "400":
+          description: "Invalid email or body"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - code
+                                - email
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Invalid email
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+        "429":
+          description: "Too many requests"
   '/resetPassword':
     post:
       tags: [Auth]
@@ -664,10 +816,17 @@ paths:
               properties:
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 code:
                   type: string
+                  minLength: 1
+                  maxLength: 6
                 newPassword:
                   type: string
+                  minLength: 8
+                  maxLength: 64
               required:
                 - email
                 - code
@@ -749,18 +908,34 @@ paths:
               properties: 
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                 password:
                   type: string
+                  minLength: 8
+                  maxLength: 64
+                currentPassword:
+                  type: string
+                  description: Must be provided if new password is also given
+                  minLength: 8
+                  maxLength: 64
                 nationality:
                   type: string
+                  pattern: "^[A-Z]{2}$"
                   examples:
-                    - pl
+                    - PL
                 phoneNumber:
                   type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
                   examples:
                     - "+48222347211"
       responses: 
@@ -821,13 +996,9 @@ paths:
         - user_auth: []
       parameters: 
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -849,7 +1020,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -888,15 +1059,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
         "403":
@@ -924,6 +1095,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     patch:
       tags: [Users]
       summary: "[Admin] Modify an user"
@@ -941,8 +1114,10 @@ paths:
           application/json: 
             schema: 
               type: object
+              required:
+                - blocked
               properties: 
-                isBlocked:
+                blocked:
                   type: boolean
       responses: 
         "204":
@@ -974,7 +1149,7 @@ paths:
                             field:
                               type: string
                               enum:
-                                - isBlocked
+                                - blocked
                             message:
                               type: string
                               description: A human readable message
@@ -991,6 +1166,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
 
   '/bookings':
     get:
@@ -1000,13 +1177,9 @@ paths:
         - user_auth: []
       parameters: 
         - in: query
-          name: filter
+          name: officeId
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1028,7 +1201,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1067,15 +1240,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
   '/bookings/{bookingId}':
@@ -1101,6 +1274,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/bookings/{bookingId}/cancel':
     post:
       tags: [ Bookings ]
@@ -1127,6 +1302,8 @@ paths:
                   type: boolean
                 reason:
                   type: string
+                  minLength: 1
+                  maxLength: 64
       responses: 
         "200":
           description: Success
@@ -1159,6 +1336,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/bookings/{bookingId}/markPaid':
     post:
       tags: [ Bookings ]
@@ -1203,6 +1382,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/bookings/{bookingId}/markRefunded':
     post:
       tags: [ Bookings ]
@@ -1247,6 +1428,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
 
   # ====== OFFICES =======
   '/offices':
@@ -1257,13 +1440,9 @@ paths:
         - user_auth: []
       parameters: 
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1285,7 +1464,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1324,15 +1503,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
     post:
@@ -1347,34 +1526,65 @@ paths:
             schema: 
               type: object
               required: 
-                - name
-                - description
-                - address
-                - contactEmail
-                - contactPhone
-                - paymentAccountNumber
-                - paymentReceiverName
+                - office
                 - images
               properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                address:
-                  type: string
-                contactEmail:
-                  type: string
-                contactPhone:
-                  type: string
-                paymentAccountNumber:
-                  type: string
-                paymentReceiverName:
-                  type: string
+                office:
+                  type: object
+                  required: 
+                    - name
+                    - description
+                    - openingHours
+                    - address
+                    - contactEmail
+                    - contactPhone
+                    - paymentAccountNumber
+                    - paymentReceiverName
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 64
+                    description:
+                      type: string
+                      minLength: 1
+                      maxLength: 4096
+                    openingHours:
+                      type: string
+                      minLength: 1
+                      maxLength: 1024
+                    address:
+                      type: string
+                      minLength: 1
+                      maxLength: 256
+                    contactEmail:
+                      type: string
+                      minLength: 1
+                      maxLength: 256
+                      format: email
+                    contactPhone:
+                      type: string
+                      pattern: "^\\+[1-9]\\d{1,14}$"
+                    paymentAccountNumber:
+                      type: string
+                      minLength: 1
+                      maxLength: 34
+                      description: In the international IBAN format
+                    paymentReceiverName:
+                      type: string
+                      minLength: 1
+                      maxLength: 64
                 images:
                   type: array
+                  minItems: 1
+                  maxItems: 10
+                  description: Each image must be at most 25MB in size. Only .png, .jpg and .webp files are accepted!
                   items:
                     type: string
                     format: binary
+            encoding: 
+              office:
+                contentType: application/json
       responses:
         "201":
           description: Created
@@ -1422,7 +1632,12 @@ paths:
                               enum:
                                 - name
                                 - description
+                                - openingHours
                                 - address
+                                - contactEmail
+                                - contactPhone
+                                - paymentAccountNumber
+                                - paymentReceiverName
                                 - images
                             message:
                               type: string
@@ -1461,9 +1676,11 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     patch:
       tags: [ Offices ]
-      summary: Modify an office
+      summary: Modify an office (only the owner may use this)
       security:
         - user_auth: []
       parameters:
@@ -1478,37 +1695,67 @@ paths:
           multipart/form-data: 
             schema: 
               type: object
+              required:
+                - office
               properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                address:
-                  type: string
-                contactEmail:
-                  type: string
-                contactPhone:
-                  type: string
-                published:
-                  type: boolean
-                paymentAccountNumber:
-                  type: string
-                paymentReceiverName:
-                  type: string
-                images:
-                  type: array
-                  description: Ordered list of images to be used, images not in this list will be removed, current refers to the active images and added refers to images included in this request
-                  items:
-                    type: string
-                  examples:
-                    - - "current[0]"
-                      - "added[0]"
-                      - "current[2]"
+                office:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 64
+                    description:
+                      type: string
+                      minLength: 1
+                      maxLength: 4096
+                    openingHours:
+                      type: string
+                      minLength: 1
+                      maxLength: 1024
+                    address:
+                      type: string
+                      minLength: 1
+                      maxLength: 256
+                    contactEmail:
+                      type: string
+                      minLength: 1
+                      maxLength: 256
+                      format: email
+                    contactPhone:
+                      type: string
+                      pattern: "^\\+[1-9]\\d{1,14}$"
+                    paymentAccountNumber:
+                      type: string
+                      minLength: 1
+                      maxLength: 34
+                      description: In the international IBAN format
+                    paymentReceiverName:
+                      type: string
+                      minLength: 1
+                      maxLength: 64
+                    published:
+                      type: boolean
+                    images:
+                      type: array
+                      description: Ordered list of images to be used, images not in this list will be removed, current refers to the active images and added refers to images included in this request
+                      minItems: 1
+                      maxItems: 10
+                      items:
+                        type: string
+                      examples:
+                        - - "current[0]"
+                          - "added[0]"
+                          - "current[2]"
                 addedImages:
                   type: array
+                  maxItems: 10
                   items:
                     type: string
                     format: binary
+            encoding: 
+              office:
+                contentType: application/json
       responses:
         "204":
           description: Success
@@ -1541,9 +1788,12 @@ paths:
                               enum:
                                 - name
                                 - description
+                                - openingHours
                                 - address
                                 - contactEmail
                                 - contactPhone
+                                - paymentAccountNumber
+                                - paymentReceiverName
                                 - published
                                 - images
                                 - addedImages
@@ -1563,6 +1813,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     
   # ====== OFFERS =======
   '/offices/{officeId}/offers':
@@ -1578,13 +1830,9 @@ paths:
           schema: 
             type: string
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1606,7 +1854,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1645,19 +1893,21 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [ Offers ]
       summary: Create an offer
@@ -1672,7 +1922,7 @@ paths:
       requestBody: 
         required: true
         content: 
-          multipart/form-data: 
+          application/json: 
             schema: 
               type: object
               required: 
@@ -1687,28 +1937,34 @@ paths:
                   description: "If present, will be take over all items linked to the source offer, so it will make all items linked to the source offer link to this offer instead"
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 64
                 publicName:
                   type: string
+                  minLength: 1
+                  maxLength: 64
                 pricePerDay:
                   type: integer
+                  minimum: 1
                 pricePerDayCurrency:
                   type: string
+                  minLength: 1
+                  maxLength: 3
+                  examples:
+                    - PLN
                 freeCancellationHours:
                   type: integer
+                  minimum: 0
+                  maximum: 744 # 24*31
                 paymentHours:
                   type: integer
+                  minimum: 0
+                  maximum: 744 # 24*31
                   description: The payment must be made x hours after the booking was made
                 properties:
-                  type: array
-                  items:
+                  type: object
+                  additionalProperties:
                     type: string
-                    examples:
-                      - "desk.type.standing:true"
-                images:
-                  type: array
-                  items:
-                    type: string
-                    format: binary
       responses:
         "201":
           description: Created
@@ -1778,6 +2034,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/offices/{officeId}/offers/{offerId}':
     get:
       tags: [ Offers ]
@@ -1806,6 +2064,82 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
+    patch:
+      tags: [ Offers ]
+      summary: Modify an offer
+      security:
+        - user_auth: []
+      parameters:
+        - in: path
+          name: officeId
+          required: true
+          schema: 
+            type: string
+        - in: path
+          name: offerId
+          required: true
+          schema: 
+            type: string
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              properties:
+                available:
+                  type: boolean
+      responses:
+        "204":
+          description: Success
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - available
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Value must be a boolean
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
 
 
   # ====== Items =======
@@ -1822,13 +2156,9 @@ paths:
           schema: 
             type: string
         - in: query
-          name: filter
+          name: search
           schema:
             type: string
-            description: "Currently 'contains' is supported, which is just fieldName:contains:value, also 'equals' is supported with fieldName:equals:value"
-            examples:
-              - "id:equals:2056"
-              - "firstName:contains:Bo"
         - in: query
           name: sortField
           schema:
@@ -1850,7 +2180,7 @@ paths:
         - name: pageToken
           in: query
           schema:
-            type: string
+            type: integer
       responses: 
         "200":
           description: Success
@@ -1889,19 +2219,21 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "401":
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     post:
       tags: [ Items ]
       summary: Create an item
@@ -1928,17 +2260,23 @@ paths:
               properties:
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 64
                 floor:
                   type: string
+                  minLength: 1
+                  maxLength: 8
                 room:
                   type: string
+                  minLength: 1
+                  maxLength: 16
                 offerId:
                   type: string
                 type:
                   type: string
                   enum:
-                    - shared
-                    - individual
+                    - SHARED
+                    - INDIVIDUAL
                 capacity:
                   type: integer
                   minimum: 1
@@ -2011,6 +2349,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
   '/offices/{officeId}/items/{itemId}':
     get:
       tags: [ Items ]
@@ -2039,6 +2379,8 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
     patch:
       tags: [ Items ]
       summary: Modify an item
@@ -2064,10 +2406,16 @@ paths:
               properties:
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 64
                 floor:
                   type: string
+                  minLength: 1
+                  maxLength: 8
                 room:
                   type: string
+                  minLength: 1
+                  maxLength: 16
                 offerId:
                   type: string
                 available:
@@ -2075,7 +2423,7 @@ paths:
                 capacity:
                   type: integer
                   minimum: 1
-                  description: Only applicable to type shared
+                  description: Only applicable to type SHARED
       responses:
         "204":
           description: Success
@@ -2128,3 +2476,195 @@ paths:
           description: Unauthorized
         "403":
           description: Forbidden
+        "404":
+          description: Not found
+
+
+  # ====== Members =======
+  '/offices/{officeId}/members':
+    get:
+      tags: [ Members ]
+      summary: "Get a list of all office members (excludes the owner)"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: officeId
+          required: true
+          schema: 
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - results
+                  - _links
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OfficeMemberResource'
+                  _links:
+                    type: object
+                    required:
+                      - self
+                    properties:
+                      self:
+                        $ref: '#/components/schemas/Link'
+                      create:
+                        $ref: '#/components/schemas/Link'
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    post:
+      tags: [ Members ]
+      summary: Create an office member (only owner can do this, limit of 50 members per office not including owner, owner is not in the members list)
+      security:
+        - user_auth: []
+      parameters:
+        - in: path
+          name: officeId
+          required: true
+          schema: 
+            type: string
+      requestBody: 
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required: 
+                - email
+              properties:
+                email:
+                  type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
+
+      responses:
+        "201":
+          description: Created
+          headers: 
+            Location:
+              example: /offices/2056/members/2056
+              description: URL to the newly created member (for example /offices/2056/members/2056)
+              schema: 
+                type: string
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
+        "400":
+          description: "Validation error"
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - errors
+                properties:
+                  errors:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      oneOf: 
+                        - type: object
+                          required:
+                            - type
+                            - field
+                            - message
+                          properties:
+                            type:
+                              type: string
+                              const: ValidationError
+                            field:
+                              type: string
+                              enum:
+                                - email
+                            message:
+                              type: string
+                              description: A human readable message
+                              examples:
+                                - Name is required
+                        - type: object
+                          required:
+                            - type
+                          properties:
+                            type:
+                              type: string
+                              const: InvalidBodyError
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+  '/offices/{officeId}/members/{memberId}':
+    get:
+      tags: [ Members ]
+      summary: "View the details of a member"
+      security: 
+        - user_auth: []
+      parameters: 
+        - in: path
+          name: officeId
+          required: true
+          schema: 
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema: 
+            type: string
+      responses: 
+        "200":
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                $ref: '#/components/schemas/OfficeMemberResource'
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found
+    delete:
+      tags: [ Members ]
+      summary: Delete a member (office owner only)
+      security:
+        - user_auth: []
+      parameters:
+        - in: path
+          name: officeId
+          required: true
+          schema: 
+            type: string
+        - in: path
+          name: memberId
+          required: true
+          schema: 
+            type: string
+      responses:
+        "204":
+          description: Success
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: Not found

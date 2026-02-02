@@ -7,6 +7,7 @@ import com.officely.backend.entity.OfficeOfferEntity;
 import com.officely.backend.entity.UserEntity;
 import com.officely.backend.modules.admin.api.officeoffers.AdminOfficeOfferMapper;
 import com.officely.backend.modules.admin.api.officeoffers.OfficeOfferDto;
+import com.officely.backend.modules.admin.api.officeoffers.OfficeOfferPatchRequest;
 import com.officely.backend.modules.admin.api.officeoffers.OfficeOfferPostRequest;
 import com.officely.backend.modules.admin.services.AdminPermissionService;
 import com.officely.backend.service.OfficeOfferService;
@@ -130,11 +131,40 @@ public class AdminOfficeOffersController {
             return ResponseEntity.notFound().build();
         }
 
-        var offer = officeOfferService.getOffer(officeId, offerId);
-        if(offer == null)
+        return officeOfferService.getOffer(officeId, offerId)
+                .map(this::officeOfferToDto)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+
+    }
+
+    @PatchMapping("/{offerId}")
+    public ResponseEntity<Void> patchOffer(
+            @PathVariable Long officeId,
+            @PathVariable Long offerId,
+            @RequestBody @Valid OfficeOfferPatchRequest patchRequest) {
+        var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var targetOpt = officeService.getOfficeById(officeId);
+        if(targetOpt.isEmpty())
             return ResponseEntity.notFound().build();
-        var response = officeOfferToDto(offer);
-        return ResponseEntity.ok(response);
+
+        var target = targetOpt.get();
+        if(!adminPermissionService.canManageOffice(actor, target)) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var offerOpt = officeOfferService.getOffer(officeId, offerId);
+        if (offerOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var offer = offerOpt.get();
+
+        if(patchRequest.getAvailable() != null) {
+            officeOfferService.setOfferAvailable(offer, patchRequest.getAvailable());
+        }
+
+        return ResponseEntity.noContent().build();
+
     }
 }
 

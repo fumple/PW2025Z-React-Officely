@@ -26,6 +26,9 @@ public class AdminAuthController {
 
     @PostMapping("/login")
     public LoginResponse logIn(@RequestBody @Valid LoginRequest request) throws AuthException {
+        if(!request.getType().equals("admin")) {
+            throw new ValidationException("type", "User type must be 'admin'");
+        }
         var result = authenticationService.logIn(UserType.ADMIN, request.getEmail(), request.getPassword());
         if(result.success()) {
             var response = new LoginResponse();
@@ -39,10 +42,17 @@ public class AdminAuthController {
 
     @PostMapping("/signup")
     public ResponseEntity<Void> signUp(@RequestBody @Valid SignUpRequest request) {
+        if(!request.getType().equals("admin")) {
+            throw new ValidationException("type", "User type must be 'admin'");
+        }
         var user = authMapper.signUpRequestToUser(request);
         user.setType(UserType.ADMIN);
-        userService.createUser(user);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        try {
+            userService.createUser(user);
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (UnsupportedOperationException ex) {
+            throw new ValidationException("email", "An user with this email already exists!");
+        }
     }
 
     @PostMapping("/logout")
@@ -74,5 +84,14 @@ public class AdminAuthController {
         }
         passwordResetService.resetPassword(user.get(), request.getCode(), request.getNewPassword());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/checkResetCode")
+    public ResponseEntity<CheckResetCodeResponse> checkResetCode(@RequestBody @Valid CheckResetCodeRequest request) throws ValidationException {
+        var user = userService.findByTypeAndEmail(UserType.ADMIN, request.getEmail());
+        if(user.isEmpty()) {
+            throw new ValidationException("email", "Invalid email address");
+        }
+        return ResponseEntity.ok(new CheckResetCodeResponse(passwordResetService.checkResetCode(user.get(), request.getCode())));
     }
 }

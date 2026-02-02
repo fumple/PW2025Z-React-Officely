@@ -1,9 +1,12 @@
-openapi: 3.1.0 # TODO: DODATKI! ale jak nie zabraknie czasu
+openapi: 3.1.0
+servers: 
+  - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/flatly
+  - url: http://localhost:8080/mobile
 info:
   title: Officely - API documentation for Flatly
-  version: 1.0.0
+  version: 1.2.2
   description:  |
-    Uses:
+    This is a rough description of how the API works, however the names of some fields may be different, treat this as a rough guide.
     1. view available filters
        - GET /filters
     2.  Make a booking
@@ -40,6 +43,13 @@ components:
       scheme: Bearer
       in: header
   schemas:
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
     PageSize:
       type: integer
       minimum: 1
@@ -47,6 +57,9 @@ components:
       examples: [25]
     FilterElement:
       type: object
+      required:
+        - key
+        - label
       properties: 
         key:
           type: string
@@ -54,6 +67,9 @@ components:
           type: string
       oneOf: 
         - type: object
+          required:
+            - type
+            - flags
           properties: 
             type:
               type: string
@@ -62,26 +78,20 @@ components:
               type: array
               items:
                 type: object
+                required:
+                  - key
+                  - label
                 properties:
                   key:
                     type: string
                   label:
                     type: string
-            min:
-              type: integer
-            max:
-              type: integer
-        - type: object
-          properties: 
-            type:
-              type: string
-              const: "integer"
-            min:
-              type: integer
-            max:
-              type: integer
     FilterSection:
       type: object
+      required:
+        - key
+        - label
+        - elements
       properties: 
         key:
           type: string
@@ -101,6 +111,7 @@ components:
         - id
         - name
         - description
+        - openingHours
         - address
         - coordinates
         - photoUrls
@@ -114,6 +125,8 @@ components:
           type: string
         description:
           type: string
+        openingHours:
+          type: string
         address:
           type: string
         coordinates:
@@ -123,9 +136,9 @@ components:
             - lon
           properties:
             lat:
-              type: string
+              type: number
             lon:
-              type: string
+              type: number
         photoUrls:
           type: array
           items:
@@ -140,7 +153,7 @@ components:
             - self
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
     OfficeSearchQueryDetails:
       type: object
       required: 
@@ -159,9 +172,7 @@ components:
         - totalPrice
         - freeCancellationHours
         - paymentHours
-        - paymentHoursType
         - properties
-        - photoUrls
         - _links
       properties: 
         id:
@@ -176,10 +187,6 @@ components:
         paymentHours:
           type: integer
           description: "The payment must be made x hours after the booking was made"
-        photoUrls:
-          type: array
-          items:
-            type: string
         properties:
           type: object
           additionalProperties: 
@@ -190,9 +197,9 @@ components:
             - accept
           properties:
             accept:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/offices/2056/offers/12/book"
+                - href: "/offices/2056/offers/12/book"
     OfficeOfferWithoutPrice:
       type: object
       required:
@@ -200,9 +207,7 @@ components:
         - name
         - freeCancellationHours
         - paymentHours
-        - paymentHoursType
         - properties
-        - photoUrls
         - _links
       properties: 
         id:
@@ -215,10 +220,6 @@ components:
         paymentHours:
           type: integer
           description: "The payment must be made x hours after the booking was made"
-        photoUrls:
-          type: array
-          items:
-            type: string
         properties:
           type: object
           additionalProperties: 
@@ -229,15 +230,14 @@ components:
             - self
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/offices/2056/offers/12"
+                - href: "/offices/2056/offers/12"
     OfficeItemResource:
       type: object
       required:
         - id
         - name
-        - description
         - floor
         - room
         - _links
@@ -245,8 +245,6 @@ components:
         id:
           type: string
         name:
-          type: string
-        description:
           type: string
         floor:
           type: string
@@ -262,7 +260,7 @@ components:
             - self
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
     UserResource:
       type: object
       required:
@@ -270,6 +268,9 @@ components:
         - email
         - firstName
         - lastName
+        - dateOfBirth
+        - nationality
+        - phoneNumber
         - _links
       properties:
         id:
@@ -288,6 +289,19 @@ components:
           type: string
           examples:
             - React
+        dateOfBirth:
+          type: string
+          format: date
+          examples:
+            - "2025-04-01"
+        nationality:
+          type: string
+          examples:
+            - pl
+        phoneNumber:
+          type: string
+          examples:
+            - "+48222347211"
         _links:
           type: object
           required:
@@ -296,17 +310,17 @@ components:
             - bookings
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/users/2056"
+                - href: "/users/2056"
             update:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/users/2056"
+                - href: "/users/2056"
             bookings:
-              type: string
+              $ref: '#/components/schemas/Link'
               examples:
-                - "/users/2056/bookings"
+                - href: "/users/2056/bookings"
     BookingResource:
       type: object
       required:
@@ -319,6 +333,7 @@ components:
         - startDate
         - endDate
         - totalPrice
+        - paymentInfo
         - _links
       properties: 
         id:
@@ -341,19 +356,19 @@ components:
             - active
             - cancelledByUser
             - cancelledByStaff
-            - upcoming
-            - awaitingPayment
-            - past
         creationDate:
           type: string
+          format: date-time
           examples:
             - "2026-01-01T20:40:06Z"
         startDate:
           type: string
+          format: date
           examples:
             - "2026-01-06"
         endDate:
           type: string
+          format: date
           examples:
             - "2026-01-26"
         cancellationReason:
@@ -363,11 +378,20 @@ components:
         paymentInfo:
           type: object
           required:
+            - status
             - accountNumber
             - receiverName
             - transferTitle
             - dueDate
           properties:
+            status:
+              type: string
+              enum:
+                - pendingPayment
+                - received
+                - pendingRefund
+                - refunded
+                - cancelled
             accountNumber:
               type: string
             receiverName:
@@ -376,6 +400,7 @@ components:
               type: string
             dueDate:
               type: string
+              format: date
               examples:
                 - "2026-01-04T20:40:06Z"
         _links:
@@ -387,15 +412,15 @@ components:
             - offer
           properties:
             self:
-              type: string
+              $ref: '#/components/schemas/Link'
             office:
-              type: string
+              $ref: '#/components/schemas/Link'
             item:
-              type: string
+              $ref: '#/components/schemas/Link'
             offer:
-              type: string
+              $ref: '#/components/schemas/Link'
             cancel:
-              type: string
+              $ref: '#/components/schemas/Link'
 
 tags:
   - name: Filters
@@ -426,9 +451,9 @@ paths:
                     type: object
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                         examples:
-                          - '/filters'
+                          - href: '/filters'
         "401":
           $ref: '#/components/responses/Unauthorized'
   '/offices':
@@ -436,12 +461,14 @@ paths:
       tags:
         - Finding an office
       summary: Search for offices
+      description: Either nearLat and nearLon or nearAddress must be provided
       parameters:
         - name: startDate
           in: query
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-06"
         - name: endDate
@@ -449,11 +476,22 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-26"
+        - name: nearLat
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: nearLon
+          in: query
+          required: false
+          schema:
+            type: number
         - name: nearAddress
           in: query
-          required: true
+          required: false
           schema:
             type: string
         - name: maxDistanceFromAddress
@@ -464,6 +502,18 @@ paths:
             description: In meters
             examples:
               - 5000
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
         - name: filter
           in: query
           schema: 
@@ -471,7 +521,6 @@ paths:
             items:
               type: string
               examples:
-                - "builtin.price.min:40"
                 - "desk.type.standing:true"
         - name: sort
           in: query
@@ -523,7 +572,7 @@ paths:
                             - offers
                           properties:
                             offers:
-                              type: string
+                              $ref: '#/components/schemas/Link'
                   query:
                     type: object
                     required:
@@ -556,15 +605,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "400":
           description: "Validation error"
           content: 
@@ -591,6 +640,8 @@ paths:
                           enum:
                             - startDate
                             - endDate
+                            - nearLat
+                            - nearLon
                             - nearAddress
                             - maxDistanceFromAddress
                             - filter
@@ -620,6 +671,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-06"
         - name: endDate
@@ -627,8 +679,21 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-26"
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
         - name: filter
           in: query
           schema: 
@@ -636,7 +701,6 @@ paths:
             items:
               type: string
               examples:
-                - "builtin.price.min:40"
                 - "desk.type.standing:true"
       responses: 
         "200":
@@ -654,7 +718,7 @@ paths:
                     type: object
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "400":
           description: "Validation error"
           content: 
@@ -718,6 +782,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-06"
         - name: endDate
@@ -725,6 +790,7 @@ paths:
           required: true
           schema:
             type: string
+            format: date
             examples:
               - "2026-01-26"
       responses: 
@@ -736,6 +802,15 @@ paths:
               description: URL to the newly created booking (for example /users/2056/bookings/5)
               schema: 
                 type: string
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
         "400":
           description: "Validation error"
           content: 
@@ -807,9 +882,9 @@ paths:
                       - create
                     properties:
                       create:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                         examples:
-                          - /users
+                          - href: /users
         "401":
           $ref: '#/components/responses/Unauthorized'
     post:
@@ -821,19 +896,48 @@ paths:
           application/json: 
             schema: 
               type: object
+              required: 
+                - email
+                - firstName
+                - lastName
+                - dateOfBirth
+                - nationality
+                - phoneNumber
               properties: 
                 email:
                   type: string
+                  minLength: 1
+                  maxLength: 256
+                  format: email
                   examples:
                     - bob.react@example.com
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                   examples:
                     - Bob
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
                   examples:
                     - React
+                dateOfBirth:
+                  type: string
+                  format: date
+                  examples:
+                    - "2025-04-01"
+                nationality:
+                  type: string
+                  pattern: "^[A-Z]{2}$"
+                  examples:
+                    - PL
+                phoneNumber:
+                  type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
+                  examples:
+                    - "+48222347211"
       responses: 
         "201":
           description: Created
@@ -843,6 +947,15 @@ paths:
               description: URL to the newly created user (for example /users/2056)
               schema: 
                 type: string
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required:
+                  - id
+                properties:
+                  id:
+                    type: string
         "400":
           description: "Validation error"
           content: 
@@ -900,8 +1013,26 @@ paths:
               properties:
                 firstName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - Bob
                 lastName:
                   type: string
+                  minLength: 1
+                  maxLength: 32
+                  examples:
+                    - React
+                nationality:
+                  type: string
+                  pattern: "^[A-Z]{2}$"
+                  examples:
+                    - PL
+                phoneNumber:
+                  type: string
+                  pattern: "^\\+[1-9]\\d{1,14}$"
+                  examples:
+                    - "+48222347211"
       responses: 
         "204":
           description: Success
@@ -991,6 +1122,14 @@ paths:
         in: query
         schema:
           type: string
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+            - cancelled
+            - past
+            - active
       responses:
         "200":
           description: Success
@@ -1028,15 +1167,15 @@ paths:
                       - last
                     properties:
                       self:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       next:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       prev:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       first:
-                        type: string
+                        $ref: '#/components/schemas/Link'
                       last:
-                        type: string
+                        $ref: '#/components/schemas/Link'
         "400":
           description: "Validation error"
           content: 
@@ -1063,6 +1202,7 @@ paths:
                           enum:
                             - pageSize
                             - pageToken
+                            - status
                         message:
                           type: string
                           description: A human readable message

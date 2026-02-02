@@ -7,17 +7,12 @@ public final class OfficeItemMapper {
 
     private OfficeItemMapper() {}
 
-    public static OfficeItemDto toDto(Long officeId, OfficeItemEntity entity) {
+    public static OfficeItemDto toDto(OfficeItemEntity entity) {
         OfficeItemDto dto = new OfficeItemDto();
         dto.setId(entity.getId().toString());
         dto.setName(entity.getName());
-        dto.setFloor(entity.getFloor().toString());
+        dto.setFloor(String.valueOf(entity.getFloor()));
         dto.setRoom(entity.getRoom());
-
-        OfficeItemDto.Links links = new OfficeItemDto.Links();
-        links.setSelf("/offices/" + officeId + "/items/" + entity.getId());
-
-        dto.setLinks(links);
         return dto;
     }
 }

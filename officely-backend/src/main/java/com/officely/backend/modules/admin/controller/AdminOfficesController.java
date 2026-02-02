@@ -1,11 +1,14 @@
 package com.officely.backend.modules.admin.controller;
 
+import com.officely.backend.api.CreatedResponse;
+import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.api.throwables.ValidationException;
+import com.officely.backend.api.validation.FileSize;
+import com.officely.backend.api.validation.Image;
 import com.officely.backend.entity.OfficeEntity;
 import com.officely.backend.entity.OfficePhotoEntity;
 import com.officely.backend.entity.UserEntity;
-import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.modules.admin.api.offices.AdminOfficeMapper;
 import com.officely.backend.modules.admin.api.offices.OfficeDto;
 import com.officely.backend.modules.admin.api.offices.OfficePatchRequest;
@@ -17,10 +20,13 @@ import com.officely.backend.storage.StorageService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -69,7 +75,7 @@ public class AdminOfficesController {
             pageRequest = pageRequest.withSort(sortDirection.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sortField);
         }
 
-        var offices = search != null ? officeService.getOffices(pageRequest, search) : officeService.getOffices(pageRequest);
+        var offices = search != null ? officeService.getOffices(actor, pageRequest, search) : officeService.getOffices(actor, pageRequest);
         var response = new PaginatedResponse<OfficeDto>();
         response.setResults(offices.get().map(e -> toDto(actor, e)).toList());
 
@@ -104,9 +110,11 @@ public class AdminOfficesController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> createOffice(
+    public ResponseEntity<CreatedResponse> createOffice(
             @RequestPart("office") @Valid OfficePostRequest request,
-            @RequestPart("images") List<MultipartFile> images) {
+            @RequestPart("images") @Valid @Size(min = 1, max = 10) @NotNull List<
+                    @NotNull @FileSize(max = 25) @Image MultipartFile
+            > images) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var office = officeMapper.officePostRequestToOffice(request);
         office.setOwner(actor);
@@ -124,7 +132,8 @@ public class AdminOfficesController {
             return entity;
         }).toList());
         var created = officeService.createOffice(office);
-        return ResponseEntity.created(linkTo(methodOn(AdminOfficesController.class).getOffice(created.getId())).toUri()).build();
+        return ResponseEntity.created(linkTo(methodOn(AdminOfficesController.class).getOffice(created.getId())).toUri())
+                .body(new CreatedResponse(created.getId().toString()));
     }
 
     @GetMapping("/{officeId}")
@@ -151,20 +160,30 @@ public class AdminOfficesController {
     public ResponseEntity<Void> patchOffice(
             @PathVariable Long officeId,
             @RequestPart("office") @Valid OfficePatchRequest patchRequest,
-            @RequestPart("addedImages") List<MultipartFile> addedImages) {
+            @RequestPart(value = "addedImages", required = false) @Valid @Size(max = 10) List<
+                @NotNull @FileSize(max = 25) @Image MultipartFile
+            > addedImages) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var targetOpt = officeService.getOfficeById(officeId);
         if(targetOpt.isEmpty())
             return ResponseEntity.notFound().build();
 
         var target = targetOpt.get();
-        if(!adminPermissionService.canUpdateOfficeDetails(actor, target)) {
+        var canView = adminPermissionService.canManageOffice(actor, target);
+        var canUpdateDetails = adminPermissionService.canUpdateOfficeDetails(actor, target);
+        if(!canView) {
             return ResponseEntity.notFound().build();
+        }
+        if(!canUpdateDetails) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         officeMapper.update(patchRequest, target);
         try {
-            officeService.patchOffice(target, patchRequest.getImages(), addedImages);
+            officeService.patchOffice(target,
+                    patchRequest.getImages(),
+                    addedImages != null ? addedImages : List.of()
+            );
         } catch (Exception e) {
             throw new ValidationException("images", e.getMessage());
         }

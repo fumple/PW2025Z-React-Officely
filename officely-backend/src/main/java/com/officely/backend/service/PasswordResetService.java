@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -23,6 +22,8 @@ public class PasswordResetService {
 
     private final String codeCharacters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private final SecureRandom rng = new SecureRandom();
+    private final MailService mailService;
+
     private String generateCode() {
         StringBuilder code = new StringBuilder();
         for(var i = 0; i < 6; i++) {
@@ -54,6 +55,7 @@ public class PasswordResetService {
         entity.setUser(user);
         entity.setCode(code);
         entity.setExpiresAt(LocalDateTime.now().plusMinutes(15));
+        mailService.sendPasswordResetEmail(user.getFirstName()+" "+user.getLastName(), user.getEmail(), code);
         passwordResetRepository.save(entity);
     }
 
@@ -68,5 +70,12 @@ public class PasswordResetService {
         user.setPassword(newPassword);
         userService.patchUser(user);
         passwordResetRepository.delete(entity);
+    }
+
+    @Transactional
+    public boolean checkResetCode(UserEntity user, String code) throws ValidationException {
+        deleteExpiredCodes();
+        var entity = passwordResetRepository.getByCode(code.toUpperCase());
+        return entity != null && Objects.equals(entity.getUser().getId(), user.getId());
     }
 }

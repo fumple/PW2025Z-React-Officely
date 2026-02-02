@@ -19,15 +19,15 @@ public class UserEntity {
     private Long id;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 256)
     private String email;
 
     @Setter
-    @Column(name = "first_name", nullable = false)
+    @Column(name = "first_name", nullable = false, length = 32)
     private String firstName;
 
     @Setter
-    @Column(name = "last_name", nullable = false)
+    @Column(name = "last_name", nullable = false, length = 32)
     private String lastName;
 
     @Setter

@@ -1,7 +1,5 @@
 package com.officely.backend.modules.admin.controller;
 
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
-
 import com.officely.backend.api.filters.FiltersResponseDto;
 import com.officely.backend.service.FiltersService;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @RestController
 @RequestMapping("/admin/filters")

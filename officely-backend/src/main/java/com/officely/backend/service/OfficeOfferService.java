@@ -11,7 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
@@ -20,9 +20,8 @@ public class OfficeOfferService {
     private final OfficeItemService officeItemService;
     private final FiltersService filtersService;
 
-    public OfficeOfferEntity getOffer(Long officeId, Long offerId){
-        return officeOfferRepository.findByIdAndOfficeId(offerId, officeId)
-                .orElseThrow(() -> new NoSuchElementException("The given office or offer was not found"));
+    public Optional<OfficeOfferEntity> getOffer(Long officeId, Long offerId) {
+        return officeOfferRepository.findByIdAndOfficeId(offerId, officeId);
     }
 
     public Page<OfficeOfferEntity> getOffers(Long officeId, PageRequest pageRequest) {
@@ -42,10 +41,20 @@ public class OfficeOfferService {
         filtersService.validateProperties(entity.getProperties());
         var saved = officeOfferRepository.save(entity);
         if(sourceId != null) {
-            officeOfferRepository.findByIdAndOfficeId(sourceId, entity.getOffice().getId())
+            var source = officeOfferRepository.findByIdAndOfficeId(sourceId, entity.getOffice().getId())
                     .orElseThrow(() -> new ValidationException("sourceId", "The given source offer was not found"));
-            officeItemService.moveItemsToNewOffer(sourceId, saved.getId());
+            saved.setAvailable(source.isAvailable());
+            officeOfferRepository.save(saved);
+            source.setAvailable(false);
+            officeOfferRepository.save(source);
+            officeItemService.moveItemsToNewOffer(source, saved);
         }
         return saved;
+    }
+
+    @Transactional
+    public OfficeOfferEntity setOfferAvailable(OfficeOfferEntity entity, boolean available) {
+        entity.setAvailable(available);
+        return officeOfferRepository.save(entity);
     }
 }
