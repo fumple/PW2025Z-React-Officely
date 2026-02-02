@@ -10,7 +10,6 @@ import { PasswordChangePage } from "./authentication/PasswordChangePage";
 import { PasswordChangeSuccessPage } from "./authentication/PasswordChangeSuccessPage";
 import { OfficesManagementPage } from "./application/office-pages/OfficesManagementPage";
 import { BookingsManagementPage } from "./application/booking-pages/BookingsManagementPage";
-import { UsersManagementPage } from "./application/user-pages/UsersManagementPage";
 import { PaymentsOverviewPage } from "./application/payment-pages/PaymentsOverviewPage";
 import { OfficeCreatePage } from "./application/office-pages/OfficeCreatePage";
 import { OfficeDetailsPage } from "./application/office-pages/OfficeDetailsPage";
@@ -143,10 +142,6 @@ export const router = createBrowserRouter([
           {
             path: "users",
             children: [
-              {
-                index: true,
-                Component: UsersManagementPage,
-              },
               {
                 path: ":userId",
                 Component: UserDetailsPage,
