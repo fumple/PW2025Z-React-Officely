@@ -4,11 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter @Setter
 public class EditBookingRequest {
-    private String start;
-    private String end;
+    private LocalDateTime start;
+    private LocalDateTime end;
     private String email;
     @JsonProperty("is_confirmed")
-    private Boolean confirmed;
+    private boolean confirmed;
 }

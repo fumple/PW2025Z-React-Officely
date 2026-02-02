@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
+import java.util.UUID;
 
 @Getter @Setter
 public class ParkingDetailsResponse {
-    private String id;
+    private UUID id;
     private String name;
     private String country;
     private String city;

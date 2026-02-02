@@ -38,7 +38,7 @@ public class MobileParklyController {
 
         // required by internal-mobile: _links.details
         dto.add(linkTo(methodOn(MobileParklyController.class)
-                .getParking(p.getId(), startDate, endDate))
+                .getParking(p.getId().toString(), startDate, endDate))
                 .withRel("details"));
 
         return dto;
@@ -62,7 +62,7 @@ public class MobileParklyController {
         dto.setBig(p.getBig());
 
         dto.add(linkTo(methodOn(MobileParklyController.class)
-                .getParking(p.getId(), startDate, endDate))
+                .getParking(p.getId().toString(), startDate, endDate))
                 .withSelfRel());
 
         return dto;
@@ -90,15 +90,16 @@ public class MobileParklyController {
         dto.setBig(b.getBig());
 
         // required: _links.self
-        dto.add(linkTo(methodOn(MobileParklyController.class).getBooking(b.getId()))
+        dto.add(linkTo(methodOn(MobileParklyController.class).getBooking(b.getId().toString()))
                 .withSelfRel());
 
+        //noinspection DataFlowIssue
         dto.add(linkTo(methodOn(MobileParklyController.class)
-                .editBooking(b.getId(), null))
+                .editBooking(b.getId().toString(), null))
                 .withRel("update"));
 
         // optional but useful
-        dto.add(linkTo(methodOn(MobileParklyController.class).cancelBooking(b.getId()))
+        dto.add(linkTo(methodOn(MobileParklyController.class).cancelBooking(b.getId().toString()))
                 .withRel("cancel"));
 
         return dto;
@@ -138,6 +139,10 @@ public class MobileParklyController {
         return dto;
     }
 
+    public enum SortField {
+        DISTANCE,
+        PRICE
+    }
     @GetMapping("/parkings")
     public ResponseEntity<?> listParkings(
             @RequestParam(name = "nearLat") double nearLat,
@@ -147,13 +152,17 @@ public class MobileParklyController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) Boolean isEv,
             @RequestParam(required = false) Boolean isDisabled,
-            @RequestParam(required = false) Boolean isBig
+            @RequestParam(required = false) Boolean isBig,
+            @RequestParam(required = false) SortField sort,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String city
     ) {
         var resp = parklyClient.getAllParkings(
                 nearLat, nearLon,
                 maxDistanceFromAddress == null ? null : maxDistanceFromAddress.doubleValue(),
-                startDate.toString(), endDate.toString(),
-                isEv, isDisabled, isBig
+                startDate.atStartOfDay(), endDate.atTime(23, 59, 59),
+                isEv, isDisabled, isBig,
+                name, city, sort == SortField.PRICE, sort == SortField.DISTANCE
         );
 
         if (!resp.getStatusCode().is2xxSuccessful()) {
@@ -169,7 +178,7 @@ public class MobileParklyController {
                 .toList());
 
         out.add(linkTo(methodOn(MobileParklyController.class)
-                .listParkings(nearLat, nearLon, maxDistanceFromAddress, startDate, endDate, isEv, isDisabled, isBig))
+                .listParkings(nearLat, nearLon, maxDistanceFromAddress, startDate, endDate, isEv, isDisabled, isBig, sort, name, city))
                 .withSelfRel()
                 .expand());
 
@@ -182,7 +191,7 @@ public class MobileParklyController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        var resp = parklyClient.getParkingDetails(parkingId, startDate.toString(), endDate.toString());
+        var resp = parklyClient.getParkingDetails(parkingId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59));
         if (!resp.getStatusCode().is2xxSuccessful()) {
             return resp;
         }
@@ -193,8 +202,8 @@ public class MobileParklyController {
 
     @GetMapping("/bookings")
     public ResponseEntity<?> myBookings(
-            @RequestParam(required = false) String from,
-            @RequestParam(required = false) String to
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to
     ) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var resp = parklyClient.getMyBookings(actor.getEmail(), from, to);
@@ -224,8 +233,8 @@ public class MobileParklyController {
 
         // internal -> partner mapping
         partnerReq.setParkingId(req.getParkingId());
-        partnerReq.setStart(req.getStartDate());
-        partnerReq.setEnd(req.getEndDate());
+        partnerReq.setStart(req.getStartDate().atStartOfDay());
+        partnerReq.setEnd(req.getEndDate().atTime(23, 59, 59));
 
         // flags
         partnerReq.setDisabled(req.getDisabled());
@@ -260,8 +269,8 @@ public class MobileParklyController {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         var partnerReq = new EditBookingRequest();
-        partnerReq.setStart(req.getStart());
-        partnerReq.setEnd(req.getEnd());
+        partnerReq.setStart(req.getStart().atStartOfDay());
+        partnerReq.setEnd(req.getEnd().atTime(23, 59, 59));
 
         partnerReq.setConfirmed(req.getConfirmed());
 

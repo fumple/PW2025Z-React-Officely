@@ -4,9 +4,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Getter @Setter
 public class BookingResponse {
-    private String id;
+    private UUID id;
     private String spotId;
     private String parkingName;
     private String street;
@@ -14,8 +17,8 @@ public class BookingResponse {
     private String imageUrl;
 
     private String localId;
-    private String start;
-    private String end;
+    private LocalDateTime start;
+    private LocalDateTime end;
     private Double totalCost;
     private String status;
     private String source;
