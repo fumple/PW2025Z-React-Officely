@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 public class ParklyBookingPostRequest {
@@ -12,10 +14,10 @@ public class ParklyBookingPostRequest {
     private String parkingId;
 
     @NotBlank
-    private String startDate;
+    private LocalDate startDate;
 
     @NotBlank
-    private String endDate;
+    private LocalDate endDate;
 
     private Boolean disabled;
     private Boolean ev;
