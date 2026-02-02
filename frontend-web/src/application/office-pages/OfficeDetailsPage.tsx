@@ -22,8 +22,13 @@ import { OfficeLocationDisplay } from "./OfficeLocationDisplay";
 import * as officesApi from "../../api/officesApi";
 import OutlinedInput from "@mui/material/OutlinedInput";
 import CircularProgress from "@mui/material/CircularProgress";
+import type {
+  GridFilterModel,
+  GridPaginationModel,
+  GridSortModel,
+} from "@mui/x-data-grid/models";
 
-const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
+const BASE_PAGE_SIZES = [10, 20, 50] as const;
 
 type ItemRow = {
   id: string;
@@ -53,15 +58,25 @@ type MemberRow = {
   role: string;
 };
 
-function getRowsPerPageOptions(totalCount: number): number[] {
-  if (totalCount === 0) return [10];
-  const filtered = BASE_PAGE_SIZES.filter((n) => n <= totalCount);
-  return filtered.length > 0 ? [...filtered] : [totalCount];
+function getPageTokenFromHref(href?: string): string | null {
+  if (!href) return null;
+  const m = href.match(/[?&]pageToken=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
 }
 
+/**
+ * Wrapper component that forces a full remount when officeId changes.
+ * This avoids "reset-state-in-effect" warnings and naturally resets pagination/search states.
+ */
 export const OfficeDetailsPage = () => {
-  const navigate = useNavigate();
   const { officeId } = useParams<{ officeId: string }>();
+  if (!officeId) return null;
+
+  return <OfficeDetailsInner key={officeId} officeId={officeId} />;
+};
+
+const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -72,14 +87,61 @@ export const OfficeDetailsPage = () => {
   const [offersRows, setOffersRows] = useState<OfferRow[]>([]);
   const [membersRows, setMembersRows] = useState<MemberRow[]>([]);
   const [publishing, setPublishing] = useState(false);
+
   const [addOpen, setAddOpen] = useState(false);
   const [memberEmail, setMemberEmail] = useState("");
   const [addingMember, setAddingMember] = useState(false);
   const [addMemberError, setAddMemberError] = useState<string | null>(null);
 
-  const loadMembersDetailed = async (isAlive: () => boolean) => {
-    if (!officeId) return;
+  const [itemsLoading, setItemsLoading] = useState(false);
 
+  const [itemsPaginationModel, setItemsPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: 10,
+    });
+
+  const [itemsSortModel, setItemsSortModel] = useState<GridSortModel>([]);
+  const [itemsFilterModel, setItemsFilterModel] = useState<GridFilterModel>({
+    items: [],
+  });
+
+  const [itemsPageTokens, setItemsPageTokens] = useState<
+    Record<number, string | null>
+  >({
+    0: null,
+  });
+  const [itemsHasNextPage, setItemsHasNextPage] = useState(false);
+
+  const itemsSearch = (itemsFilterModel.quickFilterValues ?? [])
+    .join(" ")
+    .trim();
+
+  const [offersLoading, setOffersLoading] = useState(false);
+
+  const [offersPaginationModel, setOffersPaginationModel] =
+    useState<GridPaginationModel>({
+      page: 0,
+      pageSize: 10,
+    });
+
+  const [offersSortModel, setOffersSortModel] = useState<GridSortModel>([]);
+  const [offersFilterModel, setOffersFilterModel] = useState<GridFilterModel>({
+    items: [],
+  });
+
+  const [offersPageTokens, setOffersPageTokens] = useState<
+    Record<number, string | null>
+  >({
+    0: null,
+  });
+  const [offersHasNextPage, setOffersHasNextPage] = useState(false);
+
+  const offersSearch = (offersFilterModel.quickFilterValues ?? [])
+    .join(" ")
+    .trim();
+
+  const loadMembersDetailed = async (isAlive: () => boolean) => {
     const membersRes = await officesApi.listOfficeMembers(officeId);
     if (!isAlive()) return;
 
@@ -121,21 +183,15 @@ export const OfficeDetailsPage = () => {
 
     setMembersRows(rows);
   };
-  useEffect(() => {
-    if (!officeId) return;
 
+  useEffect(() => {
     let alive = true;
 
     (async () => {
       setLoading(true);
       setApiError(null);
 
-      const [officeRes, itemsRes, offersRes] = await Promise.all([
-        officesApi.getOffice(officeId),
-        officesApi.listOfficeItems({ officeId, pageSize: 50 }),
-        officesApi.listOfficeOffers({ officeId, pageSize: 50 }),
-      ]);
-
+      const officeRes = await officesApi.getOffice(officeId);
       if (!alive) return;
 
       if (!officeRes.ok) {
@@ -148,25 +204,109 @@ export const OfficeDetailsPage = () => {
 
       setOffice(officeRes.data);
 
-      if (itemsRes.ok) {
+      await loadMembersDetailed(() => alive);
+      if (!alive) return;
+
+      setLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [officeId]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setItemsLoading(true);
+
+      const sort = itemsSortModel[0];
+      const sortField = sort?.field;
+      const sortDirection = sort?.sort;
+
+      const tokenForPage = itemsPageTokens[itemsPaginationModel.page] ?? null;
+
+      const res = await officesApi.listOfficeItems({
+        officeId,
+        pageSize: itemsPaginationModel.pageSize,
+        pageToken: tokenForPage ?? undefined,
+        search: itemsSearch || undefined,
+        sortField: sortField || undefined,
+        sortDirection:
+          (sortDirection as "asc" | "desc" | undefined) || undefined,
+      });
+
+      if (!alive) return;
+
+      if (res.ok) {
         setItemsRows(
-          itemsRes.data.results.map((it) => ({
+          res.data.results.map((it) => ({
             id: it.id,
             name: it.name,
             type: it.type,
             floor: it.floor,
             room: it.room,
             offerId: it.offerId,
-            capacity: it.type === "SHARED" ? String(it.capacity ?? "") : "1", // INDIVIDUAL has no capacity
+            capacity: it.type === "SHARED" ? String(it.capacity ?? "") : "1",
           })),
         );
+
+        const nextToken = getPageTokenFromHref(res.data._links.next?.href);
+        setItemsHasNextPage(!!nextToken);
+
+        setItemsPageTokens((prev) => {
+          const nextPageIndex = itemsPaginationModel.page + 1;
+          if (prev[nextPageIndex] === nextToken) return prev;
+          return { ...prev, [nextPageIndex]: nextToken };
+        });
       } else {
         setItemsRows([]);
+        setItemsHasNextPage(false);
       }
 
-      if (offersRes.ok) {
+      setItemsLoading(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [
+    officeId,
+    itemsPaginationModel.page,
+    itemsPaginationModel.pageSize,
+    itemsSortModel,
+    itemsSearch,
+    itemsPageTokens,
+  ]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setOffersLoading(true);
+
+      const sort = offersSortModel[0];
+      const sortField = sort?.field;
+      const sortDirection = sort?.sort;
+
+      const tokenForPage = offersPageTokens[offersPaginationModel.page] ?? null;
+
+      const res = await officesApi.listOfficeOffers({
+        officeId,
+        pageSize: offersPaginationModel.pageSize,
+        pageToken: tokenForPage ?? undefined,
+        search: offersSearch || undefined,
+        sortField: sortField || undefined,
+        sortDirection:
+          (sortDirection as "asc" | "desc" | undefined) || undefined,
+      });
+
+      if (!alive) return;
+
+      if (res.ok) {
         setOffersRows(
-          offersRes.data.results.map((o) => ({
+          res.data.results.map((o) => ({
             id: o.id,
             name: o.name,
             publicName: o.publicName ?? "-",
@@ -177,27 +317,90 @@ export const OfficeDetailsPage = () => {
               o.available === undefined ? "-" : o.available ? "Yes" : "No",
           })),
         );
+
+        const nextToken = getPageTokenFromHref(res.data._links.next?.href);
+        setOffersHasNextPage(!!nextToken);
+
+        setOffersPageTokens((prev) => {
+          const nextPageIndex = offersPaginationModel.page + 1;
+          if (prev[nextPageIndex] === nextToken) return prev;
+          return { ...prev, [nextPageIndex]: nextToken };
+        });
       } else {
         setOffersRows([]);
+        setOffersHasNextPage(false);
       }
 
-      await loadMembersDetailed(() => true);
-
-      setLoading(false);
+      setOffersLoading(false);
     })();
 
     return () => {
       alive = false;
     };
-  }, [officeId]);
+  }, [
+    officeId,
+    offersPaginationModel.page,
+    offersPaginationModel.pageSize,
+    offersSortModel,
+    offersSearch,
+    offersPageTokens,
+  ]);
+
+  const handleOffersSortModelChange = (m: GridSortModel) => {
+    setOffersSortModel(m);
+    setOffersPaginationModel((p) => ({ ...p, page: 0 }));
+    setOffersPageTokens({ 0: null });
+  };
+
+  const handleOffersFilterModelChange = (m: GridFilterModel) => {
+    setOffersFilterModel(m);
+    setOffersPaginationModel((p) => ({ ...p, page: 0 }));
+    setOffersPageTokens({ 0: null });
+  };
+
+  const handleOffersPaginationModelChange = (m: GridPaginationModel) => {
+    if (m.pageSize !== offersPaginationModel.pageSize) {
+      setOffersPaginationModel({ page: 0, pageSize: m.pageSize });
+      setOffersPageTokens({ 0: null });
+      return;
+    }
+    if (m.page > offersPaginationModel.page && !offersHasNextPage) return;
+
+    const token = offersPageTokens[m.page];
+    if (m.page > 0 && token === undefined) return;
+
+    setOffersPaginationModel(m);
+  };
+
+  const handleItemsSortModelChange = (m: GridSortModel) => {
+    setItemsSortModel(m);
+    setItemsPaginationModel((p) => ({ ...p, page: 0 }));
+    setItemsPageTokens({ 0: null });
+  };
+
+  const handleItemsFilterModelChange = (m: GridFilterModel) => {
+    setItemsFilterModel(m);
+    setItemsPaginationModel((p) => ({ ...p, page: 0 }));
+    setItemsPageTokens({ 0: null });
+  };
+
+  const handleItemsPaginationModelChange = (m: GridPaginationModel) => {
+    if (m.pageSize !== itemsPaginationModel.pageSize) {
+      setItemsPaginationModel({ page: 0, pageSize: m.pageSize });
+      setItemsPageTokens({ 0: null });
+      return;
+    }
+    if (m.page > itemsPaginationModel.page && !itemsHasNextPage) return;
+
+    const token = itemsPageTokens[m.page];
+    if (m.page > 0 && token === undefined) return;
+
+    setItemsPaginationModel(m);
+  };
 
   const reloadMembers = async () => {
     await loadMembersDetailed(() => true);
   };
-
-  const itemsPageSizeOptions = getRowsPerPageOptions(itemsRows.length);
-  const offersPageSizeOptions = getRowsPerPageOptions(offersRows.length);
-  const membersPageSizeOptions = getRowsPerPageOptions(membersRows.length);
 
   const itemsColumns = useMemo<GridColDef<ItemRow>[]>(
     () => [
@@ -321,23 +524,9 @@ export const OfficeDetailsPage = () => {
 
   const membersColumns = useMemo<GridColDef<MemberRow>[]>(
     () => [
-      {
-        field: "fullName",
-        headerName: "Employee",
-        flex: 1,
-        minWidth: 200,
-      },
-      {
-        field: "email",
-        headerName: "Email",
-        flex: 1,
-        minWidth: 240,
-      },
-      {
-        field: "role",
-        headerName: "Role",
-        width: 140,
-      },
+      { field: "fullName", headerName: "Employee", flex: 1, minWidth: 200 },
+      { field: "email", headerName: "Email", flex: 1, minWidth: 240 },
+      { field: "role", headerName: "Role", width: 140 },
       {
         field: "details",
         headerName: "",
@@ -360,8 +549,6 @@ export const OfficeDetailsPage = () => {
     ],
     [navigate],
   );
-
-  if (!officeId) return null;
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
@@ -456,7 +643,11 @@ export const OfficeDetailsPage = () => {
 
               <Button
                 variant="outlined"
-                onClick={() => navigate("/app/bookings")}
+                onClick={() =>
+                  navigate(
+                    `/app/bookings?officeId=${encodeURIComponent(officeId)}`,
+                  )
+                }
               >
                 View bookings
               </Button>
@@ -474,7 +665,7 @@ export const OfficeDetailsPage = () => {
                 sx={{ textTransform: "none" }}
                 disabled={loading || !office || publishing}
                 onClick={async () => {
-                  if (!officeId || !office) return;
+                  if (!office) return;
 
                   setPublishing(true);
                   setApiError(null);
@@ -537,7 +728,7 @@ export const OfficeDetailsPage = () => {
             <OfficeLocationDisplay
               address={office?.address ?? ""}
               lat={office?.coordinates?.lat ?? 52.2297}
-              lng={office?.coordinates?.lon ?? 21.0122} // API uses lon
+              lng={office?.coordinates?.lon ?? 21.0122}
             />
           </Box>
         </Box>
@@ -571,11 +762,19 @@ export const OfficeDetailsPage = () => {
           rows={itemsRows}
           columns={itemsColumns}
           disableRowSelectionOnClick
-          loading={loading}
-          pageSizeOptions={itemsPageSizeOptions}
-          initialState={{
-            pagination: { paginationModel: { page: 0, pageSize: 10 } },
-          }}
+          loading={itemsLoading}
+          sortingMode="server"
+          filterMode="server"
+          paginationMode="server"
+          sortModel={itemsSortModel}
+          onSortModelChange={handleItemsSortModelChange}
+          filterModel={itemsFilterModel}
+          onFilterModelChange={handleItemsFilterModelChange}
+          paginationModel={itemsPaginationModel}
+          onPaginationModelChange={handleItemsPaginationModelChange}
+          rowCount={-1}
+          paginationMeta={{ hasNextPage: itemsHasNextPage }}
+          pageSizeOptions={BASE_PAGE_SIZES}
           showToolbar
           slotProps={{
             toolbar: {
@@ -616,11 +815,19 @@ export const OfficeDetailsPage = () => {
           rows={offersRows}
           columns={offersColumns}
           disableRowSelectionOnClick
-          loading={loading}
-          pageSizeOptions={offersPageSizeOptions}
-          initialState={{
-            pagination: { paginationModel: { page: 0, pageSize: 10 } },
-          }}
+          loading={offersLoading}
+          sortingMode="server"
+          filterMode="server"
+          paginationMode="server"
+          sortModel={offersSortModel}
+          onSortModelChange={handleOffersSortModelChange}
+          filterModel={offersFilterModel}
+          onFilterModelChange={handleOffersFilterModelChange}
+          paginationModel={offersPaginationModel}
+          onPaginationModelChange={handleOffersPaginationModelChange}
+          rowCount={-1}
+          paginationMeta={{ hasNextPage: offersHasNextPage }}
+          pageSizeOptions={BASE_PAGE_SIZES}
           showToolbar
           slotProps={{
             toolbar: {
@@ -666,7 +873,7 @@ export const OfficeDetailsPage = () => {
           columns={membersColumns}
           disableRowSelectionOnClick
           loading={loading}
-          pageSizeOptions={membersPageSizeOptions}
+          pageSizeOptions={[10, 20, 50]}
           initialState={{
             pagination: { paginationModel: { page: 0, pageSize: 10 } },
           }}
@@ -681,7 +888,7 @@ export const OfficeDetailsPage = () => {
         />
       </Paper>
 
-      {/* Add Employee Dialog (wiring next) */}
+      {/* Add Employee Dialog */}
       <Dialog
         open={addOpen}
         onClose={() => {
@@ -723,7 +930,7 @@ export const OfficeDetailsPage = () => {
                 e.preventDefault();
 
                 const email = memberEmail.trim();
-                if (!officeId || !email) return;
+                if (!email) return;
 
                 setAddingMember(true);
                 setAddMemberError(null);
@@ -758,7 +965,7 @@ export const OfficeDetailsPage = () => {
             disabled={addingMember || !memberEmail.trim()}
             onClick={async () => {
               const email = memberEmail.trim();
-              if (!officeId || !email) return;
+              if (!email) return;
 
               setAddingMember(true);
               setAddMemberError(null);
@@ -778,7 +985,6 @@ export const OfficeDetailsPage = () => {
               }
 
               await reloadMembers();
-
               setAddOpen(false);
               setMemberEmail("");
               setAddingMember(false);
