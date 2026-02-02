@@ -47,8 +47,12 @@ public class AdminAuthController {
         }
         var user = authMapper.signUpRequestToUser(request);
         user.setType(UserType.ADMIN);
-        userService.createUser(user);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        try {
+            userService.createUser(user);
+            return ResponseEntity.status(HttpStatus.CREATED).build();
+        } catch (UnsupportedOperationException ex) {
+            throw new ValidationException("email", "An user with this email already exists!");
+        }
     }
 
     @PostMapping("/logout")
