@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -90,7 +92,12 @@ public class BookingService {
         return bookingRepository.findByIdAndUserId(bookingId, userId);
     }
 
-    public Page<BookingEntity> getUserBookings(Long userId, int pageSize, Integer pageToken){
+    public enum BookingStatusFilter {
+        past,
+        active,
+        cancelled
+    }
+    public Page<BookingEntity> getUserBookings(Long userId, @Nullable BookingStatusFilter status, int pageSize, Integer pageToken){
         if (pageSize <= 0 || pageSize>50){ pageSize = 50; }
         int pageIndex = checkPageIndex(pageToken);
 
@@ -99,7 +106,28 @@ public class BookingService {
                 .and(Sort.by(Sort.Direction.DESC, "id"))
         );
 
-        return bookingRepository.findByUserIdOrderByStartDateDesc(userId, pageRequest);
+        if(status == null) {
+            return bookingRepository.findByUserIdOrderByStartDateDesc(userId, pageRequest);
+        } else if(status == BookingStatusFilter.cancelled) {
+            return bookingRepository.findByUserIdAndBookingStatusInOrderByStartDateDesc(
+                    userId,
+                    List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
+                    pageRequest);
+        } else if(status == BookingStatusFilter.past) {
+            return bookingRepository.findByUserIdAndBookingStatusNotInAndEndDateBeforeOrderByStartDateDesc(
+                    userId,
+                    List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
+                    LocalDate.now(),
+                    pageRequest);
+        } else if(status == BookingStatusFilter.active) {
+            return bookingRepository.findByUserIdAndBookingStatusNotInAndEndDateGreaterThanEqualOrderByStartDateDesc(
+                    userId,
+                    List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
+                    LocalDate.now(),
+                    pageRequest);
+        } else {
+            throw new ValidationException("status", "Unknown value of status!");
+        }
     }
 
     public void cancelBooking(String userId, String bookingId){
