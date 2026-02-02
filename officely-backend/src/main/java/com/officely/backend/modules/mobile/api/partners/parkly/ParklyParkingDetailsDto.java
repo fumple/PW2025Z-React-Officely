@@ -5,11 +5,12 @@ import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
 public class ParklyParkingDetailsDto extends RepresentationModel<ParklyParkingDetailsDto> {
-    private String id;
+    private UUID id;
     private String name;
     private String country;
     private String city;

@@ -4,18 +4,21 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.hateoas.RepresentationModel;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Getter
 @Setter
 public class ParklyBookingDto extends RepresentationModel<ParklyBookingDto> {
-    private String id;
+    private UUID id;
 
     private String parkingName;
     private String street;
     private String city;
     private String imageUrl;
 
-    private String start;
-    private String end;
+    private LocalDateTime start;
+    private LocalDateTime end;
     private Double totalCost;
     private String status;
 
