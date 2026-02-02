@@ -23,6 +23,7 @@ type BookingRow = {
   id: string;
   office: string;
   user: string;
+  userType: string;
   totalPrice: string;
   paymentStatus: string;
   bookingStatus: string;
@@ -116,12 +117,14 @@ export const BookingsManagementPage = () => {
       );
       const uniqueUserIds = Array.from(new Set(bookings.map((b) => b.userId)));
 
-      const officeResults = await Promise.allSettled(
-        uniqueOfficeIds.map((id) => officesApi.getOffice(id)),
-      );
-      const userResults = await Promise.allSettled(
-        uniqueUserIds.map((id) => usersApi.getUser(id)),
-      );
+      const [officeResults, userResults] = await Promise.all([
+        Promise.allSettled(
+          uniqueOfficeIds.map((id) => officesApi.getOffice(id)),
+        ),
+        Promise.allSettled(uniqueUserIds.map((id) => usersApi.getUser(id))),
+      ]);
+
+      if (!alive) return;
 
       const officeNameById = new Map<string, string>();
       uniqueOfficeIds.forEach((id, idx) => {
@@ -132,12 +135,19 @@ export const BookingsManagementPage = () => {
       });
 
       const userLabelById = new Map<string, string>();
+      const userTypeById = new Map<string, string>();
+
       uniqueUserIds.forEach((id, idx) => {
         const r = userResults[idx];
         if (r.status === "fulfilled" && r.value.ok) {
           const u = r.value.data;
-          const full = `${u.firstName} ${u.lastName}`.trim();
-          userLabelById.set(id, `${full} (${u.email})`);
+          const full = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
+          userLabelById.set(id, `${full || `User ${id}`} (${u.email ?? "-"})`);
+
+          // IMPORTANT: user type requirement
+          userTypeById.set(id, u.type ? String(u.type) : "-");
+        } else {
+          userTypeById.set(id, "-");
         }
       });
 
@@ -146,6 +156,7 @@ export const BookingsManagementPage = () => {
           id: b.id,
           office: officeNameById.get(b.officeId) ?? `Office ${b.officeId}`,
           user: userLabelById.get(b.userId) ?? `User ${b.userId}`,
+          userType: userTypeById.get(b.userId) ?? "-",
           totalPrice: String(b.totalPrice),
           paymentStatus: formatPaymentStatus(b.paymentInfo?.status),
           bookingStatus: b.status,
@@ -169,7 +180,7 @@ export const BookingsManagementPage = () => {
     return () => {
       alive = false;
     };
-  }, [paginationModel.page, paginationModel.pageSize, sortModel]);
+  }, [paginationModel.page, paginationModel.pageSize, sortModel, pageTokens]);
 
   const handleSortModelChange = (m: GridSortModel) => {
     setSortModel(m);
@@ -184,6 +195,7 @@ export const BookingsManagementPage = () => {
       return;
     }
     if (m.page > paginationModel.page && !hasNextPage) return;
+
     const token = pageTokens[m.page];
     if (m.page > 0 && token === undefined) return;
 
@@ -194,6 +206,7 @@ export const BookingsManagementPage = () => {
     () => [
       { field: "office", headerName: "Office", minWidth: 220, flex: 1.2 },
       { field: "user", headerName: "User", minWidth: 260, flex: 1.2 },
+      { field: "userType", headerName: "User type", minWidth: 140, flex: 0.7 },
       {
         field: "totalPrice",
         headerName: "Total price",

@@ -12,7 +12,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
-import * as usersApi from "../../api/usersApi";
+import * as usersApi from "../../../api/usersApi";
 
 export const UserDetailsPage = () => {
   const navigate = useNavigate();
