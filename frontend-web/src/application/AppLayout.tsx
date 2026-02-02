@@ -32,7 +32,6 @@ import EditIcon from "@mui/icons-material/Edit";
 const NAV_ITEMS = [
   { to: "/app/offices", label: "Offices" },
   { to: "/app/bookings", label: "Bookings" },
-  { to: "/app/payments", label: "Payments" },
 ];
 
 export const AppLayout = () => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -21,9 +21,14 @@ const BASE_PAGE_SIZES = [10, 20, 50, 60] as const;
 
 type BookingRow = {
   id: string;
+
+  officeId: string;
   office: string;
+
+  userId: string;
   user: string;
   userType: string;
+
   totalPrice: string;
   paymentStatus: string;
   bookingStatus: string;
@@ -57,7 +62,26 @@ function formatPaymentStatus(
   }
 }
 
+function getOfficeIdFromSearch(search: string): string | null {
+  const v = new URLSearchParams(search).get("officeId");
+  const trimmed = (v ?? "").trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/**
+ * Wrapper to naturally reset pagination/tokens when officeId filter changes
+ * (no "reset-state-in-effect" warnings).
+ */
 export const BookingsManagementPage = () => {
+  const location = useLocation();
+  const officeId = getOfficeIdFromSearch(location.search);
+
+  return (
+    <BookingsManagementInner key={officeId ?? "all"} officeId={officeId} />
+  );
+};
+
+const BookingsManagementInner = ({ officeId }: { officeId: string | null }) => {
   const navigate = useNavigate();
 
   const [rows, setRows] = useState<BookingRow[]>([]);
@@ -91,6 +115,7 @@ export const BookingsManagementPage = () => {
       const tokenForPage = pageTokens[paginationModel.page] ?? null;
 
       const res = await bookingsApi.listBookings({
+        officeId: officeId ?? undefined,
         pageSize: paginationModel.pageSize,
         pageToken: tokenForPage ?? undefined,
         sortField: sortField || undefined,
@@ -136,27 +161,27 @@ export const BookingsManagementPage = () => {
 
       const userLabelById = new Map<string, string>();
       const userTypeById = new Map<string, string>();
-
       uniqueUserIds.forEach((id, idx) => {
         const r = userResults[idx];
         if (r.status === "fulfilled" && r.value.ok) {
           const u = r.value.data;
-          const full = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim();
-          userLabelById.set(id, `${full || `User ${id}`} (${u.email ?? "-"})`);
-
-          // IMPORTANT: user type requirement
-          userTypeById.set(id, u.type ? String(u.type) : "-");
-        } else {
-          userTypeById.set(id, "-");
+          const full = `${u.firstName} ${u.lastName}`.trim();
+          userLabelById.set(id, `${full} (${u.email})`);
+          userTypeById.set(id, String(u.type ?? "-"));
         }
       });
 
       setRows(
         bookings.map((b) => ({
           id: b.id,
+
+          officeId: b.officeId,
           office: officeNameById.get(b.officeId) ?? `Office ${b.officeId}`,
+
+          userId: b.userId,
           user: userLabelById.get(b.userId) ?? `User ${b.userId}`,
           userType: userTypeById.get(b.userId) ?? "-",
+
           totalPrice: String(b.totalPrice),
           paymentStatus: formatPaymentStatus(b.paymentInfo?.status),
           bookingStatus: b.status,
@@ -180,7 +205,7 @@ export const BookingsManagementPage = () => {
     return () => {
       alive = false;
     };
-  }, [paginationModel.page, paginationModel.pageSize, sortModel, pageTokens]);
+  }, [officeId, paginationModel.page, paginationModel.pageSize, sortModel]);
 
   const handleSortModelChange = (m: GridSortModel) => {
     setSortModel(m);
@@ -194,6 +219,7 @@ export const BookingsManagementPage = () => {
       setPageTokens({ 0: null });
       return;
     }
+
     if (m.page > paginationModel.page && !hasNextPage) return;
 
     const token = pageTokens[m.page];
@@ -204,32 +230,76 @@ export const BookingsManagementPage = () => {
 
   const columns = useMemo<GridColDef<BookingRow>[]>(
     () => [
-      { field: "office", headerName: "Office", minWidth: 220, flex: 1.2 },
-      { field: "user", headerName: "User", minWidth: 260, flex: 1.2 },
+      {
+        field: "office",
+        headerName: "Office",
+        minWidth: 220,
+        flex: 1.1,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            onClick={() => navigate(`/app/offices/${params.row.officeId}`)}
+            sx={{
+              minWidth: 0,
+              padding: 0,
+              fontSize: "12px",
+              "&:hover": {
+                textDecoration: "underline",
+                backgroundColor: "transparent",
+              },
+            }}
+          >
+            {params.value}
+          </Button>
+        ),
+      },
+      {
+        field: "user",
+        headerName: "User",
+        minWidth: 260,
+        flex: 1.2,
+        renderCell: (params) => (
+          <Button
+            variant="text"
+            onClick={() => navigate(`/app/users/${params.row.userId}`)}
+            sx={{
+              minWidth: 0,
+              padding: 0,
+              fontSize: "12px",
+              "&:hover": {
+                textDecoration: "underline",
+                backgroundColor: "transparent",
+              },
+            }}
+          >
+            {params.value}
+          </Button>
+        ),
+      },
       { field: "userType", headerName: "User type", minWidth: 140, flex: 0.7 },
       {
         field: "totalPrice",
         headerName: "Total price",
         minWidth: 130,
-        flex: 0.7,
+        flex: 0.6,
       },
       {
         field: "paymentStatus",
         headerName: "Payment status",
-        minWidth: 160,
-        flex: 0.9,
+        minWidth: 170,
+        flex: 0.8,
       },
       {
         field: "bookingStatus",
         headerName: "Booking status",
         minWidth: 170,
-        flex: 0.9,
+        flex: 0.8,
       },
       {
         field: "creationDate",
         headerName: "Creation date",
         minWidth: 190,
-        flex: 1,
+        flex: 0.9,
       },
       {
         field: "bookingPeriod",
@@ -262,13 +332,29 @@ export const BookingsManagementPage = () => {
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
-      <Box sx={{ mb: "12px" }}>
+      <Box sx={{ mb: "12px", display: "flex", alignItems: "baseline", gap: 2 }}>
         <Typography
           component="h1"
           sx={{ m: 0, fontSize: "22px", fontWeight: 600, color: "#111" }}
         >
           Bookings
         </Typography>
+
+        {officeId ? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography sx={{ fontSize: "13px", color: "#555" }}>
+              Filtered by office: {officeId}
+            </Typography>
+            <Button
+              variant="text"
+              color="primary"
+              onClick={() => navigate("/app/bookings")}
+              sx={{ minWidth: 0, padding: 0, fontSize: "12px" }}
+            >
+              Clear
+            </Button>
+          </Box>
+        ) : null}
       </Box>
 
       {apiError ? (
@@ -292,13 +378,6 @@ export const BookingsManagementPage = () => {
           rowCount={-1}
           paginationMeta={{ hasNextPage }}
           pageSizeOptions={BASE_PAGE_SIZES}
-          showToolbar
-          slotProps={{
-            toolbar: {
-              showQuickFilter: true,
-              quickFilterProps: { debounceMs: 300 },
-            },
-          }}
           disableColumnFilter
         />
       </Paper>
