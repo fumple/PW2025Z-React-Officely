@@ -4,28 +4,21 @@ import { Appbar, Icon } from "react-native-paper";
 
 const ICON_HOME = require("../assets/tabBarLogo.png");
 
-const AppTopBar = ({ title }: { title: string }) => {
+const AppTopBar = () => {
   return (
     <Appbar.Header
       style={{ backgroundColor: "#0F4366", height: 40, paddingBottom: 10 }}
     >
       <Image
         source={ICON_HOME}
-        style={{
-          width: 26,
-          height: 26,
-          marginLeft: 12,
-          marginRight: 8,
-        }}
+        style={{ width: 26, height: 26, marginLeft: 12, marginRight: 8 }}
         resizeMode="contain"
       />
-
       <Appbar.Content
         title="Officely"
         titleStyle={{ color: "white", fontWeight: "600" }}
         style={{ alignItems: "flex-start" }}
       />
-
       <Appbar.Action
         icon="logout"
         color="white"
@@ -35,11 +28,13 @@ const AppTopBar = ({ title }: { title: string }) => {
   );
 };
 
-const AppLayout = () => {
+export default function AppLayout() {
   return (
     <Tabs
       screenOptions={{
-        header: () => <AppTopBar title="Officely" />,
+        header: () => <AppTopBar />,
+
+        popToTopOnBlur: true,
 
         tabBarStyle: {
           backgroundColor: "#0F4366",
@@ -53,7 +48,7 @@ const AppLayout = () => {
       }}
     >
       <Tabs.Screen
-        name="search/index"
+        name="search"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="magnify" color={color} size={size} />
@@ -61,7 +56,7 @@ const AppLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="bookings/index"
+        name="bookings"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="calendar" color={color} size={size} />
@@ -69,18 +64,15 @@ const AppLayout = () => {
         }}
       />
       <Tabs.Screen
-        name="profile/index"
+        name="profile"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="account-circle" color={color} size={size} />
           ),
         }}
       />
-      <Tabs.Screen name="profile/edit" options={{ href: null }} />
-      <Tabs.Screen name="search/results" options={{ href: null }} />
-      <Tabs.Screen name="search/book" options={{ href: null }} />
-      <Tabs.Screen name="search/booking-details" options={{ href: null }} />
+
+      <Tabs.Screen name="parkly" options={{ href: null }} />
     </Tabs>
   );
-};
-export default AppLayout;
+}

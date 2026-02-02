@@ -1,6 +1,6 @@
-import { create } from "zustand";
 import * as SecureStore from "expo-secure-store";
-import { apiFetch } from "../api/client";
+import { create } from "zustand";
+import { apiFetchRel } from "../api/client";
 import type { UserMe } from "./types";
 
 const TOKEN_KEY = "token";
@@ -15,13 +15,13 @@ type AuthState = {
 export const useAuthStore = create<AuthState>((set) => ({
   me: null,
   login: async (email, password) => {
-    const { token } = await apiFetch("/login", {
+    const { token } = await apiFetchRel("/login", {
       method: "POST",
       body: JSON.stringify({ type: "customer", email, password }),
     });
 
     await SecureStore.setItemAsync(TOKEN_KEY, token);
-    const me = await apiFetch("/users/@me", { method: "GET" });
+    const me = await apiFetchRel("/users/@me", { method: "GET" });
     set({ me });
   },
 
@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!token) return;
 
     try {
-      const me = await apiFetch("/users/@me", { method: "GET" });
+      const me = await apiFetchRel("/users/@me", { method: "GET" });
       set({ me });
     } catch {
       await SecureStore.deleteItemAsync(TOKEN_KEY);

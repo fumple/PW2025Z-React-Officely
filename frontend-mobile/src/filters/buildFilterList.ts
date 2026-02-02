@@ -13,15 +13,20 @@ export const buildFilterList = (
       const elementKey = filterElement.key;
 
       if (filterElement.type === "flags") {
-        const selectedFlagKeys =
+        const rawSelected =
           selectedFilterValues[`${sectionKey}.${elementKey}`] ?? [];
+
+        const selectedFlagKeys: string[] = Array.isArray(rawSelected)
+          ? rawSelected
+          : rawSelected
+            ? [String(rawSelected)]
+            : [];
 
         for (const flagKey of selectedFlagKeys) {
           if (!flagKey) continue;
 
           const propertyKey = `${sectionKey}.${elementKey}.${flagKey}`;
-          const propertyValue = "true";
-          filterEntries.push(`${propertyKey}=${propertyValue}`);
+          filterEntries.push(`${propertyKey}=true`);
         }
       }
 

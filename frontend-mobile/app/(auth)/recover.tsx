@@ -1,4 +1,4 @@
-import { apiFetch } from "@/src/api/client";
+import { apiFetchRel } from "@/src/api/client";
 import { AuthScreenShell } from "@/src/components/AuthScreenShell";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -32,7 +32,7 @@ const RecoverScreen = () => {
     setLoading(true);
 
     try {
-      await apiFetch("/resetPasswordEmail", {
+      await apiFetchRel("/resetPasswordEmail", {
         method: "POST",
         body: JSON.stringify({ email: trimmedEmail }),
       });

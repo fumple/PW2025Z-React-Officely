@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetchRel } from "./client";
 
 type GetOfficesParams = {
   startDate: string;
@@ -7,6 +7,8 @@ type GetOfficesParams = {
   nearLat?: number;
   nearLon?: number;
   maxDistanceFromAddress?: number;
+  minPrice?: number;
+  maxPrice?: number;
   filter?: string[];
   sort?: string;
   pageSize: number;
@@ -43,6 +45,14 @@ const buildQueryString = (params: GetOfficesParams) => {
     );
   }
 
+  if (params.minPrice !== undefined && params.minPrice !== null) {
+    urlParams.set("minPrice", String(params.minPrice));
+  }
+
+  if (params.maxPrice !== undefined && params.maxPrice !== null) {
+    urlParams.set("maxPrice", String(params.maxPrice));
+  }
+
   if (params.filter && params.filter.length > 0) {
     for (const filterValue of params.filter) {
       if (!filterValue) continue;
@@ -74,6 +84,7 @@ export const getOffices = async (params: GetOfficesParams) => {
   });
 
   const requestPath = "/offices" + queryString;
+  console.log("GET", requestPath);
 
-  return apiFetch(requestPath, { method: "GET" });
+  return apiFetchRel(requestPath, { method: "GET" });
 };

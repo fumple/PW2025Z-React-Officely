@@ -1,33 +1,52 @@
-import { apiFetch } from "@/src/api/client";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { apiFetchLinks, apiFetchRel } from "@/src/api/client";
+import { API_BASE_URL } from "@/src/config";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Image, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
+  IconButton,
   SegmentedButtons,
   Text,
 } from "react-native-paper";
 
 const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_LINK = `${API_BASE_URL}/bookings?pageSize=${DEFAULT_PAGE_SIZE}`;
 
-//TODO: Why does the logo glitch?
+type Link = { href: string };
+
+type PaymentInfo = {
+  status:
+    | "pendingPayment"
+    | "received"
+    | "pendingRefund"
+    | "refunded"
+    | "cancelled";
+  accountNumber: string;
+  receiverName: string;
+  transferTitle: string;
+  dueDate: string;
+};
+
 type Booking = {
   id: string;
   officeId: string;
   itemId: string;
   offerId: string;
-  status: string;
+  status: "active" | "cancelledByUser" | "cancelledByStaff";
   creationDate: string;
   startDate: string;
   endDate: string;
+  cancellationReason?: string;
   totalPrice: number;
-  _links?: {
-    self?: { href: string };
-    office?: { href: string };
-    item?: { href: string };
-    offer?: { href: string };
-    cancel?: { href: string };
+  paymentInfo: PaymentInfo;
+  _links: {
+    self: Link;
+    office: Link;
+    item: Link;
+    offer: Link;
+    cancel?: Link;
   };
 };
 
@@ -41,22 +60,24 @@ type Office = {
 };
 
 type BookingsResponse = {
-  bookings: Booking[];
+  results: Booking[];
   _pagination: {
     currentPage: number;
     lastPage: number;
     pageSize: number;
   };
   _links: {
-    self?: { href: string };
-    next?: { href: string };
-    prev?: { href: string };
-    first?: { href: string };
-    last?: { href: string };
+    self: Link;
+    next?: Link;
+    prev?: Link;
+    first: Link;
+    last: Link;
   };
 };
 
 type BookingWithOffice = Booking & { office: Office };
+
+const unwrap = (x: any) => x?.data ?? x?.body ?? x;
 
 const dayStart = (date: Date) => {
   const d = new Date(date);
@@ -64,14 +85,13 @@ const dayStart = (date: Date) => {
   return d;
 };
 
-const toDate = (date: string) => {
-  return new Date(date);
-};
+const toDate = (date: string) => new Date(date);
 
 const isPast = (booking: Booking) => {
-  const bookingEnd: Date = toDate(booking.endDate);
+  const bookingEnd = toDate(booking.endDate);
   return dayStart(bookingEnd).getTime() < dayStart(new Date()).getTime();
 };
+
 const isCurrent = (booking: Booking) => {
   const today = dayStart(new Date()).getTime();
   const start = dayStart(toDate(booking.startDate)).getTime();
@@ -80,7 +100,6 @@ const isCurrent = (booking: Booking) => {
 };
 
 const formatDate = (date: Date) => {
-  if (!date) return "";
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
@@ -88,9 +107,7 @@ const formatDate = (date: Date) => {
 };
 
 const dateRange = (startDate: string, endDate: string) => {
-  const start = formatDate(toDate(startDate));
-  const end = formatDate(toDate(endDate));
-  return `${start} - ${end}`;
+  return `${formatDate(toDate(startDate))} - ${formatDate(toDate(endDate))}`;
 };
 
 const BookingCard = ({
@@ -98,15 +115,15 @@ const BookingCard = ({
   tab,
 }: {
   booking: BookingWithOffice;
-  tab: string;
+  tab: "current" | "past";
 }) => {
   const officeName = booking.office.name;
-  const img = booking.office.photoUrls[0];
+  const img = booking.office.photoUrls?.[0];
 
   return (
     <View style={styles.card}>
       <Image
-        source={{ uri: img }}
+        source={img ? { uri: img } : undefined}
         style={[styles.cardImage, tab === "past" ? styles.imagePast : null]}
       />
 
@@ -147,54 +164,53 @@ const BookingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingWithOffice[]>([]);
-  const [currentHref, setCurrentHref] = useState(
-    `/bookings?pageSize=${DEFAULT_PAGE_SIZE}&pageToken=0`,
-  );
+  const [currentHref, setCurrentHref] = useState(DEFAULT_PAGE_LINK);
   const [nextHref, setNextHref] = useState<string | null>(null);
   const [prevHref, setPrevHref] = useState<string | null>(null);
   const officeCacheRef = useRef<Record<string, Office>>({});
+  const scrollRef = useRef<FlatList>(null);
 
-  const { tab: param } = useLocalSearchParams<{
-    tab?: string;
-  }>();
-  const [tab, setTab] = useState<string>(param === "past" ? "past" : "current");
+  const { tab: paramTab } = useLocalSearchParams<{ tab?: string }>();
 
-  const loadBookings = async (
-    href: string = `/bookings?pageSize=${DEFAULT_PAGE_SIZE}&pageToken=0`,
-  ) => {
+  const initialTab: "current" | "past" =
+    paramTab === "past" ? "past" : "current";
+  const [tab, setTab] = useState<"current" | "past">(initialTab);
+
+  const loadBookings = useCallback(async (href: string = DEFAULT_PAGE_LINK) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = (await apiFetch(href, {
-        method: "GET",
-      })) as BookingsResponse;
-      const raw = Array.isArray(data.bookings) ? data.bookings : [];
+      const resp = await apiFetchLinks(href, { method: "GET" });
+      const data = unwrap(resp) as BookingsResponse;
+
+      const raw: Booking[] = Array.isArray((data as any)?.results)
+        ? (data as any).results
+        : [];
 
       setCurrentHref(href);
-      setNextHref(data._links?.next?.href ?? null);
-      setPrevHref(data._links?.prev?.href ?? null);
+      setNextHref((data as any)?._links?.next?.href ?? null);
+      setPrevHref((data as any)?._links?.prev?.href ?? null);
 
       const cache = officeCacheRef.current;
-      const officeIds = Array.from(
-        new Set(raw.map((booking) => booking.officeId)),
-      );
+      const officeIds = Array.from(new Set(raw.map((b) => b.officeId)));
       const missing = officeIds.filter((id) => !cache[id]);
 
       if (missing.length > 0) {
         const offices = await Promise.all(
-          missing.map(async (id) => {
-            return await apiFetch(`/offices/${id}`, { method: "GET" });
-          }),
+          missing.map((id) => apiFetchRel(`/offices/${id}`, { method: "GET" })),
         );
-
-        for (const office of offices) cache[office.id] = office;
+        for (const office of offices as Office[])
+          cache[(office as Office).id] = office as Office;
       }
 
-      const merged: BookingWithOffice[] = raw.map((booking) => ({
-        ...booking,
-        office: cache[booking.officeId],
-      }));
+      const merged: BookingWithOffice[] = raw
+        .map((b) => {
+          const office = cache[b.officeId];
+          if (!office) return null;
+          return { ...b, office };
+        })
+        .filter(Boolean) as BookingWithOffice[];
 
       setBookings(merged);
     } catch (e: any) {
@@ -202,11 +218,19 @@ const BookingsScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadBookings();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBookings(DEFAULT_PAGE_LINK);
+
+      const id = setTimeout(() => {
+        scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
+      }, 0);
+
+      return () => clearTimeout(id);
+    }, [loadBookings]),
+  );
 
   const { currentFuture, past } = useMemo(() => {
     const currentFuture = bookings
@@ -252,7 +276,7 @@ const BookingsScreen = () => {
     <View style={styles.screen}>
       <SegmentedButtons
         value={tab}
-        onValueChange={(value) => setTab(value)}
+        onValueChange={(value) => setTab(value as "current" | "past")}
         buttons={[
           { value: "current", label: "Current / Future" },
           { value: "past", label: "Past" },
@@ -261,6 +285,7 @@ const BookingsScreen = () => {
       />
 
       <FlatList
+        ref={scrollRef}
         data={data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
@@ -274,24 +299,23 @@ const BookingsScreen = () => {
         }
         renderItem={({ item }) => <BookingCard booking={item} tab={tab} />}
       />
-      <View style={{ flexDirection: "row", gap: 12, padding: 16 }}>
-        <Button
-          mode="contained"
+
+      <View style={styles.page}>
+        <IconButton
+          icon="chevron-left"
+          size={28}
           disabled={!prevHref || loading}
           onPress={() => prevHref && loadBookings(prevHref)}
-          style={{ flex: 1 }}
-        >
-          Previous
-        </Button>
+          style={styles.pageBtn}
+        />
 
-        <Button
-          mode="contained"
+        <IconButton
+          icon="chevron-right"
+          size={28}
           disabled={!nextHref || loading}
           onPress={() => nextHref && loadBookings(nextHref)}
-          style={{ flex: 1 }}
-        >
-          Next
-        </Button>
+          style={styles.pageBtn}
+        />
       </View>
     </View>
   );
@@ -299,14 +323,6 @@ const BookingsScreen = () => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "white" },
-
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    marginTop: 16,
-    marginHorizontal: 16,
-    marginBottom: 10,
-  },
 
   segment: { marginTop: 10, marginHorizontal: 16, marginBottom: 12 },
 
@@ -354,6 +370,22 @@ const styles = StyleSheet.create({
 
   detailsBtn: { alignSelf: "flex-start", borderRadius: 10 },
   detailsBtnContent: { paddingHorizontal: 18, paddingVertical: 4 },
+
+  page: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+
+  pageBtn: {
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
+    borderRadius: 999,
+    backgroundColor: "white",
+    width: 90,
+  },
 });
 
 export default BookingsScreen;

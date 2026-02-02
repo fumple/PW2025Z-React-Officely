@@ -1,16 +1,10 @@
-import { apiFetch } from "@/src/api/client";
+import { apiFetchRel } from "@/src/api/client";
 import { useAuthStore } from "@/src/auth/authStore";
 import getGravatarUrl from "@/src/utils/gravatar";
-import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Image, StyleSheet, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Button, HelperText, TextInput } from "react-native-paper";
 
 const MIN_PASSWORD_LEN = 8;
@@ -39,6 +33,18 @@ const trimPhoneToMaxDigits = (value: string) => {
 };
 
 const ProfileEditScreen = () => {
+  const scrollRef = useRef<any>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const id = setTimeout(() => {
+        scrollRef.current?.scrollToPosition(0, 0, false);
+      }, 0);
+
+      return () => clearTimeout(id);
+    }, []),
+  );
+
   const me = useAuthStore((s) => s.me);
 
   const [firstName, setFirstName] = useState(me?.firstName ?? "");
@@ -158,7 +164,7 @@ const ProfileEditScreen = () => {
         payload.currentPassword = currentPassword;
       }
 
-      await apiFetch("/users/@me", {
+      await apiFetchRel("/users/@me", {
         method: "PATCH",
         body: JSON.stringify(payload),
       });
@@ -171,176 +177,178 @@ const ProfileEditScreen = () => {
     }
   };
   return (
-    <KeyboardAvoidingView //TODO: Find a better way for dealing with this
-      style={styles.safe}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAwareScrollView
+      ref={scrollRef}
+      style={styles.screen}
+      contentContainerStyle={styles.form}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid={true}
+      extraScrollHeight={16}
     >
-      <ScrollView
-        style={styles.screen}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.top}>
-          <Image
-            source={{ uri: getGravatarUrl(email, 170) }}
-            style={styles.avatar}
+      <View style={styles.top}>
+        <Image
+          source={{ uri: getGravatarUrl(email, 170) }}
+          style={styles.avatar}
+        />
+      </View>
+
+      <View style={styles.form}>
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="First Name"
+            value={firstName}
+            onChangeText={setFirstName}
+            onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
+            error={!!errors.firstName}
           />
+          {errors.firstName && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.firstName}
+            </HelperText>
+          )}
         </View>
 
-        <View style={styles.form}>
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="First Name"
-              value={firstName}
-              onChangeText={setFirstName}
-              onBlur={() => setTouched((t) => ({ ...t, firstName: true }))}
-              error={!!errors.firstName}
-            />
-            {errors.firstName && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.firstName}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="Last Name"
-              value={lastName}
-              onChangeText={setLastName}
-              onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
-              error={!!errors.lastName}
-            />
-            {errors.lastName && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.lastName}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              error={!!errors.email}
-            />
-            {errors.email && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.email}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="Phone Number"
-              value={phoneNumber}
-              onChangeText={(t) => setPhoneNumber(trimPhoneToMaxDigits(t))}
-              onBlur={() => setTouched((t) => ({ ...t, phoneNumber: true }))}
-              placeholder="+48123456789"
-              keyboardType="phone-pad"
-              autoCapitalize="none"
-              error={!!errors.phoneNumber}
-            />
-            {errors.phoneNumber && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.phoneNumber}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="Current Password"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              onBlur={() =>
-                setTouched((t) => ({ ...t, currentPassword: true }))
-              }
-              secureTextEntry={secure}
-              error={!!errors.currentPassword}
-            />
-            {errors.currentPassword && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.currentPassword}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="New Password"
-              value={password}
-              onChangeText={setPassword}
-              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-              secureTextEntry={secure}
-              error={!!errors.password}
-              right={
-                <TextInput.Icon
-                  icon={secure ? "eye" : "eye-off"}
-                  onPress={() => setSecure((v) => !v)}
-                />
-              }
-            />
-            {errors.password && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.password}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.field}>
-            <TextInput
-              mode="outlined"
-              label="Repeat New Password"
-              value={password2}
-              onChangeText={setPassword2}
-              onBlur={() => setTouched((t) => ({ ...t, password2: true }))}
-              secureTextEntry={secure}
-              error={!!errors.password2}
-            />
-            {errors.password2 && (
-              <HelperText type="error" style={styles.helper}>
-                {errors.password2}
-              </HelperText>
-            )}
-          </View>
-
-          <View style={styles.actions}>
-            <Button
-              mode="contained"
-              onPress={() => router.back()} //TODO: This doesnt redirect to profile but to search
-              disabled={loading}
-              style={[styles.actionBtn, styles.cancelBtn]}
-              contentStyle={styles.actionBtnContent}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={onSave}
-              disabled={!canSubmit}
-              loading={loading}
-              style={[styles.actionBtn, styles.saveBtn]}
-              contentStyle={styles.actionBtnContent}
-            >
-              Save
-            </Button>
-          </View>
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="Last Name"
+            value={lastName}
+            onChangeText={setLastName}
+            onBlur={() => setTouched((t) => ({ ...t, lastName: true }))}
+            error={!!errors.lastName}
+          />
+          {errors.lastName && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.lastName}
+            </HelperText>
+          )}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            textContentType="username"
+            autoComplete="username"
+            importantForAutofill="yes"
+            error={!!errors.email}
+          />
+          {errors.email && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.email}
+            </HelperText>
+          )}
+        </View>
+
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="Phone Number"
+            value={phoneNumber}
+            onChangeText={(t) => setPhoneNumber(trimPhoneToMaxDigits(t))}
+            onBlur={() => setTouched((t) => ({ ...t, phoneNumber: true }))}
+            placeholder="+48123456789"
+            keyboardType="phone-pad"
+            autoCapitalize="none"
+            error={!!errors.phoneNumber}
+          />
+          {errors.phoneNumber && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.phoneNumber}
+            </HelperText>
+          )}
+        </View>
+
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="Current Password"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            onBlur={() => setTouched((t) => ({ ...t, currentPassword: true }))}
+            secureTextEntry={secure}
+            textContentType="password"
+            autoComplete="password"
+            importantForAutofill="yes"
+            error={!!errors.currentPassword}
+          />
+          {errors.currentPassword && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.currentPassword}
+            </HelperText>
+          )}
+        </View>
+
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="New Password"
+            value={password}
+            onChangeText={setPassword}
+            onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+            secureTextEntry={secure}
+            error={!!errors.password}
+            right={
+              <TextInput.Icon
+                icon={secure ? "eye" : "eye-off"}
+                onPress={() => setSecure((v) => !v)}
+              />
+            }
+          />
+          {errors.password && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.password}
+            </HelperText>
+          )}
+        </View>
+
+        <View style={styles.field}>
+          <TextInput
+            mode="outlined"
+            label="Repeat New Password"
+            value={password2}
+            onChangeText={setPassword2}
+            onBlur={() => setTouched((t) => ({ ...t, password2: true }))}
+            secureTextEntry={secure}
+            error={!!errors.password2}
+          />
+          {errors.password2 && (
+            <HelperText type="error" style={styles.helper}>
+              {errors.password2}
+            </HelperText>
+          )}
+        </View>
+
+        <View style={styles.actions}>
+          <Button
+            mode="contained"
+            onPress={() => router.back()} //TODO: This doesnt redirect to profile but to search
+            disabled={loading}
+            style={[styles.actionBtn, styles.cancelBtn]}
+            contentStyle={styles.actionBtnContent}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            mode="contained"
+            onPress={onSave}
+            disabled={!canSubmit}
+            loading={loading}
+            style={[styles.actionBtn, styles.saveBtn]}
+            contentStyle={styles.actionBtnContent}
+          >
+            Save
+          </Button>
+        </View>
+      </View>
+    </KeyboardAwareScrollView>
   );
 };
 
@@ -359,7 +367,7 @@ const styles = StyleSheet.create({
   },
   safe: { flex: 1 },
 
-  form: { gap: 12 },
+  form: { gap: 12, marginHorizontal: 10 },
   field: {},
 
   helper: {
@@ -371,8 +379,8 @@ const styles = StyleSheet.create({
   actionBtn: { flex: 1, borderRadius: 6 },
   actionBtnContent: { paddingVertical: 6 },
 
-  cancelBtn: { backgroundColor: "grey" },
-  saveBtn: { backgroundColor: "#0F4366" },
+  cancelBtn: { backgroundColor: "grey", marginBottom: 18 },
+  saveBtn: { backgroundColor: "#0F4366", marginBottom: 18 },
 });
 
 export default ProfileEditScreen;

@@ -1,19 +1,19 @@
 import { Stack } from "expo-router";
 
 import {
+  DarkTheme as DefaultDarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { StatusBar } from "expo-status-bar";
+import { useColorScheme } from "react-native";
+import {
   adaptNavigationTheme,
   MD3DarkTheme,
   MD3LightTheme,
   PaperProvider,
   Portal,
 } from "react-native-paper";
-import { useColorScheme } from "react-native";
-import {
-  DefaultTheme,
-  DarkTheme as DefaultDarkTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { StatusBar } from "expo-status-bar";
 
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
   reactNavigationLight: DefaultTheme,

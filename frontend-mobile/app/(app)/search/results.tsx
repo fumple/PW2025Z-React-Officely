@@ -1,5 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Image, ScrollView, StyleSheet, View } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FlatList, Image, Keyboard, StyleSheet, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import MapView, { Marker } from "react-native-maps";
 import {
   ActivityIndicator,
@@ -16,16 +23,16 @@ import {
 } from "react-native-paper";
 import { DatePickerModal } from "react-native-paper-dates";
 
-import { apiFetch } from "@/src/api/client";
+import { apiFetchLinks } from "@/src/api/client";
 import { getOffices } from "@/src/api/getOffices";
+import { API_BASE_URL } from "@/src/config";
 import { buildFilterList } from "@/src/filters/buildFilterList";
 import { useFiltersStore } from "@/src/filters/filtersStore";
 import { nominatimGeocode, nominatimReverse } from "@/src/utils/nominatim";
-import { router, useLocalSearchParams } from "expo-router";
-
-//TODO: filters should not be left tagged after someone searches
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
 const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_LINK = `${API_BASE_URL}/offices`;
 
 const formatDate = (date?: Date) => {
   if (!date) return "";
@@ -67,6 +74,55 @@ const parseNumberParam = (value: unknown) => {
   return Number.isFinite(n) ? n : undefined;
 };
 
+const normalizeRadiusKmText = (raw: string) => {
+  let s = raw.trim().replace(",", ".");
+  s = s.replace(/[^\d.]/g, "");
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) {
+    s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, "");
+  }
+  if (s.startsWith(".")) s = "0" + s;
+
+  const hadDot = s.includes(".");
+  let [intPart, fracPart = ""] = s.split(".");
+  intPart = intPart.replace(/^0+(?=\d)/, "");
+  if (intPart === "") intPart = "0";
+  if (hadDot) {
+    fracPart = fracPart.slice(0, 2);
+    return `${intPart}.${fracPart}`;
+  }
+  return intPart;
+};
+
+const kmTextToMetersInt = (kmText: string) => {
+  const s = kmText.trim();
+  if (!s) return undefined;
+
+  const [intPart, fracPart = ""] = s.split(".");
+  const kmInt = parseInt(intPart || "0", 10);
+  if (!Number.isFinite(kmInt)) return undefined;
+
+  const frac3 = (fracPart + "000").slice(0, 3);
+  const metersFromFrac = parseInt(frac3, 10);
+
+  return kmInt * 1000 + metersFromFrac;
+};
+
+const metersToKm = (meters: number) => {
+  if (!Number.isFinite(meters)) return "";
+  if (meters <= 0) return "0";
+  return (meters / 1000).toFixed(2);
+};
+
+const normalizePriceIntText = (raw: string) => {
+  let s = raw.trim();
+  const commaIdx = s.indexOf(",");
+  if (commaIdx !== -1) s = s.slice(0, commaIdx);
+  s = s.replace(/[^\d]/g, "");
+  s = s.replace(/^0+(?=\d)/, "");
+  return s;
+};
+
 type Office = {
   id: string;
   name: string;
@@ -100,9 +156,7 @@ type OfficesResponse = {
 
 type SortKey = "distance" | "priceAsc" | "priceDesc";
 
-const moneyPLN = (value: number) => {
-  return `${value} PLN`;
-};
+const moneyPLN = (value: number) => `${value} PLN`;
 
 const ResultCard = ({
   item,
@@ -113,18 +167,23 @@ const ResultCard = ({
   startDate: string;
   endDate: string;
 }) => {
-  const image = item.office.photoUrls[0];
+  const image = item.office.photoUrls?.[0];
 
   return (
     <View style={styles.card}>
-      <Image source={{ uri: image }} style={styles.cardImage} />
+      <Image
+        source={image ? { uri: image } : undefined}
+        style={styles.cardImage}
+      />
 
       <View style={styles.cardRight}>
         <View style={styles.rowBetween}>
           <Text style={styles.cardTitle} numberOfLines={1}>
             {item.office.name}
           </Text>
-          <Text style={styles.distanceText}>{item.query.distance} km away</Text>
+          <Text style={styles.distanceText}>
+            {metersToKm(item.query.distance)} km away
+          </Text>
         </View>
 
         <Text style={styles.addrText} numberOfLines={1}>
@@ -139,41 +198,49 @@ const ResultCard = ({
             </Text>
           </Text>
 
-          <View style={styles.chevPill}>
-            <Button
-              mode="contained"
-              onPress={() => {
-                router.push({
-                  pathname: "/offices/[officeId]",
-                  params: {
-                    officeId: item.office.id,
-                    offersHref: item._links.offers?.href,
-                    startDate,
-                    endDate,
-                  },
-                });
-              }}
-            >
-              {">"}
-            </Button>
-          </View>
+          <Button
+            style={styles.chevPillBtn}
+            mode="contained"
+            onPress={() => {
+              router.push({
+                pathname: "/(app)/search/[officeId]",
+                params: {
+                  officeId: item.office.id,
+                  startDate,
+                  endDate,
+                },
+              });
+            }}
+          >
+            {">"}
+          </Button>
         </View>
       </View>
     </View>
   );
 };
 
+// ---------- screen ----------
 const SearchResultsScreen = () => {
   const params = useLocalSearchParams<{
     nearAddress?: string;
-    nearLat?: string | undefined;
-    nearLon?: string | undefined;
-    maxDistanceFromAddress?: string | undefined;
+    nearLat?: string;
+    nearLon?: string;
+
+    maxDistanceFromAddress?: string;
+
     startDate?: string;
     endDate?: string;
+
     pageToken?: string;
     pageSize?: string;
-    filter?: string[] | undefined;
+
+    filter?: string[] | string;
+    filtersState?: string;
+
+    minPrice?: string;
+    maxPrice?: string;
+
     sort?: SortKey;
   }>();
 
@@ -183,21 +250,19 @@ const SearchResultsScreen = () => {
 
   const [sort, setSort] = useState<SortKey>("distance");
   const [sortOpen, setSortOpen] = useState(false);
-
   const [searchModalOpen, setSearchModalOpen] = useState(false);
 
-  const [nearAddress, setNearAddress] = useState<string | undefined>(undefined);
-  const [maxDistanceFromAddress, setMaxDistanceFromAddress] = useState<
-    string | undefined
-  >(undefined);
+  const [nearAddress, setNearAddress] = useState("");
+  const [radiusKm, setRadiusKm] = useState("");
+
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   const [rangeOpen, setRangeOpen] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-  const [filters, setFilters] = useState<string[] | undefined>(undefined);
-
-  const [currentHref, setCurrentHref] = useState<string>("/offices");
+  const [currentHref, setCurrentHref] = useState<string>(DEFAULT_PAGE_LINK);
   const [nextHref, setNextHref] = useState<string | null>(null);
   const [prevHref, setPrevHref] = useState<string | null>(null);
 
@@ -212,9 +277,12 @@ const SearchResultsScreen = () => {
     nearAddress: false,
     range: false,
     radius: false,
+    price: false,
   });
 
   const mapRef = useRef<MapView>(null);
+  const scrollRef = useRef<KeyboardAwareScrollView>(null);
+  const filtersScrollRef = useRef<KeyboardAwareScrollView>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
 
   const {
@@ -223,6 +291,7 @@ const SearchResultsScreen = () => {
     error: filtersError,
     loadFilters,
   } = useFiltersStore();
+
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -239,27 +308,52 @@ const SearchResultsScreen = () => {
 
   useEffect(() => {
     setNearAddress(
-      typeof params.nearAddress === "string" ? params.nearAddress : undefined,
+      typeof params.nearAddress === "string" ? params.nearAddress : "",
     );
+
     setStartDate(parseDate(params.startDate));
     setEndDate(parseDate(params.endDate));
-    setMaxDistanceFromAddress(
-      typeof params.maxDistanceFromAddress === "string"
-        ? params.maxDistanceFromAddress
-        : undefined,
+
+    if (typeof params.maxDistanceFromAddress === "string") {
+      const meters = Number(params.maxDistanceFromAddress);
+      setRadiusKm(metersToKm(meters));
+    } else {
+      setRadiusKm("");
+    }
+
+    setMinPrice(
+      typeof params.minPrice === "string"
+        ? normalizePriceIntText(params.minPrice)
+        : "",
     );
+    setMaxPrice(
+      typeof params.maxPrice === "string"
+        ? normalizePriceIntText(params.maxPrice)
+        : "",
+    );
+
+    if (typeof params.filtersState === "string") {
+      try {
+        const parsed = JSON.parse(params.filtersState);
+        if (parsed && typeof parsed === "object")
+          setSelectedFilterValues(parsed);
+      } catch {
+        setSelectedFilterValues({});
+      }
+    } else {
+      setSelectedFilterValues({});
+    }
+
     const lat = parseNumberParam(params.nearLat);
     const lon = parseNumberParam(params.nearLon);
     setMapPin(
       typeof lat === "number" && typeof lon === "number" ? { lat, lon } : null,
     );
+
     const token = parseIntParam(params.pageToken);
     const size = parseIntParam(params.pageSize);
-
     setPageToken(typeof token === "number" ? token : 0);
     setPageSize(typeof size === "number" ? size : DEFAULT_PAGE_SIZE);
-
-    setFilters(Array.isArray(params.filter) ? params.filter : undefined);
 
     if (params.sort) setSort(params.sort);
   }, [
@@ -267,20 +361,19 @@ const SearchResultsScreen = () => {
     params.startDate,
     params.endDate,
     params.maxDistanceFromAddress,
+    params.minPrice,
+    params.maxPrice,
+    params.filtersState,
     params.nearLat,
     params.nearLon,
     params.pageToken,
     params.pageSize,
-    params.filter,
     params.sort,
   ]);
 
-  const nearAddressStr = nearAddress ?? "";
-  const maxDistanceStr = maxDistanceFromAddress ?? "";
-
   const errors = useMemo(() => {
     const locationError =
-      touched.nearAddress && !nearAddressStr.trim() && !mapPin
+      touched.nearAddress && !nearAddress.trim() && !mapPin
         ? "Enter a location or drop a pin on the map"
         : null;
 
@@ -291,29 +384,49 @@ const SearchResultsScreen = () => {
           ? "End date cannot be before start date"
           : null;
 
-    const radiusTrimmed = maxDistanceStr.trim();
+    const radiusTrimmed = radiusKm.trim();
     const radiusError =
-      touched.radius && radiusTrimmed
-        ? radiusTrimmed.startsWith("0")
-          ? "Radius cannot start with 0"
-          : !/^\d+$/.test(radiusTrimmed)
-            ? "Radius must be a whole number"
-            : null
+      touched.radius && radiusTrimmed && !Number.isFinite(Number(radiusTrimmed))
+        ? "Radius must be a number"
+        : null;
+
+    const minTrim = minPrice.trim();
+    const maxTrim = maxPrice.trim();
+    const minNum = minTrim ? Number(minTrim) : undefined;
+    const maxNum = maxTrim ? Number(maxTrim) : undefined;
+
+    const priceError =
+      touched.price &&
+      minTrim &&
+      maxTrim &&
+      (minNum as number) > (maxNum as number)
+        ? "Min price cannot be greater than max price"
         : null;
 
     return {
       nearAddress: locationError,
       range: rangeError,
       radius: radiusError,
+      price: priceError,
     };
-  }, [touched, nearAddressStr, mapPin, startDate, endDate, maxDistanceStr]);
+  }, [
+    touched,
+    nearAddress,
+    mapPin,
+    startDate,
+    endDate,
+    radiusKm,
+    minPrice,
+    maxPrice,
+  ]);
 
   const isFormValid =
-    (!!nearAddressStr.trim() || !!mapPin) &&
+    (!!nearAddress.trim() || !!mapPin) &&
     !!startDate &&
     !!endDate &&
     startDate <= endDate &&
-    !errors.radius;
+    !errors.radius &&
+    !errors.price;
 
   const mapRegion = {
     latitude: mapPin?.lat ?? 52.2286,
@@ -326,7 +439,7 @@ const SearchResultsScreen = () => {
     setTouched((t) => ({ ...t, nearAddress: true }));
     setGeoError(null);
 
-    const query = nearAddressStr.trim();
+    const query = nearAddress.trim();
     const r = await nominatimGeocode(query);
     if (!r) {
       setGeoError("Couldn't find that location. Try a more specific address.");
@@ -362,7 +475,6 @@ const SearchResultsScreen = () => {
     setSelectedFilterValues((prev) => {
       const current: string[] = prev[baseKey] ?? [];
       const exists = current.includes(flagKey);
-
       return {
         ...prev,
         [baseKey]: exists
@@ -372,70 +484,112 @@ const SearchResultsScreen = () => {
     });
   };
 
-  const loadData = async (href?: string, sortNext?: SortKey) => {
-    setLoading(true);
-    setError(null);
+  const loadData = useCallback(
+    async (href?: string, sortNext?: SortKey) => {
+      setLoading(true);
+      setError(null);
 
-    if (!startDate || !endDate) {
-      setError("Select start and end dates");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      let data: OfficesResponse;
-
-      if (href) {
-        data = (await apiFetch(href, { method: "GET" })) as OfficesResponse;
-      } else {
-        const nearAddressApi = nearAddressStr.trim() || undefined;
-        const maxDistance = maxDistanceStr.trim()
-          ? parseInt(maxDistanceStr.trim(), 10)
-          : undefined;
-
-        data = (await getOffices({
-          startDate: formatDateApi(startDate),
-          endDate: formatDateApi(endDate),
-          nearAddress: nearAddressApi,
-          nearLat: mapPin?.lat,
-          nearLon: mapPin?.lon,
-          maxDistanceFromAddress: maxDistance,
-          filter: filters,
-          sort: sortNext ?? sort,
-          pageSize,
-          pageToken,
-        })) as OfficesResponse;
+      if (!startDate || !endDate) {
+        setError("Select start and end dates");
+        setLoading(false);
+        return;
       }
 
-      setResults(Array.isArray(data.results) ? data.results : []);
-      setCurrentHref(data._links.self?.href ?? href ?? "/offices");
-      setNextHref(data._links.next?.href ?? null);
-      setPrevHref(data._links.prev?.href ?? null);
+      try {
+        let data: OfficesResponse;
 
-      setPageToken(data._pagination.currentPage);
-      setPageSize(data._pagination.pageSize);
+        if (href) {
+          data = (await apiFetchLinks(href, {
+            method: "GET",
+          })) as OfficesResponse;
+        } else {
+          const radiusMeters = radiusKm.trim()
+            ? kmTextToMetersInt(radiusKm)
+            : undefined;
 
-      setSearchModalOpen(false);
-      setFiltersOpen(false);
-    } catch (e: any) {
-      setError(e?.message ?? "Failed to load results");
-    } finally {
-      setLoading(false);
-    }
-  };
+          const minPriceApi = minPrice.trim()
+            ? parseInt(minPrice.trim(), 10)
+            : undefined;
+          const maxPriceApi = maxPrice.trim()
+            ? parseInt(maxPrice.trim(), 10)
+            : undefined;
 
-  useEffect(() => {
-    if (!startDate || !endDate) return;
-    loadData(undefined);
-  }, [startDate, endDate, pageToken, pageSize]);
+          data = (await getOffices({
+            startDate: formatDateApi(startDate),
+            endDate: formatDateApi(endDate),
+            nearAddress: nearAddress.trim() || undefined,
+            nearLat: mapPin?.lat,
+            nearLon: mapPin?.lon,
+            maxDistanceFromAddress: radiusMeters,
+            minPrice: minPriceApi,
+            maxPrice: maxPriceApi,
+            filter: apiFilters.length ? apiFilters : undefined,
+            sort: sortNext ?? sort,
+            pageSize,
+            pageToken,
+          })) as OfficesResponse;
+        }
 
-  const fetchFromScratch = (sortNext?: SortKey) => {
-    setCurrentHref("offices");
-    setNextHref(null);
-    setPrevHref(null);
-    setPageToken(0);
-    loadData(undefined, sortNext);
-  };
+        const nextResults = Array.isArray(data.results) ? data.results : [];
+        setResults(nextResults);
+
+        setCurrentHref(data._links.self?.href ?? href ?? DEFAULT_PAGE_LINK);
+        setNextHref(data._links.next?.href ?? null);
+        setPrevHref(data._links.prev?.href ?? null);
+        setPageToken(data._pagination.currentPage);
+        setPageSize(data._pagination.pageSize);
+
+        setSearchModalOpen(false);
+        setFiltersOpen(false);
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load results");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      startDate,
+      endDate,
+      radiusKm,
+      minPrice,
+      maxPrice,
+      nearAddress,
+      mapPin?.lat,
+      mapPin?.lon,
+      apiFilters,
+      sort,
+      pageSize,
+      pageToken,
+    ],
+  );
+
+  const fetchFromScratch = useCallback(
+    (sortNext?: SortKey) => {
+      setCurrentHref(DEFAULT_PAGE_LINK);
+      setNextHref(null);
+      setPrevHref(null);
+      setPageToken(0);
+
+      loadData(undefined, sortNext);
+    },
+    [loadData],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!startDate || !endDate) return;
+      if (filtersLoading) return;
+      if (!filterGroups.length) return;
+      fetchFromScratch(sort);
+    }, [
+      fetchFromScratch,
+      sort,
+      startDate,
+      endDate,
+      filtersLoading,
+      filterGroups.length,
+    ]),
+  );
 
   return (
     <View style={styles.screen}>
@@ -445,7 +599,13 @@ const SearchResultsScreen = () => {
           placeholder="Change Search..."
           value=""
           editable={false}
-          onPressIn={() => setSearchModalOpen(true)}
+          onPressIn={() => {
+            setSearchModalOpen(true);
+            setTimeout(() => {
+              scrollRef.current?.scrollToPosition(0, 0, false);
+              filtersScrollRef.current?.scrollToPosition(0, 0, false);
+            }, 0);
+          }}
           style={styles.searchTrigger}
           outlineStyle={styles.roundOutline}
           left={<TextInput.Icon icon="magnify" />}
@@ -491,24 +651,23 @@ const SearchResultsScreen = () => {
               />
             )}
           />
-          <View style={{ flexDirection: "row", gap: 12, padding: 16 }}>
-            <Button
-              mode="contained"
+
+          <View style={styles.page}>
+            <IconButton
+              icon="chevron-left"
+              size={28}
               disabled={!prevHref || loading}
               onPress={() => prevHref && loadData(prevHref)}
-              style={{ flex: 1 }}
-            >
-              Previous
-            </Button>
+              style={styles.pageBtn}
+            />
 
-            <Button
-              mode="contained"
+            <IconButton
+              icon="chevron-right"
+              size={28}
               disabled={!nextHref || loading}
               onPress={() => nextHref && loadData(nextHref)}
-              style={{ flex: 1 }}
-            >
-              Next
-            </Button>
+              style={styles.pageBtn}
+            />
           </View>
         </>
       )}
@@ -565,8 +724,8 @@ const SearchResultsScreen = () => {
           onDismiss={() => setSearchModalOpen(false)}
           contentContainerStyle={styles.searchModal}
         >
-          <View style={styles.modalHeader}>
-            <Text style={{ fontWeight: "800", fontSize: 16 }}>
+          <View style={styles.filtersBar}>
+            <Text variant="titleMedium" style={{ fontWeight: "700" }}>
               Change Search
             </Text>
             <Button onPress={() => setSearchModalOpen(false)}>Close</Button>
@@ -574,14 +733,21 @@ const SearchResultsScreen = () => {
 
           <Divider />
 
-          <ScrollView keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
+          <KeyboardAwareScrollView
+            ref={scrollRef}
+            style={styles.searchModalScroll}
+            contentContainerStyle={styles.searchModalContent}
+            enableOnAndroid
+            extraScrollHeight={16}
+            keyboardShouldPersistTaps="handled"
+          >
             <View style={styles.field}>
               <TextInput
                 style={styles.input}
                 outlineStyle={styles.roundOutline}
                 mode="outlined"
                 placeholder="Location"
-                value={nearAddressStr}
+                value={nearAddress}
                 onChangeText={(t) => {
                   setNearAddress(t);
                   setGeoError(null);
@@ -657,6 +823,7 @@ const SearchResultsScreen = () => {
             />
 
             <Text style={styles.sectionLabel}>Location</Text>
+
             <View style={styles.mapWrap}>
               <MapView
                 ref={mapRef}
@@ -689,8 +856,8 @@ const SearchResultsScreen = () => {
               <TextInput
                 mode="outlined"
                 placeholder="5"
-                value={maxDistanceStr}
-                onChangeText={setMaxDistanceFromAddress}
+                value={radiusKm}
+                onChangeText={(t) => setRadiusKm(normalizeRadiusKmText(t))}
                 onBlur={() => setTouched((t) => ({ ...t, radius: true }))}
                 keyboardType="numeric"
                 returnKeyType="done"
@@ -723,122 +890,179 @@ const SearchResultsScreen = () => {
                 onDismiss={() => setFiltersOpen(false)}
                 contentContainerStyle={styles.filtersModal}
               >
-                <View style={styles.filtersBar}>
-                  <Text variant="titleMedium" style={{ fontWeight: "700" }}>
-                    Filters
-                  </Text>
-                  <Button onPress={() => setFiltersOpen(false)}>Done</Button>
-                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.filtersBar}>
+                    <Text variant="titleMedium" style={{ fontWeight: "700" }}>
+                      Filters
+                    </Text>
+                    <Button onPress={() => setFiltersOpen(false)}>Done</Button>
+                  </View>
 
-                <Divider />
+                  <Divider />
 
-                {filtersLoading ? (
-                  <ActivityIndicator />
-                ) : filtersError ? (
-                  <HelperText type="error" style={{ marginHorizontal: 12 }}>
-                    {filtersError}
-                  </HelperText>
-                ) : (
-                  <ScrollView
-                    style={{ flex: 1 }}
-                    keyboardShouldPersistTaps="handled"
-                  >
-                    {(Array.isArray(filterGroups) ? filterGroups : []).map(
-                      (group) => (
-                        <List.Accordion
-                          key={group.key}
-                          title={group.label}
-                          style={{ backgroundColor: "white" }}
-                        >
-                          {group.elements.map((el) => {
-                            const baseKey = `${group.key}.${el.key}`;
+                  <View style={styles.modalBody}>
+                    {filtersLoading ? (
+                      <View style={styles.loadingCover}>
+                        <ActivityIndicator size="large" />
+                      </View>
+                    ) : filtersError ? (
+                      <View style={styles.loadingCover}>
+                        <HelperText type="error">{filtersError}</HelperText>
+                      </View>
+                    ) : (
+                      <KeyboardAwareScrollView
+                        ref={filtersScrollRef}
+                        enableOnAndroid
+                        extraScrollHeight={-80}
+                        enableResetScrollToCoords={false}
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {(Array.isArray(filterGroups) ? filterGroups : []).map(
+                          (group) => (
+                            <List.Accordion
+                              key={group.key}
+                              title={group.label}
+                              style={{ backgroundColor: "white" }}
+                            >
+                              {group.elements.map((el) => {
+                                const baseKey = `${group.key}.${el.key}`;
 
-                            if (el.type === "flags") {
-                              const selected =
-                                selectedFilterValues[baseKey] ?? [];
-                              return (
-                                <View
-                                  key={baseKey}
-                                  style={{
-                                    paddingHorizontal: 12,
-                                    paddingBottom: 6,
-                                  }}
-                                >
-                                  {el.flags.map((flag) => {
-                                    const checked = selected.includes(flag.key);
-                                    return (
-                                      <List.Item
-                                        key={`${baseKey}.${flag.key}`}
-                                        title={flag.label}
-                                        onPress={() =>
-                                          toggleFlag(baseKey, flag.key)
-                                        }
-                                        left={() => (
-                                          <Checkbox
-                                            status={
-                                              checked ? "checked" : "unchecked"
+                                if (el.type === "flags") {
+                                  const selected =
+                                    selectedFilterValues[baseKey] ?? [];
+
+                                  return (
+                                    <View
+                                      key={baseKey}
+                                      style={{
+                                        paddingHorizontal: 12,
+                                        paddingBottom: 6,
+                                      }}
+                                    >
+                                      {el.flags.map((flag) => {
+                                        const checked = selected.includes(
+                                          flag.key,
+                                        );
+
+                                        return (
+                                          <List.Item
+                                            key={`${baseKey}.${flag.key}`}
+                                            title={flag.label}
+                                            onPress={() =>
+                                              toggleFlag(baseKey, flag.key)
                                             }
+                                            left={() => (
+                                              <Checkbox
+                                                status={
+                                                  checked
+                                                    ? "checked"
+                                                    : "unchecked"
+                                                }
+                                              />
+                                            )}
                                           />
-                                        )}
-                                      />
-                                    );
-                                  })}
-                                </View>
-                              );
-                            }
+                                        );
+                                      })}
+                                    </View>
+                                  );
+                                }
 
-                            const value = String(
-                              selectedFilterValues[baseKey] ?? "",
-                            );
-                            return (
-                              <View
-                                key={baseKey}
-                                style={{
-                                  paddingHorizontal: 12,
-                                  paddingBottom: 10,
-                                }}
-                              >
-                                <TextInput
-                                  mode="outlined"
-                                  label={`${el.label}`}
-                                  value={value}
-                                  keyboardType="numeric"
-                                  onChangeText={(t) => {
-                                    setSelectedFilterValues((prev) => ({
-                                      ...prev,
-                                      [baseKey]: t,
-                                    }));
-                                  }}
-                                />
-                              </View>
-                            );
-                          })}
-                        </List.Accordion>
-                      ),
+                                const value = String(
+                                  selectedFilterValues[baseKey] ?? "",
+                                );
+
+                                return (
+                                  <View
+                                    key={baseKey}
+                                    style={{
+                                      paddingHorizontal: 12,
+                                      paddingBottom: 10,
+                                    }}
+                                  >
+                                    <TextInput
+                                      mode="outlined"
+                                      label={`${el.label}`}
+                                      value={value}
+                                      keyboardType="numeric"
+                                      onChangeText={(t) => {
+                                        setSelectedFilterValues((prev) => ({
+                                          ...prev,
+                                          [baseKey]: t,
+                                        }));
+                                      }}
+                                    />
+                                  </View>
+                                );
+                              })}
+                            </List.Accordion>
+                          ),
+                        )}
+
+                        <TextInput
+                          mode="outlined"
+                          label="Min. price"
+                          value={minPrice}
+                          keyboardType="numeric"
+                          returnKeyType="done"
+                          style={{ marginHorizontal: 10, marginTop: 10 }}
+                          contentStyle={{ paddingVertical: 6 }}
+                          onChangeText={(t) =>
+                            setMinPrice(normalizePriceIntText(t))
+                          }
+                          onBlur={() =>
+                            setTouched((t) => ({ ...t, price: true }))
+                          }
+                          error={!!errors.price}
+                        />
+
+                        <TextInput
+                          mode="outlined"
+                          label="Max. price"
+                          value={maxPrice}
+                          keyboardType="numeric"
+                          returnKeyType="done"
+                          onSubmitEditing={() => Keyboard.dismiss()}
+                          style={{ marginHorizontal: 10, marginTop: 10 }}
+                          onChangeText={(t) =>
+                            setMaxPrice(normalizePriceIntText(t))
+                          }
+                          onBlur={() =>
+                            setTouched((t) => ({ ...t, price: true }))
+                          }
+                          error={!!errors.price}
+                        />
+
+                        {errors.price && (
+                          <HelperText type="error" style={styles.priceHelper}>
+                            {errors.price}
+                          </HelperText>
+                        )}
+                      </KeyboardAwareScrollView>
                     )}
-                  </ScrollView>
-                )}
+                  </View>
 
-                <Divider />
+                  <Divider />
 
-                <View style={styles.filtersBar}>
-                  <Button
-                    mode="text"
-                    onPress={() => setSelectedFilterValues({})}
-                  >
-                    Clear
-                  </Button>
+                  <View style={styles.filtersBar}>
+                    <Button
+                      mode="text"
+                      onPress={() => {
+                        setSelectedFilterValues({});
+                        setMinPrice("");
+                        setMaxPrice("");
+                      }}
+                    >
+                      Clear
+                    </Button>
 
-                  <Button
-                    mode="contained"
-                    onPress={() => {
-                      setFilters(apiFilters.length ? apiFilters : undefined);
-                      setFiltersOpen(false);
-                      fetchFromScratch(sort);
-                    }}
-                  >
-                    Apply
-                  </Button>
+                    <Button
+                      mode="contained"
+                      disabled={!!errors.price}
+                      onPress={() => setFiltersOpen(false)}
+                    >
+                      Apply
+                    </Button>
+                  </View>
                 </View>
               </Modal>
             </Portal>
@@ -846,16 +1070,25 @@ const SearchResultsScreen = () => {
             <Button
               mode="contained"
               disabled={!isFormValid}
-              onPress={() => fetchFromScratch(sort)}
+              onPress={() => {
+                setTouched((t) => ({
+                  ...t,
+                  nearAddress: true,
+                  range: true,
+                  radius: true,
+                  price: true,
+                }));
+
+                if (!isFormValid) return;
+                fetchFromScratch(sort);
+              }}
               style={styles.primaryBtn}
               labelStyle={styles.primaryBtnLabel}
               contentStyle={styles.primaryBtnContent}
             >
               Search
             </Button>
-
-            <View style={{ height: 12 }} />
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </Modal>
       </Portal>
     </View>
@@ -873,7 +1106,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   searchTrigger: { flex: 1, backgroundColor: "white" },
-  roundOutline: { borderRadius: 999 },
   sortBtn: {
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.12)",
@@ -908,16 +1140,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-
   cardImage: {
     width: 118,
     height: 78,
     borderRadius: 10,
     backgroundColor: "#ddd",
   },
-
   cardRight: { flex: 1, paddingLeft: 12, minHeight: 78 },
-
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -927,7 +1156,6 @@ const styles = StyleSheet.create({
   cardTitle: { flex: 1, fontSize: 16, fontWeight: "800" },
   distanceText: { fontSize: 12, opacity: 0.75, fontWeight: "700" },
   addrText: { flex: 1, minWidth: 0, fontSize: 12, opacity: 0.9 },
-
   cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -937,15 +1165,28 @@ const styles = StyleSheet.create({
   priceText: { fontSize: 12, opacity: 0.9 },
   priceStrong: { fontWeight: "900", fontSize: 16 },
 
-  chevPill: {
-    backgroundColor: "#0F4366",
-    width: 42,
-    height: 60,
-    borderRadius: 12,
-    alignItems: "center",
+  chevPillBtn: {
+    width: 60,
+    height: 40,
+    borderRadius: 17,
+    minWidth: 0,
     justifyContent: "center",
   },
-  chevText: { color: "white", fontSize: 18, fontWeight: "900" },
+
+  page: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  pageBtn: {
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.12)",
+    borderRadius: 999,
+    backgroundColor: "white",
+    width: 90,
+  },
 
   sortModal: {
     marginHorizontal: 16,
@@ -959,34 +1200,48 @@ const styles = StyleSheet.create({
   searchModal: {
     marginHorizontal: 12,
     borderRadius: 14,
-    backgroundColor: "white",
+    backgroundColor: "#E9E8E2",
     height: "90%",
     overflow: "hidden",
   },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
+  searchModalScroll: { flex: 1, backgroundColor: "#E9E8E2" },
+  searchModalContent: { paddingVertical: 16, gap: 12, paddingBottom: 24 },
+
+  roundOutline: { borderRadius: 999 },
 
   field: {},
-  helper: { marginTop: 2, marginBottom: -12, marginHorizontal: 15 },
+
+  helper: {
+    marginTop: 2,
+    marginBottom: -12,
+    marginHorizontal: 15,
+  },
+
   helperRadius: {
     marginTop: 2,
     marginBottom: -12,
     marginHorizontal: 15,
     marginLeft: 145,
   },
-  input: { marginTop: 10, marginHorizontal: 15, backgroundColor: "white" },
+
+  priceHelper: {
+    marginTop: 4,
+    marginHorizontal: 15,
+    marginBottom: 12,
+  },
+
+  input: {
+    marginTop: 5,
+    marginHorizontal: 15,
+    backgroundColor: "white",
+  },
 
   sectionLabel: {
     marginHorizontal: 15,
-    marginTop: 10,
+    marginTop: 6,
     fontSize: 16,
     fontWeight: "600",
-    backgroundColor: "white",
+    backgroundColor: "#E9E8E2",
   },
 
   mapWrap: {
@@ -1005,13 +1260,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 12,
   },
   radiusInput: { flex: 1, backgroundColor: "white" },
   kmText: { fontSize: 16, fontWeight: "600" },
 
   primaryBtn: {
-    marginTop: 12,
+    marginTop: 6,
     marginHorizontal: 15,
     borderRadius: 999,
     overflow: "hidden",
@@ -1020,7 +1274,6 @@ const styles = StyleSheet.create({
   primaryBtnLabel: { fontSize: 18, fontWeight: "700" },
 
   filtersBtn: {
-    marginTop: 10,
     marginHorizontal: 15,
     borderRadius: 999,
     backgroundColor: "#f5f4ef",
@@ -1040,6 +1293,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
+    backgroundColor: "white",
+  },
+
+  modalBody: { flex: 1, minHeight: 0 },
+
+  loadingCover: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
   },
 });
+
 export default SearchResultsScreen;

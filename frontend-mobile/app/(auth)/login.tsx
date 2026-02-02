@@ -1,9 +1,9 @@
+import { useAuthStore } from "@/src/auth/authStore";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
+import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { router } from "expo-router";
 import { Button, HelperText, Text, TextInput } from "react-native-paper";
-import { AuthScreenShell } from "@/src/components/AuthScreenShell";
-import { useAuthStore } from "@/src/auth/authStore";
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

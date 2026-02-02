@@ -2,30 +2,22 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import {
-    ActivityIndicator,
-    Button,
-    Divider,
-    HelperText,
-    IconButton,
-    Text,
+  ActivityIndicator,
+  Button,
+  Divider,
+  HelperText,
+  IconButton,
+  Text,
 } from "react-native-paper";
 
-import { apiFetch } from "@/src/api/client";
+import { apiFetchRel } from "@/src/api/client";
 
-type Offer = {
+type OfferWithoutPrice = {
   id: string;
   name: string;
-  totalPrice: number;
   freeCancellationHours: number;
   paymentHours: number;
   properties: Record<string, string>;
-  _links: {
-    accept: { href: string };
-  };
-};
-
-type OffersResponse = {
-  offers: Offer[];
 };
 
 type Office = {
@@ -61,16 +53,10 @@ type BookingResource = {
 
 type CreateBookingResponse = { id: string };
 
-const moneyPLN = (value: number) => {
-  return `${value} PLN`;
-};
-
-const appendQuery = (url: string, query: string) => {
-  return url.includes("?") ? `${url}&${query}` : `${url}?${query}`;
-};
+const moneyPLN = (value: number) => `${value} PLN`;
 
 const InfoRow = ({ label, value }: { label: string; value?: string }) => {
-  if (!value) return null;
+  if (value == null || value === "") return null;
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -82,54 +68,57 @@ const InfoRow = ({ label, value }: { label: string; value?: string }) => {
 const BookingScreen = () => {
   const params = useLocalSearchParams<{
     officeId: string;
+    offerId: string;
+    totalPrice?: string;
     startDate: string;
     endDate: string;
-    acceptHref: string;
   }>();
 
   const officeId = params.officeId;
+  const offerId = params.offerId;
   const startDate = params.startDate;
   const endDate = params.endDate;
-  const acceptHref = params.acceptHref;
+
+  const paramPrice =
+    params.totalPrice != null && params.totalPrice !== ""
+      ? Number(params.totalPrice)
+      : undefined;
 
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [office, setOffice] = useState<Office | null>(null);
-  const [offer, setOffer] = useState<Offer | null>(null);
+  const [offer, setOffer] = useState<OfferWithoutPrice | null>(null);
 
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [booking, setBooking] = useState<BookingResource | null>(null);
 
   const isBooked = !!booking || !!createdBookingId;
 
-  const dateLabel = useMemo(() => {
-    return `${startDate} → ${endDate}`;
-  }, [startDate, endDate]);
+  const displayPrice = booking?.totalPrice ?? paramPrice;
+
+  const dateLabel = useMemo(
+    () => `${startDate} → ${endDate}`,
+    [startDate, endDate],
+  );
 
   const load = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const officeData = (await apiFetch(`/offices/${officeId}`, {
+      const officeData = (await apiFetchRel(`/offices/${officeId}`, {
         method: "GET",
       })) as Office;
       setOffice(officeData);
 
-      const q = `startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-      const offersUrl = `/offices/${officeId}/offers?${q}`;
+      const offerData = (await apiFetchRel(
+        `/offices/${officeId}/offers/${offerId}`,
+        { method: "GET" },
+      )) as OfferWithoutPrice;
 
-      const offersData = (await apiFetch(offersUrl, {
-        method: "GET",
-      })) as OffersResponse;
-
-      const match =
-        offersData.offers.find((o) => o._links.accept.href === acceptHref) ??
-        null;
-
-      setOffer(match);
+      setOffer(offerData);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load booking details");
     } finally {
@@ -139,23 +128,25 @@ const BookingScreen = () => {
 
   useEffect(() => {
     load();
-  }, [officeId, startDate, endDate, acceptHref]);
+  }, [officeId, offerId, startDate, endDate]);
 
   const onBook = async () => {
     setBookingLoading(true);
     setError(null);
 
     try {
-      const q = `startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-      const bookUrl = appendQuery(acceptHref, q);
+      const bookUrl =
+        `/offices/${officeId}/offers/${offerId}/book` +
+        `?startDate=${encodeURIComponent(startDate)}` +
+        `&endDate=${encodeURIComponent(endDate)}`;
 
-      const created = (await apiFetch(bookUrl, {
+      const created = (await apiFetchRel(bookUrl, {
         method: "POST",
       })) as CreateBookingResponse;
 
       setCreatedBookingId(created.id);
 
-      const bookingData = (await apiFetch(`/bookings/${created.id}`, {
+      const bookingData = (await apiFetchRel(`/bookings/${created.id}`, {
         method: "GET",
       })) as BookingResource;
 
@@ -200,15 +191,19 @@ const BookingScreen = () => {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Booking details</Text>
-
           <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
 
           <InfoRow label="Office" value={office?.name} />
           <InfoRow label="Dates" value={dateLabel} />
           <InfoRow label="Offer" value={offer?.name} />
+
           <InfoRow
             label="Total price"
-            value={offer ? moneyPLN(offer.totalPrice) : "(loading…)"}
+            value={
+              displayPrice != null && !Number.isNaN(displayPrice)
+                ? moneyPLN(displayPrice)
+                : "—"
+            }
           />
 
           {offer ? (
@@ -230,24 +225,34 @@ const BookingScreen = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Payment</Text>
             <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
+
             <InfoRow label="Booking ID" value={booking.id} />
-            <InfoRow label="Status" value={booking.paymentInfo.status} />
-            <InfoRow label="Amount" value={moneyPLN(booking.totalPrice)} />
-            <InfoRow label="Due date" value={booking.paymentInfo.dueDate} />
+            <InfoRow label="Status" value={booking.status} />
+            <InfoRow
+              label="Amount"
+              value={
+                booking.totalPrice != null ? moneyPLN(booking.totalPrice) : "—"
+              }
+            />
+
+            <InfoRow
+              label="Due date"
+              value={booking.paymentInfo?.dueDate ?? "—"}
+            />
 
             <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
 
             <InfoRow
               label="Receiver"
-              value={booking.paymentInfo.receiverName}
+              value={booking.paymentInfo?.receiverName ?? "—"}
             />
             <InfoRow
               label="Account"
-              value={booking.paymentInfo.accountNumber}
+              value={booking.paymentInfo?.accountNumber ?? "—"}
             />
             <InfoRow
               label="Transfer title"
-              value={booking.paymentInfo.transferTitle}
+              value={booking.paymentInfo?.transferTitle ?? "—"}
             />
 
             <View style={styles.parkingBox}>
@@ -261,9 +266,12 @@ const BookingScreen = () => {
                 buttonColor="#0F4366"
                 onPress={() =>
                   router.push({
-                    pathname: "../parkly/parkings",
+                    pathname: "/(app)/parkly/parkings",
                     params: {
-                      bookingId: booking.id,
+                      startDate: startDate,
+                      endDate: endDate,
+                      latitude: office?.coordinates.lat,
+                      longitude: office?.coordinates.lon,
                     },
                   })
                 }
@@ -281,7 +289,9 @@ const BookingScreen = () => {
 
       <View style={styles.bottomBar}>
         <Text style={styles.bottomPrice} numberOfLines={1}>
-          {offer ? moneyPLN(offer.totalPrice) : "—"}
+          {displayPrice != null && !Number.isNaN(displayPrice)
+            ? moneyPLN(displayPrice)
+            : "—"}
         </Text>
 
         <Button
@@ -302,7 +312,7 @@ const BookingScreen = () => {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "white" },
-  scroll: { padding: 16, paddingBottom: 140 },
+  scroll: { padding: 12 },
 
   center: {
     flex: 1,
@@ -343,8 +353,6 @@ const styles = StyleSheet.create({
   },
 
   cardTitle: { fontSize: 16, fontWeight: "900" },
-  cardHint: { marginTop: 2, fontSize: 12, opacity: 0.75 },
-
   subTitle: { marginTop: 4, fontWeight: "900", fontSize: 13, opacity: 0.9 },
 
   infoRow: {
@@ -380,6 +388,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#C42E2E",
     minWidth: 120,
+    flexShrink: 0,
   },
 
   bookBtn: { borderRadius: 12, flex: 1 },
@@ -396,4 +405,5 @@ const styles = StyleSheet.create({
   parkingTitle: { fontSize: 14, fontWeight: "900", color: "#0F4366" },
   parkingText: { marginTop: 4, fontSize: 12, opacity: 0.8 },
 });
+
 export default BookingScreen;

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { apiFetch } from "../api/client";
+import { apiFetchRel } from "../api/client";
 
 export type ApiFilterGroup = {
   key: string;
@@ -39,7 +39,7 @@ export const useFiltersStore = create<FiltersState>((set) => ({
     set({ loading: true, error: null });
 
     try {
-      const res = await apiFetch("/filters", {
+      const res = await apiFetchRel("/filters", {
         method: "GET",
       });
       const groups = Array.isArray(res?.filters) ? res.filters : [];

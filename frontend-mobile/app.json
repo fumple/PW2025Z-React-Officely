@@ -2,6 +2,7 @@
   "expo": {
     "name": "frontend-mobile",
     "slug": "frontend-mobile",
+    "platforms": ["ios", "android"],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

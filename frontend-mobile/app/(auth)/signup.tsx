@@ -1,25 +1,26 @@
-import React, { useMemo, useState } from "react";
-import { FlatList, ScrollView, StyleSheet, View } from "react-native";
+import { apiFetchRel } from "@/src/api/client";
+import { useAuthStore } from "@/src/auth/authStore";
+import { AuthScreenShell } from "@/src/components/AuthScreenShell";
 import { router } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { FlatList, StyleSheet, View } from "react-native";
 import {
   Button,
-  Text,
-  TextInput,
-  Portal,
-  Modal,
-  List,
   Divider,
   HelperText,
+  List,
+  Modal,
+  Portal,
+  Text,
+  TextInput,
 } from "react-native-paper";
-import { AuthScreenShell } from "@/src/components/AuthScreenShell";
-import { apiFetch } from "@/src/api/client";
-import { useAuthStore } from "@/src/auth/authStore";
 import { DatePickerModal } from "react-native-paper-dates";
 
 const MAX_PHONE_DIGITS = 15;
 const MIN_PASSWORD_LEN = 8;
-
+//TODO: Check password change code
 //TODO: Add check if a user with this email is already signed up
+//Check Validation
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -175,7 +176,7 @@ const SignUpScreen = () => {
     setLoading(true);
 
     try {
-      await apiFetch("/signup", {
+      await apiFetchRel("/signup", {
         method: "POST",
         body: JSON.stringify({
           type: "customer",
@@ -209,6 +210,9 @@ const SignUpScreen = () => {
             onBlur={() => setTouched((t) => ({ ...t, email: true }))}
             autoCapitalize="none"
             keyboardType="email-address"
+            textContentType="username"
+            autoComplete="username"
+            importantForAutofill="yes"
             error={!!errors.email}
           />
           {errors.email && (
@@ -371,6 +375,9 @@ const SignUpScreen = () => {
             onChangeText={setPassword}
             onBlur={() => setTouched((t) => ({ ...t, password: true }))}
             secureTextEntry={secure}
+            textContentType="password"
+            autoComplete="password"
+            importantForAutofill="yes"
             error={!!errors.password}
             right={
               <TextInput.Icon

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { View, Image, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Image, View } from "react-native";
 import { useAuthStore } from "../src/auth/authStore";
 
 const Index = () => {
