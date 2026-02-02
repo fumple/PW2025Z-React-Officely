@@ -1,4 +1,4 @@
-import { apiFetch } from "@/src/api/client";
+import { apiFetchRel } from "@/src/api/client";
 import { AuthScreenShell } from "@/src/components/AuthScreenShell";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -29,7 +29,7 @@ const RecoverWaitScreen = () => {
     setLoading(true);
     setApiError(null);
     try {
-      await apiFetch("/resetPasswordEmail", {
+      await apiFetchRel("/resetPasswordEmail", {
         method: "POST",
         body: JSON.stringify({ email }),
       });
@@ -47,7 +47,7 @@ const RecoverWaitScreen = () => {
     setLoading(true);
     setApiError(null);
     try {
-      const res = await apiFetch("/checkResetCode", {
+      const res = await apiFetchRel("/checkResetCode", {
         method: "POST",
         body: JSON.stringify({ email, code }),
       });

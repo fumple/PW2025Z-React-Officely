@@ -1,7 +1,7 @@
 import React from "react";
-import { Image, ScrollView, StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Text } from "react-native-paper";
-import { KeyboardAvoidingView, Platform } from "react-native";
 
 export const AuthScreenShell = ({
   title,
@@ -11,27 +11,25 @@ export const AuthScreenShell = ({
   children: React.ReactNode;
 }) => {
   return (
-    <KeyboardAvoidingView
+    <KeyboardAwareScrollView
       style={styles.safe}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid={true}
+      extraScrollHeight={16}
     >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.header}>
-          <Image
-            source={require("../../app/assets/logo1.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text variant="headlineSmall" style={styles.title}>
-            {title}
-          </Text>
-        </View>
-        <View style={styles.body}>{children}</View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={styles.header}>
+        <Image
+          source={require("../../app/assets/logo1.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text variant="headlineSmall" style={styles.title}>
+          {title}
+        </Text>
+      </View>
+      <View style={styles.body}>{children}</View>
+    </KeyboardAwareScrollView>
   );
 };
 

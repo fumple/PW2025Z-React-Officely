@@ -1,14 +1,14 @@
-import { apiFetch } from "@/src/api/client";
+import { apiFetchLinks, apiFetchRel } from "@/src/api/client";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import {
-    ActivityIndicator,
-    Button,
-    Divider,
-    HelperText,
-    IconButton,
-    Text,
+  ActivityIndicator,
+  Button,
+  Divider,
+  HelperText,
+  IconButton,
+  Text,
 } from "react-native-paper";
 
 type BookingResource = {
@@ -83,14 +83,17 @@ const BookingDetailsScreen = () => {
     setError(null);
 
     try {
-      const bookingData = (await apiFetch(`/bookings/${bookingId}`, {
+      const bookingData = (await apiFetchRel(`/bookings/${bookingId}`, {
         method: "GET",
       })) as BookingResource;
       setBooking(bookingData);
 
-      const officeData = (await apiFetch(`/offices/${bookingData.officeId}`, {
-        method: "GET",
-      })) as Office;
+      const officeData = (await apiFetchRel(
+        `/offices/${bookingData.officeId}`,
+        {
+          method: "GET",
+        },
+      )) as Office;
       setOffice(officeData);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load booking");
@@ -106,7 +109,7 @@ const BookingDetailsScreen = () => {
     setError(null);
 
     try {
-      await apiFetch(cancelHref, { method: "POST" });
+      await apiFetchLinks(cancelHref, { method: "POST" });
       await load();
     } catch (e: any) {
       setError(e?.message ?? "Failed to cancel booking");

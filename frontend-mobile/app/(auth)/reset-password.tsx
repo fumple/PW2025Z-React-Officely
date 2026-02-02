@@ -1,4 +1,4 @@
-import { apiFetch } from "@/src/api/client";
+import { apiFetchRel } from "@/src/api/client";
 import { AuthScreenShell } from "@/src/components/AuthScreenShell";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -56,7 +56,7 @@ const ResetPasswordScreen = () => {
 
     setLoading(true);
     try {
-      await apiFetch("/resetPassword", {
+      await apiFetchRel("/resetPassword", {
         method: "POST",
         body: JSON.stringify({
           email,
