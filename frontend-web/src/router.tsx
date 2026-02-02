@@ -10,20 +10,18 @@ import { PasswordChangePage } from "./authentication/PasswordChangePage";
 import { PasswordChangeSuccessPage } from "./authentication/PasswordChangeSuccessPage";
 import { OfficesManagementPage } from "./application/office-pages/OfficesManagementPage";
 import { BookingsManagementPage } from "./application/booking-pages/BookingsManagementPage";
-import { UsersManagementPage } from "./application/user-pages/UsersManagementPage";
-import { PaymentsOverviewPage } from "./application/payment-pages/PaymentsOverviewPage";
 import { OfficeCreatePage } from "./application/office-pages/OfficeCreatePage";
 import { OfficeDetailsPage } from "./application/office-pages/OfficeDetailsPage";
 import { OfficeEditPage } from "./application/office-pages/OfficeEditPage";
 import { BookingDetailsPage } from "./application/booking-pages/BookingDetailsPage";
-import { UserDetailsPage } from "./application/user-pages/UserDetailsPage";
+import { UserDetailsPage } from "./application/office-pages/employee-and-user-pages/UserDetailsPage";
 import { ItemDetailsPage } from "./application/office-pages/item-pages/ItemDetailsPage";
 import { ItemEditPage } from "./application/office-pages/item-pages/ItemEditPage";
 import { OfferDetailsPage } from "./application/office-pages/offer-pages/OfferDetailsPage";
 import { OfferEditPage } from "./application/office-pages/offer-pages/OfferEditPage";
 import { OfferCreatePage } from "./application/office-pages/offer-pages/OfferCreatePage";
 import { ItemCreatePage } from "./application/office-pages/item-pages/ItemCreatePage";
-import { EmployeeDetailsPage } from "./application/office-pages/EmployeeDetailsPage";
+import { EmployeeDetailsPage } from "./application/office-pages/employee-and-user-pages/EmployeeDetailsPage";
 import { SignupPage } from "./authentication/SignupPage";
 import { RequireAuth } from "./authentication/RequireAuth";
 
@@ -119,6 +117,10 @@ export const router = createBrowserRouter([
                     path: "employee/:employeeId",
                     Component: EmployeeDetailsPage,
                   },
+                  {
+                    path: "user/:userId",
+                    Component: UserDetailsPage,
+                  },
                 ],
               },
               {
@@ -139,23 +141,6 @@ export const router = createBrowserRouter([
                 Component: BookingDetailsPage,
               },
             ],
-          },
-          {
-            path: "users",
-            children: [
-              {
-                index: true,
-                Component: UsersManagementPage,
-              },
-              {
-                path: ":userId",
-                Component: UserDetailsPage,
-              },
-            ],
-          },
-          {
-            path: "payments",
-            Component: PaymentsOverviewPage,
           },
         ],
       },

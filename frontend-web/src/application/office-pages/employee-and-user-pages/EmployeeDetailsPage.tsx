@@ -12,7 +12,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
-import * as officesApi from "../../api/officesApi";
+import * as officesApi from "../../../api/officesApi";
 
 export const EmployeeDetailsPage = () => {
   const [openRemove, setOpenRemove] = useState(false);
