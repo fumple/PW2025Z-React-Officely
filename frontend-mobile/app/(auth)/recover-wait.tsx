@@ -81,7 +81,6 @@ const RecoverWaitScreen = () => {
               if (apiError) setApiError(null);
             }}
             autoCapitalize="none"
-            keyboardType="number-pad"
             maxLength={CODE_LENGTH}
             error={!!apiError}
           />
