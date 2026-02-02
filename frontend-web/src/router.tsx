@@ -117,10 +117,6 @@ export const router = createBrowserRouter([
                     path: "employee/:employeeId",
                     Component: EmployeeDetailsPage,
                   },
-                  {
-                    path: "user/:userId",
-                    Component: UserDetailsPage,
-                  },
                 ],
               },
               {
@@ -128,6 +124,10 @@ export const router = createBrowserRouter([
                 Component: OfficeEditPage,
               },
             ],
+          },
+          {
+            path: "users/:userId",
+            Component: UserDetailsPage,
           },
           {
             path: "bookings",
