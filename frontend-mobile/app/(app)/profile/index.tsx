@@ -31,8 +31,8 @@ const ProfileHomeScreen = () => {
         />
         <Divider />
         <List.Item
-          title="Current Bookings"
-          onPress={() => router.push("/bookings?tab=current")}
+          title="Active Bookings"
+          onPress={() => router.push("/bookings?tab=active")}
           titleStyle={styles.menuText}
         />
         <Divider />

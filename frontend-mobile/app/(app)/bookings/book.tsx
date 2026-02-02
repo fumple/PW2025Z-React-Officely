@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Image, ScrollView, StyleSheet, View } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import {
   ActivityIndicator,
   Button,
@@ -55,6 +56,22 @@ type CreateBookingResponse = { id: string };
 
 const moneyPLN = (value: number) => `${value} PLN`;
 
+const toUserDate = (value?: string) => {
+  if (!value) return "";
+
+  const datePart = value.split("T")[0];
+
+  if (/^\d{2}-\d{2}-\d{4}$/.test(datePart)) return datePart;
+
+  const parts = datePart.split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [yyyy, mm, dd] = parts;
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  return datePart;
+};
+
 const InfoRow = ({ label, value }: { label: string; value?: string }) => {
   if (value == null || value === "") return null;
   return (
@@ -98,10 +115,24 @@ const BookingScreen = () => {
 
   const displayPrice = booking?.totalPrice ?? paramPrice;
 
-  const dateLabel = useMemo(
-    () => `${startDate} → ${endDate}`,
-    [startDate, endDate],
-  );
+  const dateLabel = useMemo(() => {
+    const s = toUserDate(startDate);
+    const e = toUserDate(endDate);
+    return `${s} → ${e}`;
+  }, [startDate, endDate]);
+
+  const coverUrl = office?.photoUrls?.[0];
+
+  const region = useMemo(() => {
+    const lat = office?.coordinates?.lat ?? 52.2297;
+    const lon = office?.coordinates?.lon ?? 21.0122;
+    return {
+      latitude: lat,
+      longitude: lon,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
+    };
+  }, [office]);
 
   const load = async () => {
     setLoading(true);
@@ -190,6 +221,38 @@ const BookingScreen = () => {
         ) : null}
 
         <View style={styles.card}>
+          {coverUrl || office?.coordinates ? (
+            <View style={styles.mediaRow}>
+              {coverUrl ? (
+                <Image
+                  source={{ uri: coverUrl }}
+                  style={styles.coverImageRow}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.coverPlaceholder} />
+              )}
+
+              <View style={styles.miniMapWrap}>
+                <MapView
+                  style={StyleSheet.absoluteFill}
+                  initialRegion={region}
+                  scrollEnabled
+                  zoomEnabled
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: region.latitude,
+                      longitude: region.longitude,
+                    }}
+                  />
+                </MapView>
+              </View>
+            </View>
+          ) : null}
+
           <Text style={styles.cardTitle}>Booking details</Text>
           <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
 
@@ -237,7 +300,11 @@ const BookingScreen = () => {
 
             <InfoRow
               label="Due date"
-              value={booking.paymentInfo?.dueDate ?? "—"}
+              value={
+                booking.paymentInfo?.dueDate
+                  ? toUserDate(booking.paymentInfo.dueDate)
+                  : "—"
+              }
             />
 
             <Divider style={{ marginVertical: 10, opacity: 0.2 }} />
@@ -338,6 +405,37 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     fontWeight: "800",
+  },
+
+  mediaRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 6,
+    marginBottom: 12,
+  },
+
+  coverImageRow: {
+    flex: 1,
+    height: 160,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.06)",
+  },
+
+  coverPlaceholder: {
+    flex: 1.9,
+    height: 160,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.06)",
+  },
+
+  miniMapWrap: {
+    flex: 1,
+    height: 160,
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
   },
 
   card: {

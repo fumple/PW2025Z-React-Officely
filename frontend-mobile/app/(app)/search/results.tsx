@@ -220,7 +220,6 @@ const ResultCard = ({
   );
 };
 
-// ---------- screen ----------
 const SearchResultsScreen = () => {
   const params = useLocalSearchParams<{
     nearAddress?: string;
@@ -650,25 +649,26 @@ const SearchResultsScreen = () => {
                 endDate={formatDateApi(endDate)}
               />
             )}
+            ListFooterComponent={
+              <View style={styles.page}>
+                <IconButton
+                  icon="chevron-left"
+                  size={28}
+                  disabled={!prevHref || loading}
+                  onPress={() => prevHref && loadData(prevHref)}
+                  style={styles.pageBtn}
+                />
+
+                <IconButton
+                  icon="chevron-right"
+                  size={28}
+                  disabled={!nextHref || loading}
+                  onPress={() => nextHref && loadData(nextHref)}
+                  style={styles.pageBtn}
+                />
+              </View>
+            }
           />
-
-          <View style={styles.page}>
-            <IconButton
-              icon="chevron-left"
-              size={28}
-              disabled={!prevHref || loading}
-              onPress={() => prevHref && loadData(prevHref)}
-              style={styles.pageBtn}
-            />
-
-            <IconButton
-              icon="chevron-right"
-              size={28}
-              disabled={!nextHref || loading}
-              onPress={() => nextHref && loadData(nextHref)}
-              style={styles.pageBtn}
-            />
-          </View>
         </>
       )}
 

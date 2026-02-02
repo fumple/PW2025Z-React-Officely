@@ -26,7 +26,7 @@ export const buildFilterList = (
           if (!flagKey) continue;
 
           const propertyKey = `${sectionKey}.${elementKey}.${flagKey}`;
-          filterEntries.push(`${propertyKey}=true`);
+          filterEntries.push(`${propertyKey}:true`);
         }
       }
 
@@ -41,7 +41,7 @@ export const buildFilterList = (
         if (!Number.isInteger(integerValue)) continue;
 
         const propertyKey = `${sectionKey}.${elementKey}`;
-        filterEntries.push(`${propertyKey}=${integerValue}`);
+        filterEntries.push(`${propertyKey}:${integerValue}`);
       }
     }
   }
