@@ -18,7 +18,7 @@ public interface BookingRepository extends JpaRepository<BookingEntity, Long>{
     Page<BookingEntity> findByUserIdOrderByStartDateDesc(Long userId, Pageable pageable);
     Page<BookingEntity> findByUserIdAndBookingStatusInOrderByStartDateDesc(Long userId, List<BookingStatus> statuses, Pageable pageable);
     Page<BookingEntity> findByUserIdAndBookingStatusNotInAndEndDateBeforeOrderByStartDateDesc(Long userId, List<BookingStatus> statuses, LocalDate now, Pageable pageable);
-    Page<BookingEntity> findByUserIdAndBookingStatusNotInAndEndDateGreaterThanEqualOrderByStartDateDesc(Long userId, List<BookingStatus> statuses, LocalDate now, Pageable pageable);
+    Page<BookingEntity> findByUserIdAndBookingStatusNotInAndEndDateGreaterThanEqualOrderByStartDateAsc(Long userId, List<BookingStatus> statuses, LocalDate now, Pageable pageable);
 
     @Query("select distinct b from BookingEntity b left join OfficeEntity o ON o.id = b.office.id" +
             " left join OfficeMemberEntity m ON m.office.id = o.id" +

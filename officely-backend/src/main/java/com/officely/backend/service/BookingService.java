@@ -102,8 +102,7 @@ public class BookingService {
         int pageIndex = checkPageIndex(pageToken);
 
         PageRequest pageRequest = PageRequest.of(pageIndex, pageSize, Sort
-                .by(Sort.Direction.DESC, "startDate")
-                .and(Sort.by(Sort.Direction.DESC, "id"))
+                .by(Sort.Direction.DESC, "id")
         );
 
         if(status == null) {
@@ -120,7 +119,7 @@ public class BookingService {
                     LocalDate.now(),
                     pageRequest);
         } else if(status == BookingStatusFilter.active) {
-            return bookingRepository.findByUserIdAndBookingStatusNotInAndEndDateGreaterThanEqualOrderByStartDateDesc(
+            return bookingRepository.findByUserIdAndBookingStatusNotInAndEndDateGreaterThanEqualOrderByStartDateAsc(
                     userId,
                     List.of(BookingStatus.cancelledByUser, BookingStatus.cancelledByStaff),
                     LocalDate.now(),
