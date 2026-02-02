@@ -4,7 +4,7 @@ servers:
   - url: http://localhost:8080/mobile
 info:
   title: Officely - Internal Mobile API
-  version: 1.2.2
+  version: 1.3.0
 components:
   responses:
     Unauthorized:
@@ -476,9 +476,6 @@ components:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
-        userId:
           type: string
           format: uuid
         spotId:
@@ -1849,6 +1846,26 @@ paths:
           description: Require big spot
           schema:
             type: boolean
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - DISTANCE
+              - PRICE
+        - name: name
+          in: query
+          description: Name filter
+          required: false
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: City filter
+          required: false
+          schema:
+            type: string
       responses: 
         "200":
           description: Success
@@ -2106,10 +2123,10 @@ paths:
               properties:
                 startDate:
                   type: string
-                  format: date-time
+                  format: date
                 endDate:
                   type: string
-                  format: date-time
+                  format: date
                 disabled:
                   type: boolean
                 ev:
@@ -2137,6 +2154,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  id:
+                    type: string
+                    format: uuid
                   localId:
                     type: string
                   start:
@@ -2309,10 +2329,10 @@ paths:
               properties:
                 start:
                   type: string
-                  format: date-time
+                  format: date
                 end:
                   type: string
-                  format: date-time
+                  format: date
                 confirmed:
                   type: boolean
       responses:
