@@ -139,11 +139,16 @@ export const OfficesManagementPage = () => {
       return;
     }
     if (m.page > paginationModel.page && !hasNextPage) return;
+
     const token = pageTokens[m.page];
     if (m.page > 0 && token === undefined) return;
 
     setPaginationModel(m);
   };
+
+  const rowCount = hasNextPage
+    ? -1
+    : paginationModel.page * paginationModel.pageSize + rows.length;
 
   const columns = useMemo<GridColDef<OfficeRow>[]>(
     () => [
@@ -235,7 +240,7 @@ export const OfficesManagementPage = () => {
           onFilterModelChange={handleFilterModelChange}
           paginationModel={paginationModel}
           onPaginationModelChange={handlePaginationModelChange}
-          rowCount={-1}
+          rowCount={rowCount}
           paginationMeta={{ hasNextPage }}
           pageSizeOptions={BASE_PAGE_SIZES}
           showToolbar

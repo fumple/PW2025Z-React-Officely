@@ -330,6 +330,10 @@ const BookingsManagementInner = ({ officeId }: { officeId: string | null }) => {
     [navigate],
   );
 
+  const rowCount = hasNextPage
+    ? -1
+    : paginationModel.page * paginationModel.pageSize + rows.length;
+
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
       <Box sx={{ mb: "12px", display: "flex", alignItems: "baseline", gap: 2 }}>
@@ -375,7 +379,7 @@ const BookingsManagementInner = ({ officeId }: { officeId: string | null }) => {
           paginationMode="server"
           paginationModel={paginationModel}
           onPaginationModelChange={handlePaginationModelChange}
-          rowCount={-1}
+          rowCount={rowCount}
           paginationMeta={{ hasNextPage }}
           pageSizeOptions={BASE_PAGE_SIZES}
           disableColumnFilter

@@ -10,7 +10,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+// import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import * as usersApi from "../../../api/usersApi";
 
@@ -62,9 +62,9 @@ export const UserDetailsPage = () => {
 
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "-";
 
-  const blockLabel = user?.blocked
-    ? "Unblock (allow new reservations)"
-    : "Block from making new reservations";
+  // const blockLabel = user?.blocked
+  //   ? "Unblock (allow new reservations)"
+  //   : "Block from making new reservations";
 
   return (
     <Box sx={{ px: "12px", pt: "6px" }}>
@@ -190,7 +190,7 @@ export const UserDetailsPage = () => {
               </Typography>
             ) : null}
 
-            <Box
+            {/* <Box
               sx={{ display: "flex", flexWrap: "wrap", gap: "8px", mt: "12px" }}
             >
               <Button
@@ -203,7 +203,7 @@ export const UserDetailsPage = () => {
               >
                 {blockLabel}
               </Button>
-            </Box>
+            </Box> */}
 
             {/* Dialog: block/unblock */}
             <Dialog
