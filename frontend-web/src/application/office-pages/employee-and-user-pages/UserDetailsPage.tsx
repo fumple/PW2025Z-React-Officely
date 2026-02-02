@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -15,7 +15,6 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import * as usersApi from "../../../api/usersApi";
 
 export const UserDetailsPage = () => {
-  const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
 
   const [loading, setLoading] = useState(true);
@@ -194,13 +193,6 @@ export const UserDetailsPage = () => {
             <Box
               sx={{ display: "flex", flexWrap: "wrap", gap: "8px", mt: "12px" }}
             >
-              <Button
-                variant="outlined"
-                onClick={() => navigate("/app/bookings")}
-              >
-                View bookings
-              </Button>
-
               <Button
                 variant="text"
                 color="error"

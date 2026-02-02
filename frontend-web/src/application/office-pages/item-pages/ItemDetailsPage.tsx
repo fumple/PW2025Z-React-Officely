@@ -254,11 +254,6 @@ export const ItemDetailsPage = () => {
             Edit
           </Button>
 
-          <Button variant="outlined" onClick={() => navigate("/app/bookings")}>
-            View bookings
-          </Button>
-
-          {/* optional, because your Swagger PATCH supports it */}
           <Button
             variant="text"
             color="error"

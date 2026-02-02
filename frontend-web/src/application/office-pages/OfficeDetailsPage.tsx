@@ -643,7 +643,11 @@ const OfficeDetailsInner = ({ officeId }: { officeId: string }) => {
 
               <Button
                 variant="outlined"
-                onClick={() => navigate("/app/bookings")}
+                onClick={() =>
+                  navigate(
+                    `/app/bookings?officeId=${encodeURIComponent(officeId)}`,
+                  )
+                }
               >
                 View bookings
               </Button>
