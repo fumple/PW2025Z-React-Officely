@@ -3,12 +3,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Image, ScrollView, StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import {
-    ActivityIndicator,
-    Button,
-    Divider,
-    HelperText,
-    IconButton,
-    Text,
+  ActivityIndicator,
+  Button,
+  Divider,
+  HelperText,
+  IconButton,
+  Text,
 } from "react-native-paper";
 
 import { apiFetchLinks } from "@/src/api/client";
