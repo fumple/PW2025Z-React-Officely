@@ -1,29 +1,34 @@
 package com.officely.backend.api.auth;
 
+import com.officely.backend.api.validation.Age;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
-import org.mapstruct.Mapping;
+import org.hibernate.validator.constraints.Length;
 
 import java.time.LocalDate;
 
 @Getter
 public class SignUpRequest {
-    @Pattern(regexp = "^admin$", message = "Account type must be equal to admin")
+    @NotBlank
     private String type;
+
     @NotBlank(message = "First name is mandatory")
+    @Length(max = 32)
     private String firstName;
     @NotBlank(message = "Last name is mandatory")
+    @Length(max = 32)
     private String lastName;
 
     @NotBlank(message = "Email is mandatory")
     @Email
+    @Length(max = 256)
     private String email;
     @NotBlank(message = "Password is mandatory")
     @Size(min = 8, max = 64)
     private String password;
 
     @NotNull(message = "Date of birth is mandatory")
-    @Past
+    @Age(min = 15)
     private LocalDate dateOfBirth;
 
     @NotBlank(message = "Nationality is mandatory")

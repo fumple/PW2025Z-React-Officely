@@ -1,0 +1,2203 @@
+openapi: 3.1.0
+info:
+  title: Parkly
+  version: '3'
+  description: |-
+    This is the unchanged documentation that we've received from Parkly.
+    It is uploaded here for reference.
+  termsOfService: http://swagger.io/terms/
+  license:
+    name: Apache 2.0
+    url: http://springdoc.org
+servers:
+  - url: https://parklyreact.azurewebsites.net
+    description: Generated server url
+tags:
+  - name: Authentication
+    description: Endpoints for user registration and login
+  - name: User
+    description: User details
+  - name: Admin Analytics
+    description: Statistics and system-wide booking management
+  - name: Parking
+    description: Operations related to Parking Lots
+  - name: Actuator
+    description: Monitor and interact
+    externalDocs:
+      description: Spring Boot Actuator Web API Documentation
+      url: https://docs.spring.io/spring-boot/docs/current/actuator-api/html/
+  - name: Profile
+    description: User account management endpoints
+paths:
+  /api/cars/bookings:
+    get:
+      tags:
+        - Car Bookings
+      summary: My Car Bookings
+      description: Returns list of car bookings for the user.
+      operationId: getMyCarBookings
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of bookings retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarBookingResponse'
+    post:
+      tags:
+        - Car Bookings
+      summary: Book a Car
+      description: Creates a new reservation in the Carly system.
+      operationId: createCarBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCarBookingRequest'
+        required: true
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CreateCarBookingResponse'
+        '400':
+          description: Invalid dates or input data
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Car or Location not found in Partner system
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Partner system error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/bookings:
+    get:
+      tags:
+        - Bookings
+      summary: My Bookings
+      description: Returns list of bookings. Identified by Header ID or Email Header.
+      operationId: getMyBookings
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: x-user-email
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of bookings retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingResponse'
+    post:
+      tags:
+        - Bookings
+      summary: Book a Spot
+      description: Creates a new reservation. User identified by Header ID or Body Email.
+      operationId: createBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+        required: true
+      responses:
+        '201':
+          description: Booking created successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CreateBookingResponse'
+        '400':
+          description: Invalid dates or missing user identifier
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Parking lot not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: No suitable spot available for these dates
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register User
+      description: Creates a new user account.
+      operationId: register
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input (e.g., missing email, weak password)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: User with this email already exists
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User Login
+      description: Authenticates credentials and returns a token.
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Login successful
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/parkings:
+    get:
+      tags:
+        - Admin Inventory
+      summary: List all parking lots
+      description: Get a simplified list of parkings for admin view.
+      operationId: getAllParkings
+      responses:
+        '200':
+          description: List of parkings retrieved successfully
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingSummaryResponse'
+    post:
+      tags:
+        - Admin Inventory
+      operationId: createFacility
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateParkingRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResponseID'
+  /api/admin/parkings/{id}/spots:
+    get:
+      tags:
+        - Admin Inventory
+      summary: Get Spots
+      description: Returns all spots belonging to a specific facility.
+      operationId: getSpotsInLot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Spots retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpotResponse'
+        '404':
+          description: Parking facility not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Admin Inventory
+      summary: Add Spot
+      description: Adds a parking spot and returns the new spot ID.
+      operationId: addSpotToLot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSpotRequest'
+        required: true
+      responses:
+        '201':
+          description: Spot created
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResponseID'
+        '404':
+          description: Parent parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/parkings/{id}/photos:
+    post:
+      tags:
+        - Admin Inventory
+      summary: Add Photo URL
+      description: >-
+        Adds a link to an online photo. If 'isMain' is true, this becomes the
+        thumbnail.
+      operationId: addPhoto
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPhotoRequest'
+        required: true
+      responses:
+        '200':
+          description: Photo added successfully
+        '404':
+          description: Parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/profile/password:
+    patch:
+      tags:
+        - Profile
+      summary: Change Password
+      description: Updates the user's password.
+      operationId: changePassword
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Password updated successfully
+        '400':
+          description: >-
+            Invalid input (e.g. old password incorrect, or new password too
+            weak)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/profile/email:
+    patch:
+      tags:
+        - Profile
+      summary: Change Email
+      description: Updates the user's email address.
+      operationId: changeEmail
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeEmailRequest'
+        required: true
+      responses:
+        '200':
+          description: Email updated successfully
+        '400':
+          description: Invalid email format
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already in use by another account
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/bookings/{id}:
+    get:
+      tags:
+        - Bookings
+      summary: Booking Details
+      description: Get details. Identified by Header ID or Email param.
+      operationId: getBookingDetails
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '403':
+          description: Access denied (User does not own this booking)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking ID not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Bookings
+      summary: Cancel Booking
+      description: Soft delete. Identified by Header ID or Email param.
+      operationId: cancelBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: x-user-email
+          in: header
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Booking cancelled successfully
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Booking is ongoing or finished
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Bookings
+      summary: Edit Booking
+      description: Update time/check price. Identified by Header ID or Body Email.
+      operationId: editBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditBookingRequest'
+        required: true
+      responses:
+        '200':
+          description: Booking updated (or price calculated)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          description: Invalid new dates or missing identifier
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Spot is not available for these dates
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Booking is ongoing or finished
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/spots/{spotId}:
+    delete:
+      tags:
+        - Admin Inventory
+      summary: Delete Spot
+      description: Removes the spot inventory item.
+      operationId: deleteSpot
+      parameters:
+        - name: spotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Spot deleted
+        '409':
+          description: Cannot delete spot because it has active bookings
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Admin Inventory
+      summary: Edit Spot
+      description: Updates pricing or active status of a spot.
+      operationId: editSpot
+      parameters:
+        - name: spotId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSpotRequest'
+        required: true
+      responses:
+        '200':
+          description: Spot updated
+        '404':
+          description: Spot not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/parkings/{id}:
+    patch:
+      tags:
+        - Admin Inventory
+      summary: Edit Facility
+      description: Updates facility details.
+      operationId: editFacility
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateParkingRequest'
+        required: true
+      responses:
+        '200':
+          description: Parking updated successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ResponseID'
+        '400':
+          description: Invalid data
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Parking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/user/{userId}:
+    get:
+      tags:
+        - User
+      summary: Get user details
+      description: Get all information about a user (excluding password)
+      operationId: getUserDetails
+      parameters:
+        - name: userId
+          in: path
+          description: The unique UUID of the user
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User info found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid User ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/test-carly/ping-reference:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testReference
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyReferenceDataDto'
+  /api/test-carly/ping-create-booking:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testCreateBooking
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyBookResponseDto'
+  /api/test-carly/ping-cars:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testSearch
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarlyCarDto'
+  /api/test-carly/ping-car-details/{carId}:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testCarDetails
+      parameters:
+        - name: carId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyCarDto'
+  /api/test-carly/ping-cancel-booking/{bookingId}:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testCancelBooking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: string
+  /api/test-carly/ping-booking-details/{bookingId}:
+    get:
+      tags:
+        - carly-connection-test-controller
+      operationId: testBookingDetails
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarlyBookResponseDto'
+  /api/parkings:
+    get:
+      tags:
+        - Parking
+      summary: List all parking lots
+      description: >-
+        Get a simplified list of parkings for map/list view. Filtered by
+        proximity, dates, and features.
+      operationId: getAllParkings_1
+      parameters:
+        - name: latitude
+          in: query
+          description: User's current latitude
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: longitude
+          in: query
+          description: User's current longitude
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: radius
+          in: query
+          description: Search radius in meters
+          required: false
+          schema:
+            type: number
+            format: double
+            default: 1000
+        - name: name
+          in: query
+          description: Filter by parking name
+          required: false
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: Filter by parking city
+          required: false
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          description: Booking start datetime (ISO)
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Booking end datetime (ISO)
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: isEv
+          in: query
+          description: Require EV charging
+          required: false
+          schema:
+            type: boolean
+        - name: isDisabled
+          in: query
+          description: Require disabled spot
+          required: false
+          schema:
+            type: boolean
+        - name: isBig
+          in: query
+          description: Require big spot
+          required: false
+          schema:
+            type: boolean
+        - name: sortByPrice
+          in: query
+          description: Sort by lowest price first
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: sortByDistance
+          in: query
+          description: Sort by closest first
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of parkings retrieved successfully
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingResponse'
+        '404':
+          description: No parkings found matching the criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/parkings/{parkingId}:
+    get:
+      tags:
+        - Parking
+      summary: Get parking details
+      description: Get full details including gallery and full address.
+      operationId: getParking
+      parameters:
+        - name: parkingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Booking start datetime for pricing
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: Booking end datetime for pricing
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Parking found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ParkingDetailsResponse'
+        '404':
+          description: Parking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cars:
+    get:
+      tags:
+        - Cars
+      summary: Search Cars
+      description: Search for available cars in the Partner system (Carly).
+      operationId: searchCars
+      parameters:
+        - name: start
+          in: query
+          description: Start of rental period
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: End of rental period
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: city
+          in: query
+          description: City or Location query
+          required: false
+          schema:
+            type: string
+        - name: brand
+          in: query
+          description: Filter by car brand
+          required: false
+          schema:
+            type: string
+        - name: model
+          in: query
+          description: Filter by car model
+          required: false
+          schema:
+            type: string
+        - name: color
+          in: query
+          description: Filter by car color
+          required: false
+          schema:
+            type: string
+        - name: fuelType
+          in: query
+          description: Filter by fuel type (e.g. GASOLINE, ELECTRIC)
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 10
+      responses:
+        '200':
+          description: List of cars retrieved
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CarResponse'
+        '400':
+          description: Invalid date range or parameters
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Partner system error
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cars/{id}:
+    get:
+      tags:
+        - Cars
+      summary: Car Details
+      description: Get full details of a specific car from Carly.
+      operationId: getCarDetails
+      parameters:
+        - name: id
+          in: path
+          description: The external ID of the car (Integer)
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Car details found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarDetailsResponse'
+        '404':
+          description: Car not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/cars/reference-data:
+    get:
+      tags:
+        - Cars
+      summary: Reference Data
+      description: Get dictionaries for search filters (Locations, Brands, Colors, etc).
+      operationId: getReferenceData
+      parameters:
+        - name: include
+          in: query
+          description: >-
+            Optional list of dictionaries to include (e.g. CAR_BRANDS,
+            PICKUP_LOCATIONS)
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Data retrieved successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarReferenceDataResponse'
+  /api/cars/bookings/{id}:
+    get:
+      tags:
+        - Car Bookings
+      summary: Car Booking Details
+      description: Get details of a specific car booking.
+      operationId: getCarBookingDetails
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CarBookingResponse'
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking ID not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Car Bookings
+      summary: Cancel Car Booking
+      description: Cancels the booking in Parkly and Carly systems.
+      operationId: cancelCarBooking
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Booking cancelled successfully
+        '403':
+          description: Access denied
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Booking cannot be cancelled (e.g. already started)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/reports/revenue:
+    get:
+      tags:
+        - Admin Analytics
+      summary: Revenue Report
+      description: Returns aggregated revenue stats for a given period.
+      operationId: getRevenueReport
+      parameters:
+        - name: start
+          in: query
+          description: Start date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: End date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Report generated successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RevenueReportResponse'
+        '400':
+          description: Invalid date range (e.g., start date is after end date)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/bookings:
+    get:
+      tags:
+        - Admin Analytics
+      summary: All Bookings
+      description: Server-side searchable and paginated list of all bookings.
+      operationId: getAllBookings
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based index)
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 1
+        - name: limit
+          in: query
+          description: Items per page
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+        - name: start
+          in: query
+          description: Start date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: End date (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: search
+          in: query
+          description: Search by user email
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List retrieved successfully
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PagedResponseAdminBookingResponse'
+        '400':
+          description: Invalid pagination parameters (e.g. page < 1)
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /actuator:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator root web endpoint
+      operationId: links
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Link'
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Link'
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/Link'
+  /actuator/health:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator web endpoint 'health'
+      operationId: health
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/env:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator web endpoint 'env'
+      operationId: environment
+      parameters:
+        - name: pattern
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+  /actuator/env/{toMatch}:
+    get:
+      tags:
+        - Actuator
+      summary: Actuator web endpoint 'env-toMatch'
+      operationId: environmentEntry
+      parameters:
+        - name: toMatch
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/vnd.spring-boot.actuator.v3+json:
+              schema:
+                type: object
+            application/vnd.spring-boot.actuator.v2+json:
+              schema:
+                type: object
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found
+  /api/profile:
+    delete:
+      tags:
+        - Profile
+      operationId: deleteAccount
+      parameters:
+        - name: x-user-id
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    CreateCarBookingRequest:
+      type: object
+      properties:
+        car_id:
+          type: integer
+          format: int32
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+        pickup_location_id:
+          type: integer
+          format: int32
+        return_location_id:
+          type: integer
+          format: int32
+      required:
+        - car_id
+        - end_date
+        - pickup_location_id
+        - return_location_id
+        - start_date
+    CreateCarBookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        external_id:
+          type: integer
+          format: int32
+        total_cost:
+          type: number
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+    CreateBookingRequest:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        source:
+          type: string
+          enum:
+            - PARKLY
+            - OFFICELY
+        email:
+          type: string
+          format: email
+          description: Partner user email. Required if source is 'OFFICELY'.
+          example: partner@officely.com
+        name:
+          type: string
+          description: Partner user name. Required if source is 'OFFICELY'.
+        surname:
+          type: string
+          description: Partner user surname. Required if source is 'OFFICELY'.
+        phoneNumber:
+          type: string
+          description: Partner user phone number. Required if source is 'OFFICELY'.
+        parking_id:
+          type: string
+          format: uuid
+        is_ev:
+          type: boolean
+        is_disabled:
+          type: boolean
+        is_big:
+          type: boolean
+      required:
+        - end
+        - parking_id
+        - source
+        - start
+    CreateBookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        source:
+          type: string
+          enum:
+            - PARKLY
+            - OFFICELY
+        is_ev:
+          type: boolean
+        is_disabled:
+          type: boolean
+        is_big:
+          type: boolean
+      required:
+        - end
+        - is_big
+        - is_disabled
+        - is_ev
+        - localId
+        - source
+        - start
+        - status
+        - totalCost
+    RegisterRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        surname:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        phoneNumber:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - name
+        - password
+        - phoneNumber
+        - surname
+    AuthResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        token:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        admin:
+          type: boolean
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - password
+    CreateParkingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+        postalCode:
+          type: string
+          minLength: 1
+        streetName:
+          type: string
+          minLength: 1
+        streetNumber:
+          type: string
+          minLength: 1
+        lat:
+          type: number
+        lon:
+          type: number
+      required:
+        - city
+        - country
+        - lat
+        - lon
+        - name
+        - postalCode
+        - streetName
+        - streetNumber
+    ResponseID:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+    CreateSpotRequest:
+      type: object
+      properties:
+        localId:
+          type: string
+          minLength: 1
+        pricePerHour:
+          type: number
+          minimum: 0
+        pricePerDay:
+          type: number
+          minimum: 0
+        ev:
+          type: boolean
+        disabled:
+          type: boolean
+        big:
+          type: boolean
+      required:
+        - localId
+        - pricePerDay
+        - pricePerHour
+    AddPhotoRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+        main:
+          type: boolean
+      required:
+        - url
+    ChangePasswordRequest:
+      type: object
+      properties:
+        oldPassword:
+          type: string
+          minLength: 1
+        newPassword:
+          type: string
+          minLength: 1
+      required:
+        - newPassword
+        - oldPassword
+    ChangeEmailRequest:
+      type: object
+      properties:
+        newEmail:
+          type: string
+          format: email
+          minLength: 1
+      required:
+        - newEmail
+    EditBookingRequest:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        email:
+          type: string
+        is_confirmed:
+          type: boolean
+      required:
+        - end
+        - start
+    BookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        spotId:
+          type: string
+          format: uuid
+        parkingName:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        imageUrl:
+          type: string
+        localId:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        source:
+          type: string
+          enum:
+            - PARKLY
+            - OFFICELY
+        is_ev:
+          type: boolean
+        is_disabled:
+          type: boolean
+        is_big:
+          type: boolean
+      required:
+        - city
+        - end
+        - id
+        - imageUrl
+        - is_big
+        - is_disabled
+        - is_ev
+        - localId
+        - parkingName
+        - source
+        - spotId
+        - start
+        - status
+        - street
+        - totalCost
+    UpdateSpotRequest:
+      type: object
+      properties:
+        localId:
+          type: string
+        pricePerHour:
+          type: number
+        pricePerDay:
+          type: number
+        isBig:
+          type: boolean
+        isEv:
+          type: boolean
+        isDisabled:
+          type: boolean
+        isActive:
+          type: boolean
+    UpdateParkingRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        mainPhotoId:
+          type: string
+          format: uuid
+    UserResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+    CarlyDictionaryDto:
+      type: object
+      properties:
+        dictionaryId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+    CarlyLocationDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    CarlyReferenceDataDto:
+      type: object
+      properties:
+        pickupLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyLocationDto'
+        returnLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyLocationDto'
+        referenceData:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyDictionaryDto'
+    CarlyBookResponseDto:
+      type: object
+      properties:
+        bookingId:
+          type: integer
+          format: int32
+        status:
+          $ref: '#/components/schemas/CarlyStatusDto'
+    CarlyStatusDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+    CarlyCarDto:
+      type: object
+      properties:
+        carId:
+          type: integer
+          format: int32
+        price:
+          type: number
+        urls:
+          type: array
+          items:
+            type: string
+        carFeatures:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarlyFeatureDto'
+    CarlyFeatureDto:
+      type: object
+      properties:
+        dictionaryId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        value:
+          type: string
+    ParkingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        city:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        priceForPeriod:
+          type: number
+        mainImageUrl:
+          type: string
+      required:
+        - city
+        - id
+        - latitude
+        - longitude
+        - mainImageUrl
+        - name
+        - priceForPeriod
+        - streetName
+        - streetNumber
+    ParkingDetailsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        country:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        streetName:
+          type: string
+        streetNumber:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        priceForPeriod:
+          type: number
+        imageUrls:
+          type: array
+          items:
+            type: string
+        is_ev:
+          type: boolean
+        is_disabled:
+          type: boolean
+        is_big:
+          type: boolean
+      required:
+        - city
+        - country
+        - id
+        - is_big
+        - is_disabled
+        - is_ev
+        - latitude
+        - longitude
+        - name
+        - postalCode
+        - priceForPeriod
+        - streetName
+        - streetNumber
+    CarFeatureResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+      required:
+        - name
+        - value
+    CarResponse:
+      type: object
+      properties:
+        price:
+          type: number
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarFeatureResponse'
+        car_id:
+          type: integer
+          format: int32
+        image_urls:
+          type: array
+          items:
+            type: string
+      required:
+        - car_id
+        - features
+        - image_urls
+        - price
+    CarDetailsResponse:
+      type: object
+      properties:
+        price:
+          type: number
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarFeatureResponse'
+        car_id:
+          type: integer
+          format: int32
+        image_urls:
+          type: array
+          items:
+            type: string
+      required:
+        - car_id
+        - features
+        - image_urls
+        - price
+    CarReferenceDataResponse:
+      type: object
+      properties:
+        pickup_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationResponse'
+        return_locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationResponse'
+        dictionaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/DictionaryResponse'
+      required:
+        - dictionaries
+        - pickup_locations
+        - return_locations
+    DictionaryResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+        dictionary_id:
+          type: integer
+          format: int32
+      required:
+        - dictionary_id
+        - name
+        - values
+    LocationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+      required:
+        - address
+        - id
+        - latitude
+        - longitude
+    CarBookingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        external_booking_id:
+          type: integer
+          format: int32
+        car_id:
+          type: integer
+          format: int32
+        car_name:
+          type: string
+        car_image_url:
+          type: string
+        total_cost:
+          type: number
+    RevenueReportResponse:
+      type: object
+      properties:
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        totalRevenue:
+          type: number
+        totalBookingsCount:
+          type: integer
+          format: int32
+    ParkingSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    SpotResponse:
+      type: object
+      properties:
+        spotId:
+          type: string
+          format: uuid
+        localId:
+          type: string
+        pricePerHour:
+          type: number
+          format: double
+        pricePerDay:
+          type: number
+          format: double
+        active:
+          type: boolean
+        ev:
+          type: boolean
+        disabled:
+          type: boolean
+        big:
+          type: boolean
+    AdminBookingResponse:
+      type: object
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        userEmail:
+          type: string
+        spotId:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        totalCost:
+          type: number
+        status:
+          type: string
+          enum:
+            - CONFIRMED
+            - CANCELLED
+            - COMPLETED
+            - IN_PROGRESS
+        source:
+          type: string
+          enum:
+            - PARKLY
+            - OFFICELY
+    PagedResponseAdminBookingResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminBookingResponse'
+        currentPage:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+        templated:
+          type: boolean

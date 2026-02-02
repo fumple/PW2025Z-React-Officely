@@ -1,14 +1,11 @@
 package com.officely.backend.modules.flatly.api.offices.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class CoordinatesDto {
-    private Double lat;
-    private Double lon;
-
-    public CoordinatesDto() {}
-
-    public Double getLat() { return lat; }
-    public void setLat(Double lat) { this.lat = lat; }
-
-    public Double getLon() { return lon; }
-    public void setLon(Double lon) { this.lon = lon; }
+    private double lat;
+    private double lon;
 }

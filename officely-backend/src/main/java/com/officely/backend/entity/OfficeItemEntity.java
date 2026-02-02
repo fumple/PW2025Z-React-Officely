@@ -23,15 +23,15 @@ public class OfficeItemEntity {
     private OfficeEntity office;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 64)
     private String name;
 
     @Setter
-    @Column(nullable = false)
-    private Integer floor;
+    @Column(nullable = false, length = 8)
+    private String floor;
 
     @Setter
-    @Column(nullable = false)
+    @Column(nullable = false, length = 16)
     private String room;
 
     @Setter

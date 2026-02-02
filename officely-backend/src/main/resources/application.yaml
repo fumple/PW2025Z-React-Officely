@@ -26,12 +26,20 @@ spring:
     use-hal-as-default-json-media-type: true
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 250MB
+      max-file-size: 30MB
+      max-request-size: 330MB
 
 cors:
-  urls: http://localhost:8080,https://editor.swagger.io/
-  mappings: /**
+  origins: '*'
 
 flatly:
   token: abc
+
+mail:
+  from: "Officely <system@officely.noscorp.pl>"
+  host: "mail.noscorp.pl"
+  domain-whitelist:
+    - noscorp.pl
+
+parkly:
+  base-url: https://parklyreact.azurewebsites.net

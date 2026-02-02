@@ -13,7 +13,7 @@ public class OfficePhotoEntity {
     private Long id;
 
     @Setter
-    @Column(name = "url")
+    @Column(name = "url", length = 128)
     private String filename;
 
     @Setter
