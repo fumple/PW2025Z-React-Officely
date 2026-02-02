@@ -1,5 +1,5 @@
 import { apiFetchLinks, apiFetchRel } from "@/src/api/client";
-import { API_BASE_URL } from "@/src/config";
+import { API_BASE_URL, PARKLY_BASE_URL } from "@/src/config";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Image, StyleSheet, View } from "react-native";
@@ -13,9 +13,10 @@ import {
 
 const DEFAULT_PAGE_SIZE = 20;
 
-type Tab = "active" | "past" | "cancelled";
+type OfficeTab = "active" | "past" | "cancelled";
+type Tab = OfficeTab | "parkly";
 
-const makeFirstPageLink = (tab: Tab) =>
+const makeFirstPageLink = (tab: OfficeTab) =>
   `${API_BASE_URL}/bookings?status=${tab}&pageSize=${DEFAULT_PAGE_SIZE}`;
 
 type Link = { href: string };
@@ -81,6 +82,30 @@ type BookingsResponse = {
 
 type BookingWithOffice = Booking & { office: Office };
 
+type ParklyBooking = {
+  id: string;
+  userId?: string;
+  spotId?: string;
+  parkingName?: string;
+  street?: string;
+  city?: string;
+  imageUrl?: string;
+  localId?: string;
+  start?: string;
+  end?: string;
+  totalCost?: number;
+  status?: "Confirmed" | "Cancelled" | "Completed" | "InProgress";
+  source?: "parkly" | "officely";
+  disabled?: boolean;
+  ev?: boolean;
+  big?: boolean;
+  _links?: {
+    self?: Link;
+    update?: Link;
+    cancel?: Link;
+  };
+};
+
 const dayStart = (date: Date) => {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -89,11 +114,19 @@ const dayStart = (date: Date) => {
 
 const toDate = (date: string) => new Date(date);
 
-const isActiveNow = (booking: Booking) => {
+const isActiveNowOffice = (booking: Booking) => {
   const today = dayStart(new Date()).getTime();
   const start = dayStart(toDate(booking.startDate)).getTime();
   const end = dayStart(toDate(booking.endDate)).getTime();
   return start <= today && today <= end;
+};
+
+const isActiveNowParkly = (b: ParklyBooking) => {
+  if (!b.start || !b.end) return false;
+  const now = new Date().getTime();
+  const start = new Date(b.start).getTime();
+  const end = new Date(b.end).getTime();
+  return start <= now && now <= end;
 };
 
 const formatDate = (date: Date) => {
@@ -103,8 +136,20 @@ const formatDate = (date: Date) => {
   return `${d}-${m}-${y}`;
 };
 
-const dateRange = (startDate: string, endDate: string) => {
+const formatDateTime = (date: Date) => {
+  const base = formatDate(date);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${base} ${hh}:${mm}`;
+};
+
+const dateRangeOffice = (startDate: string, endDate: string) => {
   return `${formatDate(toDate(startDate))} - ${formatDate(toDate(endDate))}`;
+};
+
+const dateRangeParkly = (start?: string, end?: string) => {
+  if (!start || !end) return "";
+  return `${formatDateTime(new Date(start))} - ${formatDateTime(new Date(end))}`;
 };
 
 const BookingCard = ({
@@ -112,7 +157,7 @@ const BookingCard = ({
   tab,
 }: {
   booking: BookingWithOffice;
-  tab: Tab;
+  tab: OfficeTab;
 }) => {
   const officeName = booking.office.name;
   const img = booking.office.photoUrls?.[0];
@@ -135,12 +180,12 @@ const BookingCard = ({
         <Text
           style={[
             styles.cardDate,
-            tab === "active" && isActiveNow(booking)
+            tab === "active" && isActiveNowOffice(booking)
               ? styles.dateCurrent
               : null,
           ]}
         >
-          {dateRange(booking.startDate, booking.endDate)}
+          {dateRangeOffice(booking.startDate, booking.endDate)}
         </Text>
 
         <Button
@@ -162,24 +207,80 @@ const BookingCard = ({
   );
 };
 
+const ParklyBookingCard = ({ booking }: { booking: ParklyBooking }) => {
+  const name = booking.parkingName ?? "Parking";
+  const img = booking.imageUrl;
+  const address = [booking.street, booking.city].filter(Boolean).join(", ");
+
+  return (
+    <View style={styles.card}>
+      <Image
+        source={img ? { uri: img } : undefined}
+        style={[
+          styles.cardImage,
+          booking.status === "Cancelled" || booking.status === "Completed"
+            ? styles.imagePast
+            : null,
+        ]}
+      />
+
+      <View style={styles.cardRight}>
+        <Text style={styles.cardTitle} numberOfLines={1}>
+          {name}
+        </Text>
+
+        {address ? (
+          <Text style={styles.cardSub} numberOfLines={1}>
+            {address}
+          </Text>
+        ) : null}
+
+        <Text
+          style={[
+            styles.cardDate,
+            isActiveNowParkly(booking) ? styles.dateCurrent : null,
+          ]}
+        >
+          {dateRangeParkly(booking.start, booking.end)}
+        </Text>
+
+        <Button
+          mode="contained"
+          buttonColor="#0F4366"
+          style={styles.detailsBtn}
+          contentStyle={styles.detailsBtnContent}
+          onPress={() => {
+            router.push({
+              pathname: "/(app)/parkly/[bookingId]",
+              params: { bookingId: booking.id },
+            });
+          }}
+        >
+          View Details
+        </Button>
+      </View>
+    </View>
+  );
+};
+
 const BookingsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [bookingsByTab, setBookingsByTab] = useState<
-    Record<Tab, BookingWithOffice[]>
+    Record<OfficeTab, BookingWithOffice[]>
   >({ active: [], past: [], cancelled: [] });
 
-  const [currentHrefByTab, setCurrentHrefByTab] = useState<Record<Tab, string>>(
-    {
-      active: makeFirstPageLink("active"),
-      past: makeFirstPageLink("past"),
-      cancelled: makeFirstPageLink("cancelled"),
-    },
-  );
+  const [currentHrefByTab, setCurrentHrefByTab] = useState<
+    Record<OfficeTab, string>
+  >({
+    active: makeFirstPageLink("active"),
+    past: makeFirstPageLink("past"),
+    cancelled: makeFirstPageLink("cancelled"),
+  });
 
   const [nextHrefByTab, setNextHrefByTab] = useState<
-    Record<Tab, string | null>
+    Record<OfficeTab, string | null>
   >({
     active: null,
     past: null,
@@ -187,12 +288,14 @@ const BookingsScreen = () => {
   });
 
   const [prevHrefByTab, setPrevHrefByTab] = useState<
-    Record<Tab, string | null>
+    Record<OfficeTab, string | null>
   >({
     active: null,
     past: null,
     cancelled: null,
   });
+
+  const [parklyBookings, setParklyBookings] = useState<ParklyBooking[]>([]);
 
   const officeCacheRef = useRef<Record<string, Office>>({});
   const scrollRef = useRef<FlatList>(null);
@@ -203,56 +306,82 @@ const BookingsScreen = () => {
       ? "past"
       : paramTab === "cancelled"
         ? "cancelled"
-        : "active";
+        : paramTab === "parkly"
+          ? "parkly"
+          : "active";
 
-  const loadBookings = useCallback(async (t: Tab, href?: string) => {
+  const loadOfficeBookings = useCallback(
+    async (t: OfficeTab, href?: string) => {
+      setLoading(true);
+      setError(null);
+
+      const pageHref = href ?? makeFirstPageLink(t);
+
+      try {
+        const data = (await apiFetchLinks(pageHref, {
+          method: "GET",
+        })) as BookingsResponse;
+
+        const raw: Booking[] = Array.isArray((data as any)?.bookings)
+          ? (data as any).bookings
+          : [];
+
+        setCurrentHrefByTab((prev) => ({ ...prev, [t]: pageHref }));
+        setNextHrefByTab((prev) => ({
+          ...prev,
+          [t]: (data as any)?._links?.next?.href ?? null,
+        }));
+        setPrevHrefByTab((prev) => ({
+          ...prev,
+          [t]: (data as any)?._links?.prev?.href ?? null,
+        }));
+
+        const cache = officeCacheRef.current;
+        const officeIds = Array.from(new Set(raw.map((b) => b.officeId)));
+        const missing = officeIds.filter((id) => !cache[id]);
+
+        if (missing.length > 0) {
+          const offices = await Promise.all(
+            missing.map((id) =>
+              apiFetchRel(`/offices/${id}`, { method: "GET" }),
+            ),
+          );
+          for (const office of offices as Office[]) {
+            cache[(office as Office).id] = office as Office;
+          }
+        }
+
+        const bookingsWithOffices: BookingWithOffice[] = raw
+          .map((b) => {
+            const office = cache[b.officeId];
+            if (!office) return null;
+            return { ...b, office };
+          })
+          .filter(Boolean) as BookingWithOffice[];
+
+        setBookingsByTab((prev) => ({ ...prev, [t]: bookingsWithOffices }));
+      } catch (e: any) {
+        setError(e?.message ?? "Failed to load bookings");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const loadParklyBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const pageHref = href ?? makeFirstPageLink(t);
-
     try {
-      const data = (await apiFetchLinks(pageHref, {
+      const data = (await apiFetchLinks(`${PARKLY_BASE_URL}/bookings`, {
         method: "GET",
-      })) as BookingsResponse;
+      })) as ParklyBooking[];
 
-      const raw: Booking[] = Array.isArray((data as any)?.bookings)
-        ? (data as any).bookings
-        : [];
-
-      setCurrentHrefByTab((prev) => ({ ...prev, [t]: pageHref }));
-      setNextHrefByTab((prev) => ({
-        ...prev,
-        [t]: (data as any)?._links?.next?.href ?? null,
-      }));
-      setPrevHrefByTab((prev) => ({
-        ...prev,
-        [t]: (data as any)?._links?.prev?.href ?? null,
-      }));
-
-      const cache = officeCacheRef.current;
-      const officeIds = Array.from(new Set(raw.map((b) => b.officeId)));
-      const missing = officeIds.filter((id) => !cache[id]);
-
-      if (missing.length > 0) {
-        const offices = await Promise.all(
-          missing.map((id) => apiFetchRel(`/offices/${id}`, { method: "GET" })),
-        );
-        for (const office of offices as Office[])
-          cache[(office as Office).id] = office as Office;
-      }
-
-      const bookingsWithOffices: BookingWithOffice[] = raw
-        .map((b) => {
-          const office = cache[b.officeId];
-          if (!office) return null;
-          return { ...b, office };
-        })
-        .filter(Boolean) as BookingWithOffice[];
-
-      setBookingsByTab((prev) => ({ ...prev, [t]: bookingsWithOffices }));
+      const list = Array.isArray(data) ? data : [];
+      setParklyBookings(list);
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load bookings");
+      setError(e?.message ?? "Failed to load Parkly bookings");
     } finally {
       setLoading(false);
     }
@@ -263,33 +392,38 @@ const BookingsScreen = () => {
       setError(null);
       setLoading(true);
 
-      setBookingsByTab((prev) => ({ ...prev, [tab]: [] }));
-
-      setNextHrefByTab((prev) => ({ ...prev, [tab]: null }));
-      setPrevHrefByTab((prev) => ({ ...prev, [tab]: null }));
-      setCurrentHrefByTab((prev) => ({
-        ...prev,
-        [tab]: makeFirstPageLink(tab),
-      }));
-
-      loadBookings(tab);
+      if (tab === "parkly") {
+        setParklyBookings([]);
+        loadParklyBookings();
+      } else {
+        setBookingsByTab((prev) => ({ ...prev, [tab]: [] }));
+        setNextHrefByTab((prev) => ({ ...prev, [tab]: null }));
+        setPrevHrefByTab((prev) => ({ ...prev, [tab]: null }));
+        setCurrentHrefByTab((prev) => ({
+          ...prev,
+          [tab]: makeFirstPageLink(tab),
+        }));
+        loadOfficeBookings(tab);
+      }
 
       const id = setTimeout(() => {
         scrollRef.current?.scrollToOffset({ offset: 0, animated: false });
       }, 0);
 
       return () => clearTimeout(id);
-    }, [loadBookings, tab]),
+    }, [loadOfficeBookings, loadParklyBookings, tab]),
   );
 
-  const data = bookingsByTab[tab];
-  const nextHref = nextHrefByTab[tab];
-  const prevHref = prevHrefByTab[tab];
-  const currentHref = currentHrefByTab[tab];
+  const officeData = tab === "parkly" ? [] : bookingsByTab[tab];
+  const data = tab === "parkly" ? parklyBookings : officeData;
+
+  const nextHref = tab === "parkly" ? null : nextHrefByTab[tab];
+  const prevHref = tab === "parkly" ? null : prevHrefByTab[tab];
+  const currentHref = tab === "parkly" ? "" : currentHrefByTab[tab];
 
   const showPaging = useMemo(
-    () => !!nextHref || !!prevHref,
-    [nextHref, prevHref],
+    () => tab !== "parkly" && (!!nextHref || !!prevHref),
+    [tab, nextHref, prevHref],
   );
 
   if (loading && data.length === 0) {
@@ -305,7 +439,10 @@ const BookingsScreen = () => {
       <View style={styles.center}>
         <Text>{error}</Text>
         <Button
-          onPress={() => loadBookings(tab, currentHref)}
+          onPress={() => {
+            if (tab === "parkly") loadParklyBookings();
+            else loadOfficeBookings(tab, currentHref);
+          }}
           style={{ marginTop: 12 }}
         >
           Retry
@@ -323,6 +460,7 @@ const BookingsScreen = () => {
           { value: "active", label: "Active" },
           { value: "past", label: "Past" },
           { value: "cancelled", label: "Cancelled" },
+          { value: "parkly", label: "Parkly" },
         ]}
         style={styles.segment}
       />
@@ -330,19 +468,27 @@ const BookingsScreen = () => {
       <FlatList
         ref={scrollRef}
         data={data}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: any) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <Text style={styles.empty}>
-            {tab === "active"
-              ? "No active bookings."
-              : tab === "past"
-                ? "No past bookings."
-                : "No cancelled bookings."}
+            {tab === "parkly"
+              ? "No Parkly bookings."
+              : tab === "active"
+                ? "No active bookings."
+                : tab === "past"
+                  ? "No past bookings."
+                  : "No cancelled bookings."}
           </Text>
         }
-        renderItem={({ item }) => <BookingCard booking={item} tab={tab} />}
+        renderItem={({ item }: any) =>
+          tab === "parkly" ? (
+            <ParklyBookingCard booking={item as ParklyBooking} />
+          ) : (
+            <BookingCard booking={item as BookingWithOffice} tab={tab} />
+          )
+        }
         ListFooterComponent={
           showPaging ? (
             <View style={styles.page}>
@@ -350,7 +496,9 @@ const BookingsScreen = () => {
                 icon="chevron-left"
                 size={28}
                 disabled={!prevHref || loading}
-                onPress={() => prevHref && loadBookings(tab, prevHref)}
+                onPress={() =>
+                  prevHref && loadOfficeBookings(tab as OfficeTab, prevHref)
+                }
                 style={styles.pageBtn}
               />
 
@@ -358,7 +506,9 @@ const BookingsScreen = () => {
                 icon="chevron-right"
                 size={28}
                 disabled={!nextHref || loading}
-                onPress={() => nextHref && loadBookings(tab, nextHref)}
+                onPress={() =>
+                  nextHref && loadOfficeBookings(tab as OfficeTab, nextHref)
+                }
                 style={styles.pageBtn}
               />
             </View>
@@ -410,7 +560,9 @@ const styles = StyleSheet.create({
 
   cardRight: { flex: 1, paddingLeft: 12 },
 
-  cardTitle: { fontSize: 16, fontWeight: "800", marginBottom: 4 },
+  cardTitle: { fontSize: 16, fontWeight: "800", marginBottom: 2 },
+
+  cardSub: { fontSize: 12, opacity: 0.8, marginBottom: 6 },
 
   cardDate: { fontSize: 12, marginBottom: 10 },
 

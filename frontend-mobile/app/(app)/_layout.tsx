@@ -33,7 +33,6 @@ export default function AppLayout() {
     <Tabs
       screenOptions={{
         header: () => <AppTopBar />,
-
         popToTopOnBlur: true,
 
         tabBarStyle: {
@@ -54,7 +53,15 @@ export default function AppLayout() {
             <Icon source="magnify" color={color} size={size} />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            // Always go to the root screen for this tab
+            e.preventDefault();
+            router.replace("/(app)/search");
+          },
+        }}
       />
+
       <Tabs.Screen
         name="bookings"
         options={{
@@ -62,13 +69,26 @@ export default function AppLayout() {
             <Icon source="calendar" color={color} size={size} />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/(app)/bookings");
+          },
+        }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon source="account-circle" color={color} size={size} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.replace("/(app)/profile");
+          },
         }}
       />
 

@@ -151,7 +151,7 @@ const ResultCard = ({
             mode="contained"
             onPress={() => {
               router.push({
-                pathname: "/(app)/parkly/[parkingId]",
+                pathname: "/parkly/parkings/[parkingId]",
                 params: {
                   parkingId: item.id ?? "",
                   startDate,
@@ -312,12 +312,28 @@ const GetParkingsScreen = () => {
     }
   }, [buildHref, datesOk, mapPin, errors.radius]);
 
+  const datesOkRef = useRef(datesOk);
+  const mapPinRef = useRef(mapPin);
+  const loadDataRef = useRef(loadData);
+
+  useEffect(() => {
+    datesOkRef.current = datesOk;
+  }, [datesOk]);
+
+  useEffect(() => {
+    mapPinRef.current = mapPin;
+  }, [mapPin]);
+
+  useEffect(() => {
+    loadDataRef.current = loadData;
+  }, [loadData]);
+
   useFocusEffect(
     useCallback(() => {
-      if (!datesOk) return;
-      if (!mapPin) return;
-      loadData();
-    }, [datesOk, mapPin, loadData]),
+      if (!datesOkRef.current) return;
+      if (!mapPinRef.current) return;
+      loadDataRef.current();
+    }, []),
   );
 
   return (

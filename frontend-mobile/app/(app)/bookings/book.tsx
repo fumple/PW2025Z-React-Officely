@@ -7,8 +7,7 @@ import {
   Button,
   Divider,
   HelperText,
-  IconButton,
-  Text,
+  Text
 } from "react-native-paper";
 
 import { apiFetchRel } from "@/src/api/client";
@@ -202,12 +201,6 @@ const BookingScreen = () => {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.topRow}>
-          <IconButton
-            icon="arrow-left"
-            size={22}
-            onPress={() => router.back()}
-            style={styles.iconBtn}
-          />
           <Text style={styles.headerTitle} numberOfLines={1}>
             Booking
           </Text>
