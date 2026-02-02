@@ -103,10 +103,12 @@ public class FlatlyUserController {
     }
 
     @GetMapping("/{userId}/bookings")
-    public BookingsResponseDto getUsersBookings(@PathVariable Long userId, @RequestParam int pageSize,
+    public BookingsResponseDto getUsersBookings(@PathVariable Long userId,
+                                                @RequestParam(required = false) BookingService.BookingStatusFilter status,
+                                                @RequestParam int pageSize,
                                                 @RequestParam(required = false) Integer pageToken){
         var response = new BookingsResponseDto();
-        var results = bookingService.getUserBookings(userId, pageSize, pageToken);
+        var results = bookingService.getUserBookings(userId, status, pageSize, pageToken);
         response.setBookings(results.get().map(this::toDto).toList());
 
         var pagination = new PaginationDto();
@@ -116,22 +118,22 @@ public class FlatlyUserController {
         response.setPagination(pagination);
 
         response.add(
-                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getCurrentPage()))
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, status, pageSize, pagination.getCurrentPage()))
                         .withSelfRel().expand(),
-                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, 0))
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, status, pageSize, 0))
                         .withRel("first").expand(),
-                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getLastPage()))
+                linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, status, pageSize, pagination.getLastPage()))
                         .withRel("last").expand()
         );
         if(pagination.getCurrentPage() != pagination.getLastPage()) {
             response.add(
-                    linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getCurrentPage()+1))
+                    linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, status, pageSize, pagination.getCurrentPage()+1))
                             .withRel("next").expand()
             );
         }
         if(pagination.getCurrentPage() > 0) {
             response.add(
-                    linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, pageSize, pagination.getCurrentPage()-1))
+                    linkTo(methodOn(FlatlyUserController.class).getUsersBookings(userId, status, pageSize, pagination.getCurrentPage()-1))
                             .withRel("prev").expand()
             );
         }

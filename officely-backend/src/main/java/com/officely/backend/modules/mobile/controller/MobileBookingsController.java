@@ -1,6 +1,5 @@
 package com.officely.backend.modules.mobile.controller;
 
-import com.officely.backend.api.PaginatedResponse;
 import com.officely.backend.api.pagination.PaginationDto;
 import com.officely.backend.entity.BookingEntity;
 import com.officely.backend.entity.UserEntity;
@@ -37,11 +36,12 @@ public class MobileBookingsController {
 
     @GetMapping
     public ResponseEntity<MobileBookingsResponseDto> getMyBookings(
+            @RequestParam(required = false) BookingService.BookingStatusFilter status,
             @RequestParam @Valid @Min(1) @Max(50) int pageSize,
             @RequestParam(required = false) Integer pageToken
     ) {
         var actor = (UserEntity) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        var page = bookingService.getUserBookings(actor.getId(), pageSize, pageToken);
+        var page = bookingService.getUserBookings(actor.getId(), status, pageSize, pageToken);
 
         var response = new MobileBookingsResponseDto();
         response.setBookings(page.getContent().stream().map(this::toDto).toList());
@@ -53,21 +53,21 @@ public class MobileBookingsController {
         response.setPagination(pagination);
 
         response.add(
-                linkTo(methodOn(MobileBookingsController.class).getMyBookings(pageSize, page.getNumber()))
+                linkTo(methodOn(MobileBookingsController.class).getMyBookings(status, pageSize, page.getNumber()))
                         .withSelfRel().expand(),
-                linkTo(methodOn(MobileBookingsController.class).getMyBookings(pageSize, 0))
+                linkTo(methodOn(MobileBookingsController.class).getMyBookings(status, pageSize, 0))
                         .withRel("first").expand(),
-                linkTo(methodOn(MobileBookingsController.class).getMyBookings(pageSize, pagination.getLastPage()))
+                linkTo(methodOn(MobileBookingsController.class).getMyBookings(status, pageSize, pagination.getLastPage()))
                         .withRel("last").expand()
         );
 
         if (pagination.getCurrentPage() != pagination.getLastPage()) {
             response.add(linkTo(methodOn(MobileBookingsController.class)
-                    .getMyBookings(pageSize, pagination.getCurrentPage() + 1)).withRel("next").expand());
+                    .getMyBookings(status, pageSize, pagination.getCurrentPage() + 1)).withRel("next").expand());
         }
         if (pagination.getCurrentPage() > 0) {
             response.add(linkTo(methodOn(MobileBookingsController.class)
-                    .getMyBookings(pageSize, pagination.getCurrentPage() - 1)).withRel("prev").expand());
+                    .getMyBookings(status, pageSize, pagination.getCurrentPage() - 1)).withRel("prev").expand());
         }
 
         return ResponseEntity.ok(response);
