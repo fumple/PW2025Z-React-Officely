@@ -7,7 +7,7 @@ import {
   Button,
   Divider,
   HelperText,
-  Text
+  Text,
 } from "react-native-paper";
 
 import { apiFetchRel } from "@/src/api/client";
