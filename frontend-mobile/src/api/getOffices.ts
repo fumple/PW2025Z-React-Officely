@@ -84,7 +84,6 @@ export const getOffices = async (params: GetOfficesParams) => {
   });
 
   const requestPath = "/offices" + queryString;
-  console.log("GET", requestPath);
 
   return apiFetchRel(requestPath, { method: "GET" });
 };
