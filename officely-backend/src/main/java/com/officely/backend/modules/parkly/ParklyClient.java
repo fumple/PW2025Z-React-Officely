@@ -9,6 +9,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -24,8 +26,9 @@ public class ParklyClient {
 
     public ResponseEntity<?> getAllParkings(
             double latitude, double longitude, Double radius,
-            String startDate, String endDate,
-            Boolean isEv, Boolean isDisabled, Boolean isBig
+            LocalDateTime startDate, LocalDateTime endDate,
+            Boolean isEv, Boolean isDisabled, Boolean isBig,
+            String name, String city, Boolean sortByPrice, Boolean sortByDistance
     ) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
@@ -38,6 +41,10 @@ public class ParklyClient {
                 .queryParamIfPresent("isEv", java.util.Optional.ofNullable(isEv))
                 .queryParamIfPresent("isDisabled", java.util.Optional.ofNullable(isDisabled))
                 .queryParamIfPresent("isBig", java.util.Optional.ofNullable(isBig))
+                .queryParamIfPresent("name", java.util.Optional.ofNullable(name))
+                .queryParamIfPresent("city", java.util.Optional.ofNullable(city))
+                .queryParamIfPresent("sortByPrice", java.util.Optional.ofNullable(sortByPrice))
+                .queryParamIfPresent("sortByDistance", java.util.Optional.ofNullable(sortByDistance))
                 .build().toUriString();
 
         try {
@@ -49,7 +56,7 @@ public class ParklyClient {
         }
     }
 
-    public ResponseEntity<?> getParkingDetails(String parkingId, String startDate, String endDate) {
+    public ResponseEntity<?> getParkingDetails(String parkingId, LocalDateTime startDate, LocalDateTime endDate) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/parkings/{id}")
@@ -65,7 +72,7 @@ public class ParklyClient {
         }
     }
 
-    public ResponseEntity<?> getMyBookings(String email, String from, String to) {
+    public ResponseEntity<?> getMyBookings(String email, LocalDate from, LocalDate to) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(parklyConfig.getBaseUrl())
                 .path("/api/bookings")
