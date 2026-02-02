@@ -1,10 +1,10 @@
 openapi: 3.1.0
 servers: 
   - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/flatly
-  - url: https://officely-dev.noscorp.pl/flatly
+  - url: http://localhost:8080/mobile
 info:
   title: Officely - API documentation for Flatly
-  version: 1.2.1
+  version: 1.2.2
   description:  |
     This is a rough description of how the API works, however the names of some fields may be different, treat this as a rough guide.
     1. view available filters
@@ -1122,6 +1122,14 @@ paths:
         in: query
         schema:
           type: string
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+            - cancelled
+            - past
+            - active
       responses:
         "200":
           description: Success
@@ -1194,6 +1202,7 @@ paths:
                           enum:
                             - pageSize
                             - pageToken
+                            - status
                         message:
                           type: string
                           description: A human readable message
