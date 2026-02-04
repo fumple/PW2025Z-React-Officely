@@ -81,7 +81,7 @@ jobs:
       - name: Build frontend-web
         working-directory: frontend-web
         env:
-          VITE_API_BASE_URL: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/admin
+          VITE_API_BASE_URL: https://backend.invalid/admin
         run: |
           npm ci
           npm run build
