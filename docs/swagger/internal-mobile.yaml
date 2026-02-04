@@ -1,7 +1,7 @@
 openapi: 3.1.0
 servers: 
-  - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/mobile
   - url: http://localhost:8080/mobile
+  - url: https://backend.invalid/mobile
 info:
   title: Officely - Internal Mobile API
   version: 1.3.0

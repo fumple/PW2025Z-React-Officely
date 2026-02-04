@@ -10,7 +10,7 @@ info:
     name: Apache 2.0
     url: http://springdoc.org
 servers:
-  - url: https://parklyreact.azurewebsites.net
+  - url: https://parkly.invalid
     description: Generated server url
 tags:
   - name: Authentication

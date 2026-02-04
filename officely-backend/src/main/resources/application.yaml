@@ -36,10 +36,10 @@ flatly:
   token: abc
 
 mail:
-  from: "Officely <system@officely.noscorp.pl>"
-  host: "mail.noscorp.pl"
+  from: "Officely <system@officely.invalid>"
+  host: "mail.examplemailserver.invalid"
   domain-whitelist:
-    - noscorp.pl
+    - examplemailserver.invalid
 
 parkly:
-  base-url: https://parklyreact.azurewebsites.net
+  base-url: https://parkly.invalid

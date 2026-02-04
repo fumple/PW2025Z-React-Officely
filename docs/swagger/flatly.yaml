@@ -1,7 +1,7 @@
 openapi: 3.1.0
 servers: 
-  - url: https://officelybackend-bbgmg9hnc8cff9hp.polandcentral-01.azurewebsites.net/flatly
-  - url: http://localhost:8080/mobile
+  - url: http://localhost:8080/flatly
+  - url: https://backend.invalid/flatly
 info:
   title: Officely - API documentation for Flatly
   version: 1.2.2
