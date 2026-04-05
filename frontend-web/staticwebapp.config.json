@@ -2,5 +2,8 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["*.{svg,png,jpg,gif,woff,woff2}", "*.{css,scss}", "*.js"]
+  },
+  "globalHeaders": {
+    "referrer-policy": "strict-origin-when-cross-origin"
   }
 }

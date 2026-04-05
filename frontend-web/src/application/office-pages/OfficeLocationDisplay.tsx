@@ -58,7 +58,7 @@ export const OfficeLocationDisplay = (props: {
           zoom={13}
           style={{ height: "100%", width: "100%" }}
         >
-          <TileLayer url={tileUrl} />
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url={tileUrl} />
           <SetView lat={props.lat} lng={props.lng} />
           <Marker position={[props.lat, props.lng]} icon={markerIcon} />
         </MapContainer>
